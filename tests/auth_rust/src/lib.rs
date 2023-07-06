@@ -87,6 +87,7 @@ pub enum AlgorithmType {
     Cardano = 11,
     Monero = 12,
     Solana = 13,
+    Ripple = 14,
     OwnerLock = 0xFC,
 }
 
@@ -743,6 +744,9 @@ pub fn auth_builder(t: AlgorithmType, official: bool) -> result::Result<Box<dyn 
         }
         AlgorithmType::Solana => {
             return Ok(SolanaAuth::new());
+        }
+        AlgorithmType::Ripple => {
+            panic!("unsupport ripple")
         }
         AlgorithmType::OwnerLock => {
             return Ok(OwnerLockAuth::new());
@@ -1441,7 +1445,7 @@ impl SolanaAuth {
         let len_bytes = len.to_le_bytes();
         let mut data = [0u8; SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE];
         data[..2].copy_from_slice(len_bytes.as_slice());
-        data[2..(signature.len()+2)].copy_from_slice(signature);
+        data[2..(signature.len() + 2)].copy_from_slice(signature);
         Some(data)
     }
     pub fn unwrap_signature(
