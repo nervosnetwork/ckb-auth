@@ -36,7 +36,7 @@ use serde_json::from_str as from_json_str;
 use smt::build_tree;
 use sparse_merkle_tree::H256;
 
-enum AuthEntryCategoryType {
+pub enum AuthEntryCategoryType {
     // Exec = 0,
     // DL = 1,
     Spawn = 2,
@@ -219,16 +219,24 @@ pub fn generate_sighash_all(
     Ok(message)
 }
 
+pub fn get_auth_code_hash() -> [u8; 32] {
+    CellOutput::calc_data_hash(&AUTH_DL)
+        .as_slice()
+        .to_vec()
+        .try_into()
+        .unwrap()
+}
+
+pub fn get_auth_hash_type() -> u8 {
+    AUTH_DL_HASH_TYPE.clone().into()
+}
+
 pub fn update_auth_code_hash(tx: &mut ReprMockTransaction) {
-    let hash = CellOutput::calc_data_hash(&AUTH_DL).as_slice().to_vec();
+    let hash = get_auth_code_hash();
     for input in tx.mock_info.inputs.as_mut_slice() {
         let mut buf = input.output.lock.args.as_bytes().to_vec();
         buf.extend_from_slice(&hash);
-
-        buf.extend_from_slice(&[
-            AUTH_DL_HASH_TYPE.clone().into(),
-            AuthEntryCategoryType::Spawn as u8,
-        ]);
+        buf.extend_from_slice(&[get_auth_hash_type(), AuthEntryCategoryType::Spawn as u8]);
 
         input.output.lock.args = JsonBytes::from_vec(buf);
     }

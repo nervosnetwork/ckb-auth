@@ -58,7 +58,7 @@ build/libed25519.a: build/ed25519/sign.o build/ed25519/verify.o build/ed25519/sh
 					build/ed25519/key_exchange.o build/ed25519/ge.o build/ed25519/fe.o build/ed25519/add_scalar.o
 	$(AR) cr $@ $^
 
-build/auth: c/auth.c c/cardano/cardano_lock_inc.h deps/mbedtls/library/libmbedcrypto.a build/libed25519.a build/libnanocbor.a
+build/auth: c/auth.c c/cardano/cardano_lock_inc.h c/ripple.h deps/mbedtls/library/libmbedcrypto.a build/libed25519.a build/libnanocbor.a
 	$(CC) $(AUTH_CFLAGS) $(LDFLAGS) -fPIC -fPIE -pie -Wl,--dynamic-list c/auth.syms -o $@ $^
 	cp $@ $@.debug
 	$(OBJCOPY) --strip-debug --strip-all $@

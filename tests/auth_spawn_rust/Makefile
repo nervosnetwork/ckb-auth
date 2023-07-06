@@ -13,6 +13,11 @@ auth-spawn-rust-success:
 	cargo run --bin auth-spawn-rust-success > tx.json
 	${CKB_DEBUGGER} --tx-file=tx.json -s lock
 
+ripple-success:
+	cd ../.. && capsule build
+	cargo run --bin ripple-success > tx.json
+	${CKB_DEBUGGER} --tx-file=tx.json -s lock
+
 install:
 	wget 'https://github.com/XuJiandong/ckb-standalone-debugger/releases/download/ckb2023-0621/ckb-debugger-linux-x64.tar.gz'
 	tar zxvf ckb-debugger-linux-x64.tar.gz
