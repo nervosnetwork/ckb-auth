@@ -6,8 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "include/secp256k1.h"
-#include "include/secp256k1_preallocated.h"
+#include "secp256k1_helper_20210801.h"
 #include "mbedtls/md.h"
 #include "mbedtls/md_internal.h"
 #include "mbedtls/memory_buffer_alloc.h"
@@ -216,21 +215,22 @@ int verify_ripple(RippleSignatureData *data) {
         mbedtls_md_info_from_type(MBEDTLS_MD_SHA512);
     CHECK(mbedtls_md(md_info, data->sign_msg, data->sign_msg_len, msg_hash));
 
-    uint8_t secp256k1_ctx_buf[256];
-    secp256k1_context *ctx = secp256k1_context_preallocated_create(
-        secp256k1_ctx_buf, SECP256K1_CONTEXT_VERIFY);
+    uint8_t secp256k1_ctx_buf[CKB_SECP256K1_DATA_SIZE];
+    secp256k1_context ctx;
+    ckb_secp256k1_custom_verify_only_initialize(&ctx, secp256k1_ctx_buf);
+
     secp256k1_pubkey pubkey;
     secp256k1_ecdsa_signature sig;
 
-    CHECK2(secp256k1_ec_pubkey_parse(ctx, &pubkey, data->public_key,
+    CHECK2(secp256k1_ec_pubkey_parse(&ctx, &pubkey, data->public_key,
                                      sizeof(data->public_key)) == 1,
            RIPPLE_ERROR_VERIFY);
 
-    CHECK2(secp256k1_ecdsa_signature_parse_der(ctx, &sig, data->sign_data,
+    CHECK2(secp256k1_ecdsa_signature_parse_der(&ctx, &sig, data->sign_data,
                                                data->sign_data_len),
            RIPPLE_ERROR_VERIFY);
 
-    CHECK2(secp256k1_ecdsa_verify(ctx, &sig, msg_hash, &pubkey),
+    CHECK2(secp256k1_ecdsa_verify(&ctx, &sig, msg_hash, &pubkey),
            RIPPLE_ERROR_VERIFY);
 exit:
     return err;
