@@ -178,6 +178,7 @@ int get_ripple_verify_data(const uint8_t *sign, size_t sign_len,
                         CHECK2(sign_len >= buf_len,
                                RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
                         memcpy(out->ckb_msg, sign, buf_len);
+                        SIGN_BUFF_OFFSET(20);
                         break;
                     case 3:
                         // sorted
@@ -187,7 +188,6 @@ int get_ripple_verify_data(const uint8_t *sign, size_t sign_len,
                     default:
                         CHECK(RIPPLE_ERROR_PARSE_UNKNOW_FIELD_CODE);
                 }
-                SIGN_BUFF_OFFSET(20);
                 break;
             // case 14:
             // case 15:
