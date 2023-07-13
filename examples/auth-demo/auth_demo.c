@@ -206,6 +206,21 @@ int main() {
   auth.algorithm_id = *args_bytes_seg.ptr;
   memcpy(auth.content, args_bytes_seg.ptr + 1, 20);
 
+  // Due to the variable length of certain Lock signs, 
+  //  it becomes difficult to determine the CKB sign message. 
+  //  Therefore, additional data needs to be appended later.
+  //  It is necessary to remove this data at this point.
+  switch (auth.algorithm_id) {
+    case AuthAlgorithmIdRipple:
+      if (lock_bytes_seg.ptr[lock_bytes_seg.size - 1] >= lock_bytes_seg.size) {
+          return 102;  // ERROR_INVALID_ARG
+      }
+      lock_bytes_seg.size -= lock_bytes_seg.ptr[lock_bytes_seg.size - 1];
+      break;
+    default:
+      break;
+  }
+
   return ckb_auth(&entry, &auth, lock_bytes_seg.ptr, lock_bytes_seg.size,
                   msg32);
 }

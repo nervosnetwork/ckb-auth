@@ -1,32 +1,30 @@
-#include <stdio.h>
-
 #ifndef _CKB_AUTH_C_RIPPLE_H_
 #define _CKB_AUTH_C_RIPPLE_H_
 
 #include <stddef.h>
 #include <stdint.h>
 
-#include "secp256k1_helper_20210801.h"
 #include "mbedtls/md.h"
 #include "mbedtls/md_internal.h"
 #include "mbedtls/memory_buffer_alloc.h"
+#include "secp256k1_helper_20210801.h"
 
 #undef CHECK2
 #undef CHECK
-#define CHECK2(cond, code)                         \
-    do {                                           \
-        if (!(cond)) {                             \
-            err = code;                            \
-            goto exit;                             \
-        }                                          \
+#define CHECK2(cond, code) \
+    do {                   \
+        if (!(cond)) {     \
+            err = code;    \
+            goto exit;     \
+        }                  \
     } while (0)
 
-#define CHECK(code)                               \
-    do {                                          \
-        if (code != 0) {                          \
-            err = code;                           \
-            goto exit;                            \
-        }                                         \
+#define CHECK(code)      \
+    do {                 \
+        if (code != 0) { \
+            err = code;  \
+            goto exit;   \
+        }                \
     } while (0)
 
 #define RIPPLE_SIGN_DATA_MAX_SIZE 72
@@ -52,13 +50,7 @@ enum RIPPLE_ERROR {
     RIPPLE_ERROR_VERIFY,
 };
 
-bool check_header(const uint8_t *buf, size_t buf_len) {
-    if (buf_len <= 4) {
-        return false;
-    }
-    // STX
-    return buf[0] == 0x53 && buf[1] == 0x54 && buf[2] == 0x58 && buf[3] == 0x00;
-}
+uint8_t G_RIPPLE_SIGN_HEAD[] = {0x53, 0x54, 0x58, 0x00};
 
 // return read len
 int _get_field_info(const uint8_t *buf, size_t buf_len, uint32_t *type_code,
@@ -101,13 +93,12 @@ int get_ripple_verify_data(const uint8_t *sign, size_t sign_len,
     const uint8_t *sign_base_ptr = sign;
     size_t buf_len = 0;
 
-#define SIGN_BUFF_OFFSET(offset) \
-    {                            \
-        sign_len -= offset;      \
-        sign += offset;          \
+#define SIGN_BUFF_OFFSET(offset)                                     \
+    {                                                                \
+        CHECK2(sign_len >= offset, RIPPLE_ERROR_PARSE_OUT_OF_BOUND); \
+        sign_len -= offset;                                          \
+        sign += offset;                                              \
     }
-
-    SIGN_BUFF_OFFSET(4);
 
     while (sign_len > 0) {
         int len = _get_field_info(sign, sign_len, &type_code, &field_code);
@@ -136,33 +127,45 @@ int get_ripple_verify_data(const uint8_t *sign, size_t sign_len,
                         SIGN_BUFF_OFFSET(8);
                         break;
                     default:
-                        return RIPPLE_ERROR_PARSE_UNKNOW_FIELD_CODE;
+                        CHECK(RIPPLE_ERROR_PARSE_UNKNOW_FIELD_CODE);
                 }
                 break;
             case 7:
                 buf_len = sign[0];
+                SIGN_BUFF_OFFSET(1);
                 switch (field_code) {
                     case 3:
-                        SIGN_BUFF_OFFSET(1);
                         CHECK2(buf_len == sizeof(out->public_key),
                                RIPPLE_ERROR_PARSE_PUBKEY_LEN_INVADE);
+                        CHECK2(sign_len >= buf_len,
+                               RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
                         memcpy(out->public_key, sign, buf_len);
                         SIGN_BUFF_OFFSET(buf_len);
                         break;
                     case 4:
                         out->sign_data_len = buf_len;
-                        memcpy(out->sign_data, sign + 1, buf_len);
-                        sign_len -= (72 - buf_len);
+                        CHECK2(sign_len >= buf_len,
+                               RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
+                        memcpy(out->sign_data, sign, buf_len);
 
-                        size_t sign_data_pos = sign - sign_base_ptr - 1;
-                        memcpy(out->sign_msg, sign_base_ptr, sign_data_pos);
-                        SIGN_BUFF_OFFSET(buf_len + 1);
-                        memcpy(out->sign_msg + sign_data_pos, sign, sign_len);
-                        out->sign_msg_len = sign_data_pos + sign_len;
+                        // generate sign message
+                        uint8_t *sign_msg_ptr = out->sign_msg;
+                        memcpy(sign_msg_ptr, G_RIPPLE_SIGN_HEAD,
+                               sizeof(G_RIPPLE_SIGN_HEAD));
+                        sign_msg_ptr += 4;
+                        out->sign_msg_len = 4;
 
+                        size_t sign_data_pos = sign - sign_base_ptr - 2;
+                        memcpy(sign_msg_ptr, sign_base_ptr, sign_data_pos);
+                        sign_msg_ptr += sign_data_pos;
+                        out->sign_msg_len += sign_data_pos;
+                        SIGN_BUFF_OFFSET(buf_len);
+                        CHECK2(sign_len >= 0, RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
+                        memcpy(sign_msg_ptr, sign, sign_len);
+                        out->sign_msg_len += sign_len;
                         break;
                     default:
-                        return RIPPLE_ERROR_PARSE_UNKNOW_FIELD_CODE;
+                        CHECK(RIPPLE_ERROR_PARSE_UNKNOW_FIELD_CODE);
                 }
                 break;
             case 8:
@@ -172,32 +175,35 @@ int get_ripple_verify_data(const uint8_t *sign, size_t sign_len,
                 SIGN_BUFF_OFFSET(1);
                 switch (field_code) {
                     case 1:
+                        CHECK2(sign_len >= buf_len,
+                               RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
                         memcpy(out->ckb_msg, sign, buf_len);
                         break;
                     case 3:
+                        // sorted
+                        // In the existing logic, we only need to know the data
+                        sign_len = 0;
                         break;
                     default:
-                        return RIPPLE_ERROR_PARSE_UNKNOW_FIELD_CODE;
+                        CHECK(RIPPLE_ERROR_PARSE_UNKNOW_FIELD_CODE);
                 }
                 SIGN_BUFF_OFFSET(20);
                 break;
             // case 14:
-            //     // TODO
-            //     break;
             // case 15:
-            //     // TODO
+            //     // unsupport
             //     break;
-            case 16:
-                SIGN_BUFF_OFFSET(1);
-                break;
-            case 17:
-                SIGN_BUFF_OFFSET(20);
-                break;
+            // case 16:
+            //     SIGN_BUFF_OFFSET(1);
+            //     break;
+            // case 17:
+            //     SIGN_BUFF_OFFSET(20);
+            //     break;
             // case 18:
-            //     // TODO
+            //     // unsupport
             //     break;
             default:
-                return RIPPLE_ERROR_PARSE_UNKNOW_TYPE_CODE;
+                CHECK(RIPPLE_ERROR_PARSE_UNKNOW_TYPE_CODE);
         }
     }
 

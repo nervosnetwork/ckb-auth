@@ -382,9 +382,12 @@ int validate_signature_ripple(void *prefilled_data, const uint8_t *sig,
                               size_t msg_len, uint8_t *output,
                               size_t *output_len) {
     int err = 0;
+    if (*output_len < BLAKE160_SIZE) {
+        return SECP256K1_PUBKEY_SIZE;
+    }
+
     uint8_t out_sign_msg_buf[sig_len];
 
-    CHECK2(check_header(sig, sig_len), ERROR_INVALID_ARG);
     RippleSignatureData sign_data;
     sign_data.sign_msg = out_sign_msg_buf;
 

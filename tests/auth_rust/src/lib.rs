@@ -746,7 +746,7 @@ pub fn auth_builder(t: AlgorithmType, official: bool) -> result::Result<Box<dyn 
             return Ok(SolanaAuth::new());
         }
         AlgorithmType::Ripple => {
-            panic!("unsupport ripple")
+            return Ok(RippleAuth::new());
         }
         AlgorithmType::OwnerLock => {
             return Ok(OwnerLockAuth::new());
@@ -1539,6 +1539,157 @@ impl Auth for SolanaAuth {
     // the signature plus the actual signature. The bytes after the signature will not be used.
     fn get_sign_size(&self) -> usize {
         SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE
+    }
+}
+
+#[derive(Clone)]
+pub struct RippleAuth {
+    key: ripple_keypairs::Seed,
+}
+impl RippleAuth {
+    pub fn new() -> Box<Self> {
+        use ripple_keypairs::{Algorithm, Entropy, Seed};
+        Box::new(RippleAuth {
+            key: Seed::new(Entropy::Random, &Algorithm::Secp256k1),
+        })
+    }
+
+    fn hash_ripemd160(data: &[u8]) -> [u8; 20] {
+        use mbedtls::hash::*;
+        let mut md = Md::new(Type::Ripemd).unwrap();
+        md.update(data).expect("hash ripemd update");
+        let mut out = [0u8; 20];
+        md.finish(&mut out).expect("hash ripemd finish");
+
+        out
+    }
+
+    fn hash_sha256(data: &[u8]) -> [u8; 32] {
+        use mbedtls::hash::*;
+        let mut md = Md::new(Type::Sha256).unwrap();
+        md.update(data).expect("hash sha256 update");
+        let mut out = [0u8; 32];
+        md.finish(&mut out).expect("hash sha256 finish");
+
+        out
+    }
+
+    pub fn base58_encode(d: &[u8]) -> String {
+        let alpha =
+            bs58::Alphabet::new(b"rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz")
+                .expect("generate base58");
+
+        bs58::encode(d).with_alphabet(&alpha).into_string()
+    }
+
+    pub fn base58_decode(s: &str) -> Vec<u8> {
+        let alpha =
+            bs58::Alphabet::new(b"rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz")
+                .expect("generate base58");
+
+        let hex = bs58::decode(s).with_alphabet(&alpha).into_vec().expect("");
+        hex[1..21].to_vec()
+    }
+
+    pub fn hex_to_address(data: &[u8]) -> String {
+        let data = Self::hash_sha256(data);
+        let data: [u8; 20] = Self::hash_ripemd160(&data);
+
+        let mut data = {
+            let mut buf = vec![0u8];
+            buf.extend_from_slice(&data);
+            buf
+        };
+
+        let checksum = Self::hash_sha256(&Self::hash_sha256(&data))[..4].to_vec();
+        data.extend_from_slice(&checksum);
+        Self::base58_encode(&data)
+    }
+
+    fn get_hash(data: &[u8]) -> [u8; 20] {
+        Self::hash_ripemd160(&Self::hash_sha256(data))
+    }
+
+    fn generate_tx(ckb_sign_msg: &[u8], pubkey: &[u8], sign: Option<&[u8]>) -> Vec<u8> {
+        use hex::decode;
+        assert_eq!(ckb_sign_msg.len(), 20);
+        assert_eq!(pubkey.len(), 33);
+
+        let tx_temp_1: &str =
+            "1200002280000000240000016861D4838D7EA4C680000000000000000000000000005553440000000000";
+        let tx_temp_2: &str = "684000000000002710";
+        let tx_temp_3: &str = "83143E9D4A2B8AA0780F682D136F7A56D6724EF53754";
+
+        let mut padding_zero = 0usize;
+
+        let mut buf = Vec::new();
+        if sign.is_none() {
+            buf.extend_from_slice(&[0x53, 0x54, 0x58, 0x00]);
+        }
+
+        buf.extend_from_slice(&decode(tx_temp_1).unwrap());
+        buf.extend_from_slice(ckb_sign_msg);
+        buf.extend_from_slice(&decode(tx_temp_2).unwrap());
+
+        buf.extend_from_slice(&[0x73, 0x21]);
+        buf.extend_from_slice(pubkey);
+
+        if sign.is_some() {
+            let sign_len = sign.as_ref().unwrap().len();
+            buf.extend_from_slice(&[0x74, sign_len as u8]);
+            buf.extend_from_slice(sign.unwrap());
+
+            padding_zero = 72 - sign_len;
+        }
+
+        buf.extend_from_slice(&[0x81, 0x14]);
+        buf.extend_from_slice(ckb_sign_msg);
+
+        buf.extend_from_slice(&decode(tx_temp_3).unwrap());
+
+        if sign.is_some() {
+            for _ in 0..padding_zero {
+                buf.push(0);
+            }
+            buf.push(padding_zero as u8 + 1);
+        }
+
+        buf
+    }
+
+    pub fn ripple_conver_msg(msg: &[u8; 32]) -> H256 {
+        let msg = Self::get_hash(msg);
+        let mut ret = [0u8; 32];
+        ret[..20].copy_from_slice(&msg);
+        H256::from(ret)
+    }
+}
+impl Auth for RippleAuth {
+    fn get_pub_key_hash(&self) -> Vec<u8> {
+        let (_privkey, pubkey) = self.key.derive_keypair().unwrap();
+        Self::get_hash(&hex::decode(pubkey.to_string()).unwrap()).to_vec()
+    }
+    fn get_algorithm_type(&self) -> u8 {
+        AlgorithmType::Ripple as u8
+    }
+    fn convert_message(&self, message: &[u8; 32]) -> H256 {
+        Self::ripple_conver_msg(message)
+    }
+    fn sign(&self, msg: &H256) -> Bytes {
+        let r_msg = &msg.as_bytes()[..20];
+        let (privkey, pubkey) = self.key.derive_keypair().unwrap();
+        let pubkey = hex::decode(pubkey.to_string()).unwrap();
+
+        let sign_msg = Self::generate_tx(&r_msg, &pubkey, None);
+
+        let sign_data = privkey.sign(&sign_msg);
+        let sign_data: Vec<u8> = hex::decode(sign_data.to_string()).unwrap();
+        let sign = Self::generate_tx(&r_msg, &pubkey, Some(&sign_data));
+
+        Bytes::from(sign)
+    }
+    fn get_sign_size(&self) -> usize {
+        225
     }
 }
 

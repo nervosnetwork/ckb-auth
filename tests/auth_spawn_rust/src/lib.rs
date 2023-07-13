@@ -253,4 +253,5 @@ pub fn update_witness(tx: &mut ReprMockTransaction, witnesses_data: Vec<Vec<u8>>
                 .as_bytes(),
         ));
     }
+    // println!("{:02x?}", tx.tx.witnesses.get(0).unwrap().as_bytes());
 }

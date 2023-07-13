@@ -2,7 +2,8 @@ CKB_DEBUGGER ?= ckb-debugger
 
 all: \
 	auth-spawn-success \
-	auth-spawn-rust-success
+	auth-spawn-rust-success \
+	ripple-success
 
 auth-spawn-success:
 	cargo run --bin auth-spawn-success > tx.json

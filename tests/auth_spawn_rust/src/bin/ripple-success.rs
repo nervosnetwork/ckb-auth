@@ -51,13 +51,19 @@ fn generate_ripple_tx(ckb_sign_msg: &[u8], pubkey: &[u8], sign: Option<&[u8]>) -
     assert_eq!(ckb_sign_msg.len(), 20);
     assert_eq!(pubkey.len(), 33);
 
-    let tx_temp_1 : &str = "535458001200002280000000240000016861D4838D7EA4C680000000000000000000000000005553440000000000";
+    let tx_temp_1: &str =
+        "1200002280000000240000016861D4838D7EA4C680000000000000000000000000005553440000000000";
     let tx_temp_2: &str = "684000000000002710";
     let tx_temp_3: &str = "83143E9D4A2B8AA0780F682D136F7A56D6724EF53754";
 
     let mut padding_zero = 0usize;
 
-    let mut buf = decode(tx_temp_1).unwrap();
+    let mut buf = Vec::new();
+    if sign.is_none() {
+        buf.extend_from_slice(&[0x53, 0x54, 0x58, 0x00]);
+    }
+
+    buf.extend_from_slice(&decode(tx_temp_1).unwrap());
     buf.extend_from_slice(ckb_sign_msg);
     buf.extend_from_slice(&decode(tx_temp_2).unwrap());
 
@@ -77,8 +83,11 @@ fn generate_ripple_tx(ckb_sign_msg: &[u8], pubkey: &[u8], sign: Option<&[u8]>) -
 
     buf.extend_from_slice(&decode(tx_temp_3).unwrap());
 
-    for _ in 0..padding_zero {
-        buf.push(0);
+    if sign.is_some() {
+        for _ in 0..padding_zero {
+            buf.push(0);
+        }
+        buf.push(padding_zero as u8 + 1);
     }
 
     buf
