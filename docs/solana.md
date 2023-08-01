@@ -30,7 +30,7 @@ G8mW5A2r4ab8gnmCB4abus21BN8vyMa3hbLg91AcsMon
 ## Sign the message with the official solana command
 Run
 ```
-solana transfer --from keypair.json --blockhash G8mW5A2r4ab8gnmCB4abus21BN8vyMa3hbLg91AcsMon 6dN24Y1wBW66CxLfXbRT9umy1PMed8ZmfMWsghopczFg 0 --output json --verbose --dump-transaction-message --sign-only
+solana transfer --fee-payer keypair.json --from keypair.json --blockhash G8mW5A2r4ab8gnmCB4abus21BN8vyMa3hbLg91AcsMon 6dN24Y1wBW66CxLfXbRT9umy1PMed8ZmfMWsghopczFg 0 --output json --verbose --dump-transaction-message --sign-only
 ```
 which outputs
 ```
@@ -38,7 +38,6 @@ which outputs
   "blockhash": "G8mW5A2r4ab8gnmCB4abus21BN8vyMa3hbLg91AcsMon",
   "message": "AgABBJSNMEbMgjVcD2BXPvhOXxJU05GvhaDy1fk4eHjaxqwi/utkQqq8LIfr9fI22x+/1HP8IUQtr3uq8nk4FejyvYJTmxv1p8BT0M957h8yk9jMKdP9h5TCYtl0IFgKC5YD/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4Nyv8KrEcDP69XRFC/kLeSd3s84+KE4tazVZpduxKgkBAwIBAgwCAAAAAAAAAAAAAAA=",
   "signers": [
-    "AztD1uLuwWm9A4tz7a9BKwJaAVMLRny65qFTUhsnFPwF=yf3wrfaZQsB37chWZNxhxYtwR6HmgvFRcKPuxoQEyWVc75jv19vbunx7K6Q5BdwPfSBrTR2eWoGn5Ai2cHndPQC",
     "JA6jjaAha7SNVryoecCcNTH7vvqwhX8nBDiyAfeP1FcV=yvm9SbU1RorG4Kz6BLRbwmg2JhdZNgbRM1dH4NwBzEqU7UgAnNL41sAVSAp1nVUoXnYzq3qq2TNgDv9SNgb7GpH"
   ]
 }
@@ -89,7 +88,7 @@ the command `base58 -d <<< JA6jjaAha7SNVryoecCcNTH7vvqwhX8nBDiyAfeP1FcV | xxd`
 To sign the message `e0dcaff0aac47033faf574450bf90b792777b3ce3e284e2d6b3559a5dbb12a09`, we need to first obtain
 the base58 encoding of the message, which is `5Tx8F3jgSHx21CbtjwmdaKPLM5tWmreWAnPrbqHomSJF` and then run the command
 ```bash
-solana transfer --from keypair.json --blockhash G8mW5A2r4ab8gnmCB4abus21BN8vyMa3hbLg91AcsMon 6dN24Y1wBW66CxLfXbRT9umy1PMed8ZmfMWsghopczFg 0 --output json --verbose --dump-transaction-message --sign-only
+solana transfer --fee-payer keypair.json --from keypair.json --blockhash G8mW5A2r4ab8gnmCB4abus21BN8vyMa3hbLg91AcsMon 6dN24Y1wBW66CxLfXbRT9umy1PMed8ZmfMWsghopczFg 0 --output json --verbose --dump-transaction-message --sign-only
 ```
 Here we construct a valid transaction with the message embedded as blockhash in the transcaction.
 When this trancation is signed by our private key, ckb-auth will recognize it as a valid transaction.
@@ -102,7 +101,6 @@ The output of the above command is
   "blockhash": "G8mW5A2r4ab8gnmCB4abus21BN8vyMa3hbLg91AcsMon",
   "message": "AgABBJSNMEbMgjVcD2BXPvhOXxJU05GvhaDy1fk4eHjaxqwi/utkQqq8LIfr9fI22x+/1HP8IUQtr3uq8nk4FejyvYJTmxv1p8BT0M957h8yk9jMKdP9h5TCYtl0IFgKC5YD/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4Nyv8KrEcDP69XRFC/kLeSd3s84+KE4tazVZpduxKgkBAwIBAgwCAAAAAAAAAAAAAAA=",
   "signers": [
-    "AztD1uLuwWm9A4tz7a9BKwJaAVMLRny65qFTUhsnFPwF=yf3wrfaZQsB37chWZNxhxYtwR6HmgvFRcKPuxoQEyWVc75jv19vbunx7K6Q5BdwPfSBrTR2eWoGn5Ai2cHndPQC",
     "JA6jjaAha7SNVryoecCcNTH7vvqwhX8nBDiyAfeP1FcV=yvm9SbU1RorG4Kz6BLRbwmg2JhdZNgbRM1dH4NwBzEqU7UgAnNL41sAVSAp1nVUoXnYzq3qq2TNgDv9SNgb7GpH"
   ]
 }
@@ -115,19 +113,11 @@ the signature are separated by an equality sign (`=`). Below script shows the co
 public key and signature.
 
 ```bash
-for i in $(solana transfer --from keypair.json --blockhash G8mW5A2r4ab8gnmCB4abus21BN8vyMa3hbLg91AcsMon 6dN24Y1wBW66CxLfXbRT9umy1PMed8ZmfMWsghopczFg 0 --output json --verbose --dump-transaction-message --sign-only | jq -r '.signers[]' | tr '=' '\n'); do base58 -d <<< "$i" | xxd; echo; done
+for i in $(solana transfer --fee-payer keypair.json --from keypair.json --blockhash G8mW5A2r4ab8gnmCB4abus21BN8vyMa3hbLg91AcsMon 6dN24Y1wBW66CxLfXbRT9umy1PMed8ZmfMWsghopczFg 0 --output json --verbose --dump-transaction-message --sign-only | jq -r '.signers[]' | tr '=' '\n'); do base58 -d <<< "$i" | xxd; echo; done
 ```
 
 A sample output is
 ```
-00000000: 948d 3046 cc82 355c 0f60 573e f84e 5f12  ..0F..5\.`W>.N_.
-00000010: 54d3 91af 85a0 f2d5 f938 7878 dac6 ac22  T........8xx..."
-
-00000000: 30db a78b 69cf 0aeb 7f2f c18f 05d7 4f1e  0...i..../....O.
-00000010: 1c88 dd6d 70a2 ba81 a978 b847 0bb2 b0f1  ...mp....x.G....
-00000020: 71c5 2dbc eb6b 01b5 bc9b 298d 3235 8898  q.-..k....).25..
-00000030: a346 cacd b51c 5af5 76c7 2bd0 a432 1a09  .F....Z.v.+..2..
-
 00000000: feeb 6442 aabc 2c87 ebf5 f236 db1f bfd4  ..dB..,....6....
 00000010: 73fc 2144 2daf 7baa f279 3815 e8f2 bd82  s.!D-.{..y8.....
 
