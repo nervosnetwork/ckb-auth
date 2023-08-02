@@ -12,7 +12,7 @@ const G_RIPPLED_KEY_SEED_HEX: &str = "E2F503ADCAC98625CF31D89DED58B9DE";
 // PUBKEY: 03D290362A408EFD37E8CA0A055A4D394AAE5C38FED2E452703D9ACBCA1EDECA9B
 
 fn update_args(tx: &mut ReprMockTransaction, pubkey: [u8; 20]) {
-    let mut args: Vec<u8> = vec![0x0Du8];
+    let mut args: Vec<u8> = vec![0x0Eu8];
     args.extend_from_slice(&pubkey);
     args.extend_from_slice(&get_auth_code_hash());
     args.extend_from_slice(&[get_auth_hash_type(), AuthEntryCategoryType::Spawn as u8]);
