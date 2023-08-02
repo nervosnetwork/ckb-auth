@@ -139,10 +139,7 @@ Key parameters:
 - pubkey hash: blake160 of (mode || spend key || view key)
 
 #### More blockchains Support Are Ongoing ...
-- Ripple
-- Solana
 
-...
 
 ### Low Level APIs
 
