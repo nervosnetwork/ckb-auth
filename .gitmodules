@@ -15,3 +15,7 @@
 [submodule "deps/ed25519"]
 	path = deps/ed25519
 	url = https://github.com/nervosnetwork/ed25519.git
+[submodule "deps/libecc"]
+	path = deps/libecc
+	url = https://github.com/cryptape/libecc.git
+	branch = riscv-optimized

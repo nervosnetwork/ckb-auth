@@ -17,9 +17,9 @@ use std::sync::Arc;
 use hex_literal::hex;
 
 use crate::{
-    assert_script_error, auth_builder, build_resolved_tx, debug_printer, gen_args, gen_tx,
-    gen_tx_scripts_verifier, gen_tx_with_grouped_args, sign_tx, AlgorithmType, Auth,
-    AuthErrorCodeType, BitcoinAuth, CKbAuth, CkbMultisigAuth, DogecoinAuth, DummyDataLoader,
+    assert_script_error, auth_builder, auth_program::use_libecc, build_resolved_tx, debug_printer,
+    gen_args, gen_tx, gen_tx_scripts_verifier, gen_tx_with_grouped_args, sign_tx, AlgorithmType,
+    Auth, AuthErrorCodeType, BitcoinAuth, CKbAuth, CkbMultisigAuth, DogecoinAuth, DummyDataLoader,
     EntryCategoryType, EosAuth, EthereumAuth, LitecoinAuth, SchnorrAuth, TestConfig, TronAuth,
     MAX_CYCLES,
 };
@@ -306,6 +306,12 @@ fn solana_verify() {
 #[test]
 fn ripple_verify() {
     unit_test_common(AlgorithmType::Ripple);
+}
+
+#[test]
+fn secp256r1_verify() {
+    use_libecc();
+    unit_test_common(AlgorithmType::Secp256r1);
 }
 
 #[test]
