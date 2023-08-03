@@ -2,7 +2,8 @@ CKB_DEBUGGER ?= ckb-debugger
 
 all: \
 	auth-spawn-success \
-	auth-spawn-rust-success
+	auth-spawn-rust-success \
+	ripple-success
 
 auth-spawn-success:
 	cargo run --bin auth-spawn-success > tx.json
@@ -11,6 +12,11 @@ auth-spawn-success:
 auth-spawn-rust-success:
 	cd ../.. && capsule build
 	cargo run --bin auth-spawn-rust-success > tx.json
+	${CKB_DEBUGGER} --tx-file=tx.json -s lock
+
+ripple-success:
+	cd ../.. && capsule build
+	cargo run --bin ripple-success > tx.json
 	${CKB_DEBUGGER} --tx-file=tx.json -s lock
 
 install:

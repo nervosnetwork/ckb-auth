@@ -147,6 +147,12 @@ Key parameters:
 
 #### More blockchains Support Are Ongoing ...
 - Ripple
+#### Ripple(algorithm_id=14)
+
+Key parameters:
+- signature: ripple signature (tx_blob field).
+- pubkey: 32 compressed pubkey.
+- pubkey hash: sha256 and ripemd160 of pubkey, refer to [ckb-auth-cli ripple parse](../tools/ckb-auth-cli/src/ripple.rs).
 
 ...
 

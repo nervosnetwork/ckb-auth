@@ -20,3 +20,4 @@ base64 = "0.21.0"
 serde_json = "1.0"
 monero = { version = "0.18.2", features = ["serde"] }
 base58-monero = "1.0.0"
+mbedtls = "0.8.1"

@@ -20,3 +20,7 @@ log = "0.4.0"
 serde_json = "1.0"
 serde_plain = "1.0"
 sparse-merkle-tree = {version = "0.6.1"}
+ripple-keypairs = "0.1.0"
+hex = "0.4.3"
+base58-monero = "1.0.0"
+mbedtls = "0.8.1"

@@ -1,0 +1,76 @@
+{
+    "mock_info": {
+      "inputs": [
+        {
+          "output": {
+            "capacity": "0x10000000",
+            "lock": {
+              "args": "0x0e359d3ebda79b358df309048841ce12cf4646182d6036a7baedc0485e3f5006ab9f34f46b350febd457b4a8684b1021c7e5c701960202",
+              "code_hash": "0x{{ ref_type auth-script-test }}",
+              "hash_type": "type"
+            },
+            "type": null
+          },
+          "data": "0x"
+        }
+      ],
+      "cell_deps": [
+        {
+          "output": {
+            "capacity": "0x10000000",            
+            "lock": {
+                "args": "0x00AE9DF3447C404A645BC48BEA4B7643B95AC5C3AE",
+                "code_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                "hash_type": "data1"
+            },
+            "type": "{{ def_type auth-script-test }}"
+          },
+          "data": "0x{{ data ../../../build/auth_demo }}"
+        },
+        {
+          "output": {
+            "capacity": "0x10000000",            
+            "lock": {
+                "args": "0x00AE9DF3447C404A645BC48BEA4B7643B95AC5C3AE",
+                "code_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                "hash_type": "data1"
+            },
+            "type": "{{ def_type auth }}"
+          },
+          "data": "0x{{ data ../../../build/auth }}"
+        },
+        {
+          "output": {
+            "capacity": "0x10000000",            
+            "lock": {
+                "args": "0x00AE9DF3447C404A645BC48BEA4B7643B95AC5C3AE",
+                "code_hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                "hash_type": "data1"
+            },
+            "type": "{{ def_type secp256k1_data }}"
+          },
+          "data": "0x{{ data ../../../build/secp256k1_data_20210801 }}"
+        }
+      ],
+      "header_deps": []
+    },
+    "tx": {
+      "outputs": [
+        {
+          "capacity": "0x0",
+          "lock": {
+            "args": "0x0c359d3ebda79b358df309048841ce12cf4646182d6036a7baedc0485e3f5006ab9f34f46b350febd457b4a8684b1021c7e5c701960202",
+            "code_hash": "0x{{ ref_type auth-script-test }}",
+            "hash_type": "type"
+          }
+        }
+      ],
+      "witnesses": [
+        "0xf500000010000000f5000000f5000000e10000001200002280000000240000016861d4838d7ea4c680000000000000000000000000005553440000000000385c94434c95de78e8f94d2c170bcce1d903e87f684000000000002710732103d290362a408efd37e8ca0a055a4d394aae5c38fed2e452703d9acbca1edeca9b74463044022035429728e23d4061b94018176c1943f8e6a154f9936b0e7aa72b26588c971d88022029047883547a12b64a8343335dd6188e80b5d474705a6bf07535ea3f8a48e9278114385c94434c95de78e8f94d2c170bcce1d903e87f83143e9d4a2b8aa0780f682d136f7a56d6724ef53754000003"
+      ],
+      "outputs_data": [
+        "0x"
+      ]
+    }
+  }
+  

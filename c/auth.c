@@ -33,6 +33,7 @@
 // clang-format on
 
 #include "cardano/cardano_lock_inc.h"
+#include "ripple.h"
 
 // secp256k1 also defines this macros
 #undef CHECK2
@@ -371,6 +372,32 @@ int validate_signature_cardano(void *prefilled_data, const uint8_t *sig,
     blake2b_final(&ctx, pubkey_hash, sizeof(pubkey_hash));
 
     memcpy(output, pubkey_hash, BLAKE160_SIZE);
+    *output_len = BLAKE160_SIZE;
+exit:
+    return err;
+}
+
+int validate_signature_ripple(void *prefilled_data, const uint8_t *sig,
+                              size_t sig_len, const uint8_t *msg,
+                              size_t msg_len, uint8_t *output,
+                              size_t *output_len) {
+    int err = 0;
+    if (*output_len < BLAKE160_SIZE) {
+        return SECP256K1_PUBKEY_SIZE;
+    }
+
+    uint8_t out_sign_msg_buf[sig_len];
+
+    RippleSignatureData sign_data;
+    sign_data.sign_msg = out_sign_msg_buf;
+
+    CHECK2(!get_ripple_verify_data(sig, sig_len, &sign_data),
+           ERROR_INVALID_ARG);
+    CHECK2(memcmp(sign_data.ckb_msg, msg, RIPPLE_ACCOUNT_ID_SIZE) == 0,
+           ERROR_INVALID_ARG);
+
+    CHECK(verify_ripple(&sign_data));
+    get_ripple_pubkey_hash(sign_data.public_key, output);
     *output_len = BLAKE160_SIZE;
 exit:
     return err;
@@ -743,6 +770,18 @@ int convert_litecoin_message(const uint8_t *msg, size_t msg_len,
                                        LITE_MESSAGE_MAGIC, LITE_MAGIC_LEN);
 }
 
+int convert_ripple_message(const uint8_t *msg, size_t msg_len, uint8_t *new_msg,
+                           size_t new_msg_len) {
+    int err = 0;
+    CHECK(mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), msg, msg_len,
+                     new_msg));
+    CHECK(mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_RIPEMD160), new_msg,
+                     SHA256_SIZE, new_msg));
+    memset(new_msg + 20, 0, 12);
+exit:
+    return err;
+}
+
 bool is_lock_script_hash_present(uint8_t *lock_script_hash) {
     int err = 0;
     size_t i = 0;
@@ -1008,6 +1047,11 @@ __attribute__((visibility("default"))) int ckb_auth_validate(
         err = verify(pubkey_hash, signature, signature_size, message,
                      message_size, validate_signature_solana, convert_copy);
         CHECK(err);
+    } else if (auth_algorithm_id == AuthAlgorithmIdRipple) {
+        err = verify(pubkey_hash, signature, signature_size, message,
+                     message_size, validate_signature_ripple,
+                     convert_ripple_message);
+        CHECK(err);
     } else if (auth_algorithm_id == AuthAlgorithmIdOwnerLock) {
         CHECK2(is_lock_script_hash_present(pubkey_hash), ERROR_MISMATCHED);
         err = 0;
@@ -1143,7 +1187,3 @@ exit:
 #undef ARGV_MESSAGE
 #undef ARGV_PUBKEY_HASH
 }
-
-
-
-
