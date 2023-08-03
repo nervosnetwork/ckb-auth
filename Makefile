@@ -4,8 +4,13 @@ LD := $(TARGET)-gcc
 OBJCOPY := $(TARGET)-objcopy
 AR := $(TARGET)-ar
 
-CFLAGS := -O3 -fPIC -Wall -Werror -Wno-nonnull -Wno-nonnull-compare -Wno-unused-function -Wno-dangling-pointer -g -fno-builtin-printf -fno-builtin-memcmp -nostdinc -nostdlib -nostartfiles -fvisibility=hidden
-LDFLAGS := -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections
+CFLAGS := -g -O3 -fPIC \
+		-Wall -Werror -Wno-nonnull -Wno-nonnull-compare -Wno-unused-function -Wno-dangling-pointer \
+		-fno-builtin-printf -fno-builtin-memcmp \
+		-nostdinc -nostdlib -nostartfiles -fvisibility=hidden \
+		-fdata-sections -ffunction-sections
+
+LDFLAGS := -Wl,-static -Wl,--gc-sections
 
 INCLUDE_SECP256K1_CFLAGS = -I deps/secp256k1-20210801/src -I deps/secp256k1-20210801
 INCLUDE_CKB_STD_CFLAGS = -I deps/ckb-c-stdlib-2023 -I deps/ckb-c-stdlib-2023/libc -I deps/ckb-c-stdlib-2023/molecule
@@ -63,6 +68,7 @@ build/auth: c/auth.c c/cardano/cardano_lock_inc.h c/ripple.h deps/mbedtls/librar
 	$(CC) $(AUTH_CFLAGS) $(LDFLAGS) -fPIE -pie -Wl,--dynamic-list c/auth.syms -o $@ $^
 	cp $@ $@.debug
 	$(OBJCOPY) --strip-debug --strip-all $@
+	ls -l build/auth
 
 fmt:
 	clang-format -i -style="{BasedOnStyle: Google, IndentWidth: 4}" c/*.c c/*.h
