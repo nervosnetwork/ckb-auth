@@ -1,6 +1,6 @@
 # ckb-auth secp256r1 interoperability
-Ckb-auth library is able to verify ECDSA signatures
-A simple way to use litecoin signature algorithm to lock ckb cells
+Ckb-auth library is able to verify ECDSA signatures over secp256r1 curve with sha256 as digest algorithm.
+A simple way to use ECDSA-SHA256/secp256r1 signature algorithm to lock ckb cells
 is to sign the transaction hash (or maybe `sighash_all`, i.e. hashing all fields 
 including transaction hash and other witnesses in this input group)
 with `litecoin-cli`, and then leverage ckb-auth to check the validity of this signature.
