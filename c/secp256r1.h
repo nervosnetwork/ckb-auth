@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-#include "errors.h"
-
 #include "lib_ecc_types.h"
 #include "libec.h"
 #include "libsig.h"

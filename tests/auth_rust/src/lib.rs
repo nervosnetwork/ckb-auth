@@ -49,7 +49,7 @@ pub mod auth_program {
     use std::path::Path;
 
     pub static ORIGINAL_AUTH_PROGRAM: Lazy<Bytes> = Lazy::new(|| get_data("../../build/auth"));
-    pub static LIBECC_AUTH_PROGRAM: Lazy<Bytes> = Lazy::new(|| get_data("../../build/auth-libecc"));
+    pub static LIBECC_AUTH_PROGRAM: Lazy<Bytes> = Lazy::new(|| get_data("../../build/auth_libecc"));
     pub static AUTH_DEMO: Lazy<Bytes> = Lazy::new(|| get_data("../../build/auth_demo"));
     pub static SECP256K1_DATA_BIN: Lazy<Bytes> =
         Lazy::new(|| get_data("../../build/secp256k1_data_20210801"));

@@ -30,7 +30,7 @@ CFLAGS_LINK_TO_LIBECC_OPTIMIZED := -fno-builtin -fno-builtin-printf -DWORDSIZE=6
 # docker pull nervos/ckb-riscv-gnu-toolchain:gnu-jammy-20230214
 BUILDER_DOCKER := nervos/ckb-riscv-gnu-toolchain@sha256:d3f649ef8079395eb25a21ceaeb15674f47eaa2d8cc23adc8bcdae3d5abce6ec
 
-all:  build/secp256k1_data_info_20210801.h $(SECP256K1_SRC_20210801) deps/mbedtls/library/libmbedcrypto.a build/auth-libecc build/auth build/always_success
+all:  build/secp256k1_data_info_20210801.h $(SECP256K1_SRC_20210801) deps/mbedtls/library/libmbedcrypto.a build/auth_libecc build/auth build/always_success
 
 all-via-docker: ${PROTOCOL_HEADER}
 	mkdir -p build
@@ -81,8 +81,8 @@ build/auth: c/auth.c c/cardano/cardano_lock_inc.h c/ripple.h deps/mbedtls/librar
 	$(OBJCOPY) --strip-debug --strip-all $@
 	ls -l $@
 
-build/auth-libecc: c/auth.c c/cardano/cardano_lock_inc.h c/ripple.h deps/mbedtls/library/libmbedcrypto.a build/libed25519.a build/libnanocbor.a $(LIBECC_OPTIMIZED_FILES)
-	$(CC) $(AUTH_CFLAGS) -DLIBECC_ONLY $(CFLAGS_LINK_TO_LIBECC_OPTIMIZED) $(LDFLAGS) -fPIE -pie -Wl,--dynamic-list c/auth.syms -o $@ $^
+build/auth_libecc: c/auth_libecc.c $(LIBECC_OPTIMIZED_FILES)
+	$(CC) $(AUTH_CFLAGS) $(CFLAGS_LINK_TO_LIBECC_OPTIMIZED) $(LDFLAGS) -fPIE -pie -Wl,--dynamic-list c/auth.syms -o $@ $^
 	cp $@ $@.debug
 	$(OBJCOPY) --strip-debug --strip-all $@
 	ls -l $@
@@ -92,7 +92,7 @@ fmt:
 
 clean:
 	rm -rf build/*.debug
-	rm -f build/auth build/auth-libecc build/auth_demo
+	rm -f build/auth build/auth_libecc build/auth_demo
 	rm -rf build/secp256k1_data_info_20210801.h build/dump_secp256k1_data_20210801
 	rm -rf build/ed25519 build/libed25519.a build/nanocbor build/libnanocbor.a
 	cd deps/secp256k1-20210801 && [ -f "Makefile" ] && make clean
