@@ -1,10 +1,4 @@
 // clang-format off
-#include "errors.h"
-
-#ifdef LIBECC_ONLY
-#include "secp256r1.h"
-#endif
-
 #include "mbedtls/md.h"
 #include "mbedtls/md_internal.h"
 #include "mbedtls/memory_buffer_alloc.h"
@@ -36,33 +30,15 @@
 #undef CKB_SUCCESS
 #include "ckb_hex.h"
 #include "blake2b.h"
+
+// Must be the last to include, as secp256k1 and this header file both define
+// the macros CHECK and CHECK2.
+#include "common.h"
 // clang-format on
 
 #include "cardano/cardano_lock_inc.h"
 #include "ripple.h"
 
-// secp256k1 also defines this macros
-#undef CHECK2
-#undef CHECK
-#define CHECK2(cond, code) \
-    do {                   \
-        if (!(cond)) {     \
-            err = code;    \
-            goto exit;     \
-        }                  \
-    } while (0)
-
-#define CHECK(code)      \
-    do {                 \
-        if (code != 0) { \
-            err = code;  \
-            goto exit;   \
-        }                \
-    } while (0)
-
-#define CKB_AUTH_LEN 21
-#define BLAKE160_SIZE 20
-#define BLAKE2B_BLOCK_SIZE 32
 #define SECP256K1_PUBKEY_SIZE 33
 #define UNCOMPRESSED_SECP256K1_PUBKEY_SIZE 65
 #define SECP256K1_SIGNATURE_SIZE 65
@@ -82,14 +58,6 @@
 #define SOLANA_UNWRAPPED_SIGNATURE_SIZE 510
 #define SOLANA_BLOCKHASH_SIZE 32
 #define SOLANA_MESSAGE_HEADER_SIZE 3
-
-typedef int (*validate_signature_t)(void *prefilled_data, const uint8_t *sig,
-                                    size_t sig_len, const uint8_t *msg,
-                                    size_t msg_len, uint8_t *output,
-                                    size_t *output_len);
-
-typedef int (*convert_msg_t)(const uint8_t *msg, size_t msg_len,
-                             uint8_t *new_msg, size_t new_msg_len);
 
 int md_string(const mbedtls_md_info_t *md_info, const uint8_t *buf, size_t n,
               unsigned char *output) {
@@ -615,35 +583,6 @@ exit:
     return err;
 }
 
-#ifdef LIBECC_ONLY
-int validate_signature_secp256r1(void *prefilled_data, const uint8_t *sig,
-                              size_t sig_len, const uint8_t *msg,
-                              size_t msg_len, uint8_t *output,
-                              size_t *output_len) {
-    int err = 0;
-
-    if (*output_len < BLAKE160_SIZE) {
-        return SECP256K1_PUBKEY_SIZE;
-    }
-    CHECK2(msg_len == BLAKE2B_BLOCK_SIZE, ERROR_INVALID_ARG);
-    CHECK2(sig_len == SECP256R1_DATA_SIZE, ERROR_INVALID_ARG);
-    const uint8_t *signature_ptr = sig;
-    const uint8_t *pub_key_ptr =  signature_ptr + SECP256R1_SIGNATURE_SIZE;
-
-    CHECK(secp256r1_verify_signature(signature_ptr, SECP256R1_SIGNATURE_SIZE, pub_key_ptr, SECP256R1_PUBKEY_SIZE, msg, msg_len ));
-
-    blake2b_state ctx;
-    uint8_t pubkey_hash[BLAKE2B_BLOCK_SIZE] = {0};
-    blake2b_init(&ctx, BLAKE2B_BLOCK_SIZE);
-    blake2b_update(&ctx, pub_key_ptr, SECP256R1_PUBKEY_SIZE);
-    blake2b_final(&ctx, pubkey_hash, sizeof(pubkey_hash));
-
-    memcpy(output, pubkey_hash, BLAKE160_SIZE);
-    *output_len = BLAKE160_SIZE;
-exit:
-    return err;
-}
-#endif
 
 int convert_copy(const uint8_t *msg, size_t msg_len, uint8_t *new_msg,
                  size_t new_msg_len) {
@@ -1012,13 +951,6 @@ __attribute__((visibility("default"))) int ckb_auth_validate(
     CHECK2(message_size > 0, ERROR_INVALID_ARG);
     CHECK2(pubkey_hash_size == BLAKE160_SIZE, ERROR_INVALID_ARG);
 
-#ifdef LIBECC_ONLY
-    if (auth_algorithm_id == AuthAlgorithmIdSecp256R1) {
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_secp256r1, convert_copy);
-        CHECK(err);
-    }
-#else
     if (auth_algorithm_id == AuthAlgorithmIdCkb) {
         CHECK2(signature_size == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
         err = verify(pubkey_hash, signature, signature_size, message,
@@ -1084,7 +1016,6 @@ __attribute__((visibility("default"))) int ckb_auth_validate(
     } else {
         CHECK2(false, ERROR_NOT_IMPLEMENTED);
     }
-#endif
 exit:
     return err;
 }
