@@ -20,21 +20,19 @@ using her Ethereum wallet without requiring the creation of a CKB wallet
 throughout the process.
 
 ## Integration
-The [Portal Wallet](https://docs.nervos.org/docs/basics/guides/crypto%20wallets/portalwallet) offers support for the following blockchains:
+The following blockchains are supported:
+
 * Bitcoin
 * Ethereum
 * EOS
 * Tron
 * Dogecoin
 * CKB
-
-The functionalities have been ported and implemented in ckb-auth. See [auth](./docs/auth.md) for more information.
-
-We also have some tutorials for following blockchains:
-- [litecoin](./docs/litecoin.md)
-- [cardano](./docs/cardano.md)
-- [monero](./docs/monero.md)
-- [solana](./docs/solana.md)
+* [Litecoin](./docs/litecoin.md)
+* [Cardano](./docs/cardano.md)
+* [Monero](./docs/monero.md)
+* [Solana](./docs/solana.md)
+* [Ripple](./docs/XRP.md)
 
 ## Build
 
@@ -53,7 +51,7 @@ cd tests/auth_rust && bash run.sh
 ## Test with Spawn (activated after hardfork 2023)
 Before running test cases with spawn support, please install ckb-debugger for next hardfork:
 ```bash
-cargo install --locked --branch ckb2023 --git https://github.com/nervosnetwork/ckb-standalone-debugger ckb-debugger
+cargo install --git https://github.com/nervosnetwork/ckb-standalone-debugger ckb-debugger
 ```
 Then run:
 
