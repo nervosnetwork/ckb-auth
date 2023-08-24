@@ -3,7 +3,7 @@ Ckb-auth library is able to verify ECDSA signatures over secp256r1 curve with sh
 A simple way to use ECDSA-SHA256/secp256r1 signature algorithm to lock ckb cells
 is to sign the transaction hash (or maybe `sighash_all`, i.e. hashing all fields 
 including transaction hash and other witnesses in this input group)
-with `litecoin-cli`, and then leverage ckb-auth to check the validity of this signature.
+with `openssl`, and then leverage ckb-auth to check the validity of this signature.
 See [the docs](./auth.md) for more details.
 
 # Generate signature with openssl
