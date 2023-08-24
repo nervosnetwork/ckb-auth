@@ -68,4 +68,4 @@ openssl dgst -sha256 -sign private.pem message > signature
 ```
 to save the signature into file `signature`
 
-The final signature field of the ckb transaction should be this signature concatenated with the above public key.
+The final signature field of the ckb transaction should be this public key concatenated with the above signature.

@@ -30,8 +30,8 @@ int validate_signature_secp256r1(void *prefilled_data, const uint8_t *sig,
     }
     CHECK2(msg_len == BLAKE2B_BLOCK_SIZE, ERROR_INVALID_ARG);
     CHECK2(sig_len == SECP256R1_DATA_SIZE, ERROR_INVALID_ARG);
-    const uint8_t *signature_ptr = sig;
-    const uint8_t *pub_key_ptr =  signature_ptr + SECP256R1_SIGNATURE_SIZE;
+    const uint8_t *pub_key_ptr = sig;
+    const uint8_t *signature_ptr =  pub_key_ptr + SECP256R1_PUBKEY_SIZE;
 
     CHECK(secp256r1_verify_signature(signature_ptr, SECP256R1_SIGNATURE_SIZE, pub_key_ptr, SECP256R1_PUBKEY_SIZE, msg, msg_len ));
 

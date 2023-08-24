@@ -1794,7 +1794,7 @@ impl Auth for Secp256r1Auth {
         // So we don't need to do any hashing here.
         let signature: Signature = self.key.sign(msg.as_bytes());
         let signature = signature.to_vec();
-        let signature: Vec<u8> = signature.iter().chain(&pub_key).map(|x| *x).collect();
+        let signature: Vec<u8> = pub_key.iter().chain(&signature).map(|x| *x).collect();
 
         signature.into()
     }
