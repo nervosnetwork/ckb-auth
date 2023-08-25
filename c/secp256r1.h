@@ -63,16 +63,19 @@ static int string_to_params(const char *ec_name, const char *ec_sig_name,
   return 0;
 }
 
-void convert_aff_buf_to_prj_buf(const uint8_t *aff_buf, uint32_t aff_buf_len,
-                                uint8_t *prj_buf, uint32_t prj_buf_len) {
+int convert_aff_buf_to_prj_buf(const uint8_t *aff_buf, uint32_t aff_buf_len,
+                               uint8_t *prj_buf, uint32_t prj_buf_len) {
   static const uint8_t z_buf[] = {
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
-  MUST_HAVE(aff_buf_len == affine_buffer_size);
-  MUST_HAVE(prj_buf_len == projective_buffer_size);
+  if (aff_buf_len != affine_buffer_size ||
+      prj_buf_len != projective_buffer_size) {
+    return ERROR_INVALID_ARG;
+  }
   memcpy(prj_buf, aff_buf, aff_buf_len);
   memcpy(prj_buf + aff_buf_len, z_buf, sizeof(z_buf));
+  return 0;
 }
 
 int secp256r1_verify_signature(const uint8_t *sig, uint8_t siglen,
@@ -86,7 +89,10 @@ int secp256r1_verify_signature(const uint8_t *sig, uint8_t siglen,
   int ret;
 
   uint8_t pj_pk_buf[projective_buffer_size];
-  convert_aff_buf_to_prj_buf(pk, pklen, pj_pk_buf, sizeof(pj_pk_buf));
+  ret = convert_aff_buf_to_prj_buf(pk, pklen, pj_pk_buf, sizeof(pj_pk_buf));
+  if (ret) {
+    return ERROR_INVALID_ARG;
+  }
 
   MUST_HAVE(ec_name != NULL);
 
