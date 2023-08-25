@@ -33,7 +33,6 @@
 
 // Must be the last to include, as secp256k1 and this header file both define
 // the macros CHECK and CHECK2.
-#include "common.h"
 // clang-format on
 
 #include "cardano/cardano_lock_inc.h"
@@ -1031,69 +1030,7 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-    int err = 0;
-
-    if (argc != 4) {
-        return -1;
-    }
-
-#define ARGV_ALGORITHM_ID argv[0]
-#define ARGV_SIGNATURE argv[1]
-#define ARGV_MESSAGE argv[2]
-#define ARGV_PUBKEY_HASH argv[3]
-
-    uint32_t algorithm_id_len = strlen(ARGV_ALGORITHM_ID);
-    uint32_t signature_len = strlen(ARGV_SIGNATURE);
-    uint32_t message_len = strlen(ARGV_MESSAGE);
-    uint32_t pubkey_hash_len = strlen(ARGV_PUBKEY_HASH);
-
-    if (algorithm_id_len != 2 || signature_len % 2 != 0 ||
-        message_len != BLAKE2B_BLOCK_SIZE * 2 ||
-        pubkey_hash_len != BLAKE160_SIZE * 2) {
-        return ERROR_SPAWN_INVALID_LENGTH;
-    }
-
-    // Limit the maximum size of signature
-    if (signature_len > 1024 * 64 * 2) {
-        return ERROR_SPAWN_SIGN_TOO_LONG;
-    }
-
-    uint8_t algorithm_id = 0;
-    uint8_t signature[signature_len / 2];
-    uint8_t message[BLAKE2B_BLOCK_SIZE];
-    uint8_t pubkey_hash[BLAKE160_SIZE];
-
-    // auth algorithm id
-    CHECK2(
-        !ckb_hex2bin(ARGV_ALGORITHM_ID, &algorithm_id, 1, &algorithm_id_len) &&
-            algorithm_id_len == 1,
-        ERROR_SPAWN_INVALID_ALGORITHM_ID);
-
-    // signature
-    CHECK2(
-        !ckb_hex2bin(ARGV_SIGNATURE, signature, signature_len, &signature_len),
-        ERROR_SPAWN_INVALID_SIG);
-
-    // message
-    CHECK2(!ckb_hex2bin(ARGV_MESSAGE, message, message_len, &message_len) &&
-               message_len == BLAKE2B_BLOCK_SIZE,
-           ERROR_SPAWN_INVALID_MSG);
-
-    // public key hash
-    CHECK2(!ckb_hex2bin(ARGV_PUBKEY_HASH, pubkey_hash, pubkey_hash_len,
-                        &pubkey_hash_len) &&
-               pubkey_hash_len == BLAKE160_SIZE,
-           ERROR_SPAWN_INVALID_PUBKEY);
-
-    err = ckb_auth_validate(algorithm_id, signature, signature_len, message,
-                            message_len, pubkey_hash, pubkey_hash_len);
-    CHECK(err);
-
-exit:
-    return err;
-
-#undef ARGV_ALGORITHM_ID
-#undef ARGV_SIGNATURE
-#undef ARGV_MESSAGE
-#undef ARGV_PUBKEY_HASH
+    return ckb_auth_validate_with_func(argc, argv, *ckb_auth_validate);
 }
+
+
