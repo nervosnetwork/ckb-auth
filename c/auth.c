@@ -30,33 +30,14 @@
 #undef CKB_SUCCESS
 #include "ckb_hex.h"
 #include "blake2b.h"
+
+// Must be the last to include, as secp256k1 and this header file both define
+// the macros CHECK and CHECK2.
 // clang-format on
 
 #include "cardano/cardano_lock_inc.h"
 #include "ripple.h"
 
-// secp256k1 also defines this macros
-#undef CHECK2
-#undef CHECK
-#define CHECK2(cond, code) \
-    do {                   \
-        if (!(cond)) {     \
-            err = code;    \
-            goto exit;     \
-        }                  \
-    } while (0)
-
-#define CHECK(code)      \
-    do {                 \
-        if (code != 0) { \
-            err = code;  \
-            goto exit;   \
-        }                \
-    } while (0)
-
-#define CKB_AUTH_LEN 21
-#define BLAKE160_SIZE 20
-#define BLAKE2B_BLOCK_SIZE 32
 #define SECP256K1_PUBKEY_SIZE 33
 #define UNCOMPRESSED_SECP256K1_PUBKEY_SIZE 65
 #define SECP256K1_SIGNATURE_SIZE 65
@@ -76,30 +57,6 @@
 #define SOLANA_UNWRAPPED_SIGNATURE_SIZE 510
 #define SOLANA_BLOCKHASH_SIZE 32
 #define SOLANA_MESSAGE_HEADER_SIZE 3
-
-enum AuthErrorCodeType {
-    ERROR_NOT_IMPLEMENTED = 100,
-    ERROR_MISMATCHED,
-    ERROR_INVALID_ARG,
-    ERROR_WRONG_STATE,
-    // spawn
-    ERROR_SPAWN_INVALID_LENGTH,
-    ERROR_SPAWN_SIGN_TOO_LONG,
-    ERROR_SPAWN_INVALID_ALGORITHM_ID,
-    ERROR_SPAWN_INVALID_SIG,
-    ERROR_SPAWN_INVALID_MSG,
-    ERROR_SPAWN_INVALID_PUBKEY,
-    // schnorr
-    ERROR_SCHNORR,
-};
-
-typedef int (*validate_signature_t)(void *prefilled_data, const uint8_t *sig,
-                                    size_t sig_len, const uint8_t *msg,
-                                    size_t msg_len, uint8_t *output,
-                                    size_t *output_len);
-
-typedef int (*convert_msg_t)(const uint8_t *msg, size_t msg_len,
-                             uint8_t *new_msg, size_t new_msg_len);
 
 int md_string(const mbedtls_md_info_t *md_info, const uint8_t *buf, size_t n,
               unsigned char *output) {
@@ -1062,128 +1019,18 @@ exit:
     return err;
 }
 
-#define OFFSETOF(TYPE, ELEMENT) ((size_t) & (((TYPE *)0)->ELEMENT))
-#define PT_DYNAMIC 2
-
-typedef struct {
-    uint64_t type;
-    uint64_t value;
-} Elf64_Dynamic;
-
 #ifdef CKB_USE_SIM
 int simulator_main(int argc, char *argv[]) {
 #else
 // spawn entry
 int main(int argc, char *argv[]) {
-// fix error:
-// c/auth.c:810:50: error: array subscript 0 is outside array bounds of
-// 'uint64_t[0]' {aka 'long unsigned int[]'} [-Werror=array-bounds]
-//   810 |     Elf64_Phdr *program_headers = (Elf64_Phdr *)(*phoff);
-//       |                                                 ~^~~~~~~
-#if defined(__GNUC__) && (__GNUC__ >= 12)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-#endif
-    uint64_t *phoff = (uint64_t *)OFFSETOF(Elf64_Ehdr, e_phoff);
-    uint16_t *phnum = (uint16_t *)OFFSETOF(Elf64_Ehdr, e_phnum);
-    Elf64_Phdr *program_headers = (Elf64_Phdr *)(*phoff);
-    for (int i = 0; i < *phnum; i++) {
-        Elf64_Phdr *program_header = &program_headers[i];
-        if (program_header->p_type == PT_DYNAMIC) {
-            Elf64_Dynamic *d = (Elf64_Dynamic *)program_header->p_vaddr;
-            uint64_t rela_address = 0;
-            uint64_t rela_count = 0;
-            while (d->type != 0) {
-                if (d->type == 0x7) {
-                    rela_address = d->value;
-                } else if (d->type == 0x6ffffff9) {
-                    rela_count = d->value;
-                }
-                d++;
-            }
-            if (rela_address > 0 && rela_count > 0) {
-                Elf64_Rela *relocations = (Elf64_Rela *)rela_address;
-                for (int j = 0; j < rela_count; j++) {
-                    Elf64_Rela *relocation = &relocations[j];
-                    if (relocation->r_info != R_RISCV_RELATIVE) {
-                        return ERROR_INVALID_ELF;
-                    }
-                    *((uint64_t *)(relocation->r_offset)) =
-                        (uint64_t)(relocation->r_addend);
-                }
-            }
-        }
+    int res = setup_elf();
+    if (res != 0) {
+        return res;
     }
-
-#if defined(__GNUC__) && (__GNUC__ >= 12)
-#pragma GCC diagnostic pop
 #endif
 
-#endif
-
-    int err = 0;
-
-    if (argc != 4) {
-        return -1;
-    }
-
-#define ARGV_ALGORITHM_ID argv[0]
-#define ARGV_SIGNATURE argv[1]
-#define ARGV_MESSAGE argv[2]
-#define ARGV_PUBKEY_HASH argv[3]
-
-    uint32_t algorithm_id_len = strlen(ARGV_ALGORITHM_ID);
-    uint32_t signature_len = strlen(ARGV_SIGNATURE);
-    uint32_t message_len = strlen(ARGV_MESSAGE);
-    uint32_t pubkey_hash_len = strlen(ARGV_PUBKEY_HASH);
-
-    if (algorithm_id_len != 2 || signature_len % 2 != 0 ||
-        message_len != BLAKE2B_BLOCK_SIZE * 2 ||
-        pubkey_hash_len != BLAKE160_SIZE * 2) {
-        return ERROR_SPAWN_INVALID_LENGTH;
-    }
-
-    // Limit the maximum size of signature
-    if (signature_len > 1024 * 64 * 2) {
-        return ERROR_SPAWN_SIGN_TOO_LONG;
-    }
-
-    uint8_t algorithm_id = 0;
-    uint8_t signature[signature_len / 2];
-    uint8_t message[BLAKE2B_BLOCK_SIZE];
-    uint8_t pubkey_hash[BLAKE160_SIZE];
-
-    // auth algorithm id
-    CHECK2(
-        !ckb_hex2bin(ARGV_ALGORITHM_ID, &algorithm_id, 1, &algorithm_id_len) &&
-            algorithm_id_len == 1,
-        ERROR_SPAWN_INVALID_ALGORITHM_ID);
-
-    // signature
-    CHECK2(
-        !ckb_hex2bin(ARGV_SIGNATURE, signature, signature_len, &signature_len),
-        ERROR_SPAWN_INVALID_SIG);
-
-    // message
-    CHECK2(!ckb_hex2bin(ARGV_MESSAGE, message, message_len, &message_len) &&
-               message_len == BLAKE2B_BLOCK_SIZE,
-           ERROR_SPAWN_INVALID_MSG);
-
-    // public key hash
-    CHECK2(!ckb_hex2bin(ARGV_PUBKEY_HASH, pubkey_hash, pubkey_hash_len,
-                        &pubkey_hash_len) &&
-               pubkey_hash_len == BLAKE160_SIZE,
-           ERROR_SPAWN_INVALID_PUBKEY);
-
-    err = ckb_auth_validate(algorithm_id, signature, signature_len, message,
-                            message_len, pubkey_hash, pubkey_hash_len);
-    CHECK(err);
-
-exit:
-    return err;
-
-#undef ARGV_ALGORITHM_ID
-#undef ARGV_SIGNATURE
-#undef ARGV_MESSAGE
-#undef ARGV_PUBKEY_HASH
+    return ckb_auth_validate_with_func(argc, argv, *ckb_auth_validate);
 }
+
+

@@ -18,7 +18,6 @@ use ckb_types::{
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use hex;
-use lazy_static::lazy_static;
 use log::{Metadata, Record};
 use rand::{distributions::Standard, thread_rng, Rng};
 use secp256k1;
@@ -26,6 +25,7 @@ use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use std::{collections::HashMap, mem::size_of, process::Stdio, result, vec};
 
+use crate::auth_program::{ALWAYS_SUCCESS, AUTH_DEMO, SECP256K1_DATA_BIN};
 use std::{
     process::{Child, Command},
     sync::Arc,
@@ -41,13 +41,57 @@ pub const SOLANA_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE: usize = 510;
 pub const SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE: usize =
     SOLANA_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE + 2;
 
-lazy_static! {
-    pub static ref AUTH_DEMO: Bytes = Bytes::from(&include_bytes!("../../../build/auth_demo")[..]);
-    pub static ref AUTH_DL: Bytes = Bytes::from(&include_bytes!("../../../build/auth")[..]);
-    pub static ref SECP256K1_DATA_BIN: Bytes =
-        Bytes::from(&include_bytes!("../../../build/secp256k1_data_20210801")[..]);
-    pub static ref ALWAYS_SUCCESS: Bytes =
-        Bytes::from(&include_bytes!("../../../build/always_success")[..]);
+pub mod auth_program {
+    use ckb_types::bytes::Bytes;
+    use once_cell::sync::Lazy;
+    use ref_thread_local::ref_thread_local;
+    use ref_thread_local::RefThreadLocal;
+    use std::path::Path;
+
+    pub static ORIGINAL_AUTH_PROGRAM: Lazy<Bytes> = Lazy::new(|| get_data("../../build/auth"));
+    pub static LIBECC_AUTH_PROGRAM: Lazy<Bytes> = Lazy::new(|| get_data("../../build/auth_libecc"));
+    pub static AUTH_DEMO: Lazy<Bytes> = Lazy::new(|| get_data("../../build/auth_demo"));
+    pub static SECP256K1_DATA_BIN: Lazy<Bytes> =
+        Lazy::new(|| get_data("../../build/secp256k1_data_20210801"));
+    pub static ALWAYS_SUCCESS: Lazy<Bytes> = Lazy::new(|| get_data("../../build/always_success"));
+
+    #[derive(Clone, Copy, Debug)]
+    pub enum AuthProgramType {
+        Original,
+        Libecc,
+    }
+
+    ref_thread_local! {
+        static managed PROGRAM_TO_USE: AuthProgramType = AuthProgramType::Original;
+    }
+
+    fn get_data(path: &str) -> Bytes {
+        let dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        let path = Path::new(dir.as_str()).join(path);
+        let data = std::fs::read(&path)
+            .unwrap_or_else(|_err| panic!("failed to load program: {}", path.display()));
+        Bytes::from(data)
+    }
+
+    pub fn get_auth_program() -> &'static Bytes {
+        match *PROGRAM_TO_USE.borrow() {
+            AuthProgramType::Original => &ORIGINAL_AUTH_PROGRAM,
+            AuthProgramType::Libecc => &LIBECC_AUTH_PROGRAM,
+        }
+    }
+
+    fn set_program(t: AuthProgramType) {
+        let mut p = PROGRAM_TO_USE.borrow_mut();
+        *p = t;
+    }
+
+    pub fn use_original() {
+        set_program(AuthProgramType::Original)
+    }
+
+    pub fn use_libecc() {
+        set_program(AuthProgramType::Libecc)
+    }
 }
 
 fn _dbg_print_mem(data: &Vec<u8>, name: &str) {
@@ -88,6 +132,7 @@ pub enum AlgorithmType {
     Monero = 12,
     Solana = 13,
     Ripple = 14,
+    Secp256r1 = 15,
     OwnerLock = 0xFC,
 }
 
@@ -359,7 +404,7 @@ fn append_cells_deps<R: Rng>(
     rng: &mut R,
 ) -> (Capacity, TransactionBuilder) {
     let sighash_all_out_point = append_cell_deps(dummy, rng, &AUTH_DEMO);
-    let sighash_dl_out_point = append_cell_deps(dummy, rng, &AUTH_DL);
+    let sighash_dl_out_point = append_cell_deps(dummy, rng, &auth_program::get_auth_program());
     let always_success_out_point = append_cell_deps(dummy, rng, &ALWAYS_SUCCESS);
     let secp256k1_data_out_point = append_cell_deps(dummy, rng, &SECP256K1_DATA_BIN);
 
@@ -566,7 +611,7 @@ pub fn do_gen_args(config: &TestConfig, pub_key_hash: Option<Vec<u8>>) -> Bytes 
             .copy_from_slice(&incorrect_pubkey.as_slice()[0..20]);
     }
 
-    let sighash_all_cell_data_hash = CellOutput::calc_data_hash(&AUTH_DL);
+    let sighash_all_cell_data_hash = CellOutput::calc_data_hash(&auth_program::get_auth_program());
     entry_type
         .code_hash
         .copy_from_slice(sighash_all_cell_data_hash.as_slice());
@@ -747,6 +792,9 @@ pub fn auth_builder(t: AlgorithmType, official: bool) -> result::Result<Box<dyn 
         }
         AlgorithmType::Ripple => {
             return Ok(RippleAuth::new());
+        }
+        AlgorithmType::Secp256r1 => {
+            return Ok(Secp256r1Auth::new());
         }
         AlgorithmType::OwnerLock => {
             return Ok(OwnerLockAuth::new());
@@ -1690,6 +1738,68 @@ impl Auth for RippleAuth {
     }
     fn get_sign_size(&self) -> usize {
         225
+    }
+}
+
+#[derive(Clone)]
+pub struct Secp256r1Auth {
+    pub key: Arc<p256::ecdsa::SigningKey>,
+}
+
+impl Secp256r1Auth {
+    pub fn new() -> Box<Secp256r1Auth> {
+        use p256::ecdsa::SigningKey;
+        const SECRET_KEY: [u8; 32] = [
+            0x51, 0x9b, 0x42, 0x3d, 0x71, 0x5f, 0x8b, 0x58, 0x1f, 0x4f, 0xa8, 0xee, 0x59, 0xf4,
+            0x77, 0x1a, 0x5b, 0x44, 0xc8, 0x13, 0x0b, 0x4e, 0x3e, 0xac, 0xca, 0x54, 0xa5, 0x6d,
+            0xda, 0x72, 0xb4, 0x64,
+        ];
+
+        let sk = SigningKey::from_bytes(&SECRET_KEY).unwrap();
+        Box::new(Self { key: Arc::new(sk) })
+    }
+    pub fn get_pub_key(&self) -> p256::ecdsa::VerifyingKey {
+        let pk = self.key.verifying_key();
+        pk
+    }
+    pub fn get_pub_key_bytes(&self) -> Vec<u8> {
+        let pub_key = self.get_pub_key();
+        let encoded_point = pub_key.to_encoded_point(false);
+        let bytes = encoded_point.as_bytes();
+        // The first byte is always 0x04, which is the tag for Uncompressed point.
+        // See https://docs.rs/sec1/latest/sec1/point/enum.Tag.html#variants
+        // Discard it as we always use x, y coordinates to encode pubkey.
+        bytes[1..].to_vec()
+    }
+}
+impl Auth for Secp256r1Auth {
+    fn get_pub_key_hash(&self) -> Vec<u8> {
+        let pub_key = self.get_pub_key_bytes();
+        let hash = ckb_hash::blake2b_256(&pub_key);
+        Vec::from(&hash[..20])
+    }
+    fn get_algorithm_type(&self) -> u8 {
+        AlgorithmType::Secp256r1 as u8
+    }
+    fn convert_message(&self, message: &[u8; 32]) -> H256 {
+        H256::from(message.clone())
+    }
+    fn sign(&self, msg: &H256) -> Bytes {
+        use p256::ecdsa::{signature::Signer, Signature};
+
+        let pub_key = self.get_pub_key_bytes();
+        let hash = calculate_sha256(msg.as_bytes());
+
+        // Note by default, p256 will sign the sha256 hash of the message.
+        // So we don't need to do any hashing here.
+        let signature: Signature = self.key.sign(msg.as_bytes());
+        let signature = signature.to_vec();
+        let signature: Vec<u8> = pub_key.iter().chain(&signature).map(|x| *x).collect();
+
+        signature.into()
+    }
+    fn get_sign_size(&self) -> usize {
+        128
     }
 }
 
