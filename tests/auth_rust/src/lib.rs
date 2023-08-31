@@ -1547,6 +1547,7 @@ impl Auth for SolanaAuth {
         let _keypair_json = solana_sdk::signer::keypair::write_keypair(&self.key_pair, child_stdin)
             .expect("Must write keypair");
         // Close stdin to finish and avoid indefinite blocking
+        #[allow(dropping_references)]
         drop(child_stdin);
 
         let output = child.wait_with_output().expect("Wait for output");
@@ -1788,7 +1789,7 @@ impl Auth for Secp256r1Auth {
         use p256::ecdsa::{signature::Signer, Signature};
 
         let pub_key = self.get_pub_key_bytes();
-        let hash = calculate_sha256(msg.as_bytes());
+        let _hash = calculate_sha256(msg.as_bytes());
 
         // Note by default, p256 will sign the sha256 hash of the message.
         // So we don't need to do any hashing here.
