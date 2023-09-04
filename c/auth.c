@@ -10,6 +10,7 @@
 #define ENABLE_MODULE_EXTRAKEYS
 #define ENABLE_MODULE_SCHNORRSIG
 #define SECP256K1_BUILD
+#define SECP256K1_API
 // in secp256k1_ctz64_var: we don't have __builtin_ctzl in gcc for RISC-V
 #define __builtin_ctzl secp256k1_ctz64_var_debruijn
 

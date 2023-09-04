@@ -1,0 +1,31 @@
+CC := clang-16
+LD := ld.lld-16
+OBJCOPY := llvm-objcopy-16
+AR := llvm-ar-16
+RANLIB := llvm-ranlib-16
+LLVM_CFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
+		-Wno-error=unused-but-set-variable \
+		-Wno-error=unused-command-line-argument \
+		-Wno-error=bitwise-instead-of-logical
+
+CFLAGS := $(LLVM_CFLAGS) $(GCC_CFLAGS) \
+		-O3 -g -Wall -Werror -Wno-nonnull -Wno-unused-function \
+		-fno-builtin-printf -fno-builtin-memcmp \
+		-nostdinc -nostdlib -fvisibility=hidden -fdata-sections -ffunction-sections \
+		-I deps/secp256k1/src -I deps/secp256k1 \
+		-I deps/ckb-c-std-lib -I deps/ckb-c-std-lib/libc \
+		-I deps/ckb-c-std-lib/molecule \
+		-I c \
+		-I build
+LDFLAGS := -Wl,-static -Wl,--gc-sections
+AUTH_CFLAGS=$(subst ckb-c-std-lib,ckb-c-stdlib-2023,$(CFLAGS)) -Wno-array-bounds
+
+all: build/auth_demo
+
+build/auth_demo: examples/auth-demo/auth_demo.c c/ckb_auth.h
+	$(CC) $(AUTH_CFLAGS) $(LDFLAGS) -o $@ examples/auth-demo/auth_demo.c
+	$(OBJCOPY) --only-keep-debug $@ $@.debug
+	$(OBJCOPY) --strip-debug --strip-all $@
+
+clean:
+	rm -rf build/auth_demo
