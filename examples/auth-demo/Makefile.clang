@@ -1,14 +1,3 @@
-# TARGET := riscv64-unknown-linux-gnu
-# CC := $(TARGET)-gcc
-# LD := $(TARGET)-gcc
-# OBJCOPY := $(TARGET)-objcopy
-# AR := $(TARGET)-ar
-# RANLIB := $(TARGET)-ranlib
-# GCC_CFLAGS := -nostartfiles \
-# 		-Wno-nonnull-compare \
-# 		-Wno-dangling-pointer \
-# 		-Wno-stringop-overflow
-
 CC := clang-16
 LD := ld.lld-16
 OBJCOPY := llvm-objcopy-16
