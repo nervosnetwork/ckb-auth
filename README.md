@@ -22,7 +22,7 @@ throughout the process.
 ## Integration
 The following blockchains are supported:
 
-* Bitcoin
+* [Bitcoin](./docs/bitcoin.md)
 * Ethereum
 * EOS
 * Tron
