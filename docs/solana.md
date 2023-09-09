@@ -90,8 +90,8 @@ the base58 encoding of the message, which is `5Tx8F3jgSHx21CbtjwmdaKPLM5tWmreWAn
 ```bash
 solana transfer --fee-payer keypair.json --from keypair.json --blockhash G8mW5A2r4ab8gnmCB4abus21BN8vyMa3hbLg91AcsMon 6dN24Y1wBW66CxLfXbRT9umy1PMed8ZmfMWsghopczFg 0 --output json --verbose --dump-transaction-message --sign-only
 ```
-Here we construct a valid transaction with the message embedded as blockhash in the transcaction.
-When this trancation is signed by our private key, ckb-auth will recognize it as a valid transaction.
+Here we construct a valid transaction with the message embedded as blockhash in the transaction.
+When this transaction is signed by our private key, ckb-auth will recognize it as a valid transaction.
 Here the command line argument `6dN24Y1wBW66CxLfXbRT9umy1PMed8ZmfMWsghopczFg` represents the receiver account,
 and `0` represents the transaction amount. ckb-auth does not really care about the receiver account and amount,
 as long as the signature is valid and the solana message contains the message we intend to sign as blockhash.
@@ -131,7 +131,7 @@ A sample output is
 Ckb-auth requires the signature, public key and message to verify the validity of the signature.
 The signature and public key are contained in the signers of `solana transfer` output,
 and the message correponds to the field message of `solana transfer` output. 
-Signature, public key and message all together form the witness of this transction.
+Signature, public key and message all together form the witness of this transaction.
 Since the size of the witness is not static (as the message is dynamically-sized) and
 its length is relevant in computing transaction hash. We pad the whole witness to a memory region of size
 512. The first part of these memory region is a little-endian `uint16_t` integer represents the length of
@@ -173,7 +173,7 @@ For example, here is the witness that will be read by ckb-auth
 000001f0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 ```
 
-Here the first two bytes 0x1601 = 278 in little endian represents that the length of the whole effective witness buffer.
+Here the first two bytes 0x1601 = 278 in little endian represent the length of the whole effective witness buffer.
 Then we have the real signature `33f29e94d650f5de73b84c835fa8db2c1f5a68549594a77829e845a747db96184fd80547c18e9e58374a7360b905cb8c51e00023de84595781b213bf283e3905`,
 followed by the real public key `4c0d9b63b23dc285a21f75b4a343e9b74ee2f4eb79f31a4b721d1f3d1f1a1c70` that is used to sign the message
 `02000104948d3046cc82355c0f60573ef84e5f1254d391af85a0f2d5f9387878dac6ac224c0d9b63b23dc285a21f75b4a343e9b74ee2f4eb79f31a4b721d1f3d1f1a1c70539b1bf5a7c053d0cf79ee1f3293d8cc29d3fd8794c262d97420580a0b9603ff00000000000000000000000000000000000000000000000000000000000000007e97cfe1ffbb973eceb70c3a11d94d6b2921718a5d9cce461c83e2a8d26666a301030201020c020000000000000000000000`.
