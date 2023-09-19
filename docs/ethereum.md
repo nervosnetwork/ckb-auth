@@ -3,12 +3,30 @@
 Here, we are conducting comparative testing using the official Ethereum tool [go-ethereum](https://geth.ethereum.org/) (Version 1.12.2).
 
 ## Install
-You can download the binary files following the [official guide](https://geth.ethereum.org/docs/getting-started/installing-geth). Alternatively, you can compile from [source](https://github.com/ethereum/go-ethereum) (requires a golang environment).
+You can install it in the following ways:
 
-Since we are only performing `signature` and `verify`, there is no need to configure geth.
-We will be using:
+* Package Managers, supported on: Mac (brew), Ubuntu, FreeBSD, Arch Linux. For specific instructions, please refer to the [official documentation](https://geth.ethereum.org/docs/getting-started/installing-geth).
+* [Download the standalone bundle](https://geth.ethereum.org/downloads)
+* Building from [source code](https://github.com/ethereum/go-ethereum)
+
+Within the `geth` package, there are multiple executable files. Here, we will focus on using `geth` and `ethkey`.
+
 * `geth` for creating accounts and generating addresses.
 * `ethkey` for signature and verification.
+
+Please note that if you are using the standalone bundle or building from source code, it's advisable to add the installation directory to your environment variables for ease of use.
+
+### Build from source code
+Keep in mind that compiling `geth` requires a [golang environment](https://go.dev/doc/install).
+
+```
+git clone https://github.com/ethereum/go-ethereum.git
+cd go-ethereum
+make all
+```
+
+
+As `ethkey` is required, we compile all components for convenience. The compiled results can be found in the `build/bin` directory. It's recommended to add this directory to your 'PATH' environment variable for ease of use.
 
 ## Address
 First, you need to create a test account (you will need to set a password):
