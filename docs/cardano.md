@@ -57,7 +57,7 @@ tools/ckb-auth-cli/target/debug/ckb-auth-cli cardano verify -p <Public key hash>
 ```
 
 ### Signature
-Signatures are structured using [CBOR](https://datatracker.ietf.org/doc/html/rfc7049). In order to ensure compatibility with cadrano-cli and the security of transactions, some modifications have been made to the original structure here:
+Signatures are structured using [CBOR](https://datatracker.ietf.org/doc/html/rfc7049). In order to ensure compatibility with cardano-cli and the security of transactions, some modifications have been made to the original structure here:
 The transaction hash of the Input is passed into ```generate_sighash_all``` function in ckb-auth as a hash.
 
 | byte string | length | data |

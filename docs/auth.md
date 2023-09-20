@@ -33,7 +33,7 @@ typedef struct CkbAuthType {
 ```
 
 It is a data structure with 21 bytes. The content can be hash (blake160 or some
-other hashes) of pubic key, preimage, or some others. The blake160 hash function
+other hashes) of public key, preimage, or some others. The blake160 hash function
 is defined as first 20 bytes of [blake2b
 hash](https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0022-transaction-structure/0022-transaction-structure.md#crypto-primitives).
 

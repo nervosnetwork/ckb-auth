@@ -1,5 +1,5 @@
 # ckb-auth litecoin interoperability
-Below uses the address `msv9GiUuCGEaoWzu7YcPDJo8hu5ij3Nzjn` whose coresponding private key is
+Below uses the address `msv9GiUuCGEaoWzu7YcPDJo8hu5ij3Nzjn` whose corresponding private key is
 `cSoKeLipWLXgdonv3pxE7XBp37yPVAnFcio3ZfGvsdjSWZa67cFJ`. See below on how to import this private
 key into the wallet.
 
@@ -17,7 +17,7 @@ with `litecoin-cli`, and then leverage ckb-auth to check the validity of this si
 See [the docs](./auth.md) for more details.
 
 # Generate and verify transaction with ckb-auth-cli
-[`ckb-auth-cli`](../tools/ckb-auth-cli) is a command line utility to easy generate and verify ckb-auth transactions. Below assume that the working directory is `tests/auth_rust`.
+[`ckb-auth-cli`](../tools/ckb-auth-cli) is a command line utility to easily generate and verify ckb-auth transactions. Below assume that the working directory is `tests/auth_rust`.
 
 ## Get the pub key hash with `parse` sub command.
 ```
@@ -116,7 +116,7 @@ Here's the output when I run that script:
 ```
 
 The legacy p2pkh addresses are normally with short length (see [How is a Litecoin address generated?](https://bitcoin.stackexchange.com/questions/65282/how-is-a-litecoin-address-generated) and [address format - litecoin constants and prefixes](https://bitcoin.stackexchange.com/questions/62781/litecoin-constants-and-prefixes) for details).
-As an rule of thumb, we can use the addresses started with m or n in litecoin testnet and addresses started with L for litecoin mainnet.
+As a rule of thumb, we can use the addresses started with m or n in litecoin testnet and addresses started with L for litecoin mainnet.
 For example, here the short addresses  `msv9GiUuCGEaoWzu7YcPDJo8hu5ij3Nzjn`
 may be used to sign message, while another short address 
 `Qe2ByfdQjU5AUZTvZ4XCrmQxHQctBXavWL` does not work.
