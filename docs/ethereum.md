@@ -48,7 +48,7 @@ In Ethereum, the `Address` is a 20-byte fixed-length array. When used in program
 
 Ethereum's message is calculated using sha3: `Ethereum Signed Message:\n` + 'message' hash. While ckb-auth's message is a fixed length of 32 bytes, so here, `ethkey` supports the input of messages in both textual form and through a file (by using the `--msgfile` parameter). In this context, Ethereum's message is directly utilized as a data parameter hash, necessitating the use of the `--msgfile` to input a file.
 
-You can use the command provided by `ckb-auth-cli` to convert the message to file:
+You can use the command provided by `ckb-auth-cli ethereum generate` to convert the message to file:
 ```shell
 message=0011223344556677889900112233445500112233445566778899001122334455
 message_file=
