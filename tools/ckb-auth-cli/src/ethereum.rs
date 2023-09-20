@@ -12,10 +12,11 @@ impl BlockChainArgs for EthereumLockArgs {
     }
 
     fn reg_parse_args(&self, cmd: Command) -> Command {
-        cmd.arg(arg!(-m --message <PUBKEYHASH> "The signature message"))
+        cmd
     }
     fn reg_generate_args(&self, cmd: Command) -> Command {
-        cmd
+        cmd.arg(arg!(-m --message <MESSAGE> "Generate message binary for ethereum signing"))
+            .arg(arg!(--msgfile <MESSAGE_FILE> "Output file"))
     }
     fn reg_verify_args(&self, cmd: Command) -> Command {
         cmd.arg(arg!(-a --address <PUBKEYHASH> "The ethereum address"))
@@ -31,19 +32,33 @@ impl BlockChainArgs for EthereumLockArgs {
 pub struct BitcoinLock {}
 
 impl BlockChain for BitcoinLock {
-    fn parse(&self, operate_mathches: &ArgMatches) -> Result<(), Error> {
-        let message = operate_mathches
-            .get_one::<String>("message")
-            .expect("Get signature message");
+    fn parse(&self, _operate_mathches: &ArgMatches) -> Result<(), Error> {
+        Err(anyhow!("ethereum does not generate"))
+    }
+
+    fn generate(&self, operate_mathches: &ArgMatches) -> Result<(), Error> {
+        let message = decode(
+            operate_mathches
+                .get_one::<String>("message")
+                .expect("Get signature message"),
+        )
+        .expect("Decode message");
         if message.len() != 32 {
             return Err(anyhow!("Signature length must be 32"));
         }
-        println!("{}", hex::encode(message.as_bytes()));
-        Ok(())
-    }
 
-    fn generate(&self, _operate_mathches: &ArgMatches) -> Result<(), Error> {
-        Err(anyhow!("ethereum does not generate"))
+        let msgfile = operate_mathches
+            .get_one::<String>("msgfile")
+            .expect("Get signature message output file");
+
+        let msgfile = std::path::PathBuf::from(msgfile);
+        // if msgfile.exists() && msgfile.is_file() {
+        //      std::fs::remove_file(&msgfile);
+        // }
+
+        std::fs::write(msgfile, message).expect("write message file");
+
+        Ok(())
     }
 
     fn verify(&self, operate_mathches: &ArgMatches) -> Result<(), Error> {
@@ -63,17 +78,12 @@ impl BlockChain for BitcoinLock {
         )
         .expect("decode ethereum signature");
 
-        let message = operate_mathches
-            .get_one::<String>("message")
-            .expect("Get message from args");
-
-        let message = if message.len() == 32 {
-            message.as_bytes().to_vec()
-        } else if message.len() == 64 {
-            decode(message).expect("Decode ethereum message")
-        } else {
-            return Err(anyhow!("ethereum message size is not 32"));
-        };
+        let message = decode(
+            operate_mathches
+                .get_one::<String>("message")
+                .expect("Get message from args"),
+        )
+        .expect("decode ethereum message");
 
         if address.len() != 20 {
             return Err(anyhow!("ethereum address invalidate"));

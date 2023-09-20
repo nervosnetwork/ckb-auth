@@ -31,7 +31,7 @@ As `ethkey` is required, we compile all components for convenience. The compiled
 ## Address
 First, you need to create a test account (you will need to set a password):
 ```shell
-./geth account new
+geth account new
 ```
 
 Once created, look for this line in the output:
@@ -46,40 +46,38 @@ In Ethereum, the `Address` is a 20-byte fixed-length array. When used in program
 
 ## Signature
 
-Ethereum's message is calculated using sha3: `Ethereum Signed Message:\n` + 'message' hash. While ckb-auth's message is a fixed length of 32 bytes, so here, we use a 32-character string for the message.
+Ethereum's message is calculated using sha3: `Ethereum Signed Message:\n` + 'message' hash. While ckb-auth's message is a fixed length of 32 bytes, so here, `ethkey` supports the input of messages in both textual form and through a file (by using the `--msgfile` parameter). In this context, Ethereum's message is directly utilized as a data parameter hash, necessitating the use of the `--msgfile` to input a file.
 
-You can generate a ckb-auth-compatible message using the following command:
+You can use the command provided by `ckb-auth-cli` to convert the message to file:
+```
+message=0011223344556677889900112233445500112233445566778899001122334455
+message_file=
+ethereum generate -m $message --msgfile $message_file
+```
+(You need to set the path of `message_file` here)
+
+After generating the message file, you can use `ethkey` to sign:
 ```shell
 my_key_file=
-message=00112233445566778899001122334455
-./ethkey signmessage $my_key_file $message
+ethkey signmessage --msgfile $message_file $my_key_file
 ```
 output:
 ```
-Signature: 2d87792d122d9187433bffee9723483cca9c8f848d14a9b772f247ff75637103448d825ff0366a1b6572f48b03ef28705feedeb009e9d95c190922435ae271f401
+Signature: 5a62aa66a32a41fb44a58e7284ca964952da485dc0fcec24dadb7402d65274d8733f9a2c34274c573d09743d04f25fdfb00ffee8d821a1422c7d3f4e97ce97e100
 ```
 
 After signing, you can verify it using geth to prevent any basic errors:
 ```shell
-./ethkey verifymessage 0x027a5b3c90216149a42ceaa0431ac7179d0e663b 2d87792d122d9187433bffee9723483cca9c8f848d14a9b772f247ff75637103448d825ff0366a1b6572f48b03ef28705feedeb009e9d95c190922435ae271f401 $message
+ethkey verifymessage --msgfile $message_file 0x027a5b3c90216149a42ceaa0431ac7179d0e663b 5a62aa66a32a41fb44a58e7284ca964952da485dc0fcec24dadb7402d65274d8733f9a2c34274c573d09743d04f25fdfb00ffee8d821a1422c7d3f4e97ce97e100
 ```
+
+* Here need to pay attention to the order of command parameters.
 
 ## Verify
 
-As mentioned earlier, ckb-auth uses a 32-byte message, while geth uses text. You can convert the message used by geth into ckb-auth's format using ckb-auth-cli.
-
-Since ckb-auth-cli has already processed the message, you can directly use the 32-character message used when signing with geth, or you can use the 64-character message generated using `ckb-auth-cli ethereum parse`. So, you can directly use geth's signature for verification:
+This can now be verified in ckb-auth:
 
 ```shell
-ckb-auth-cli ethereum parse -m 00112233445566778899001122334455
+ckb-auth-cli ethereum verify -a 027a5b3c90216149a42ceaa0431ac7179d0e663b -s 5a62aa66a32a41fb44a58e7284ca964952da485dc0fcec24dadb7402d65274d8733f9a2c34274c573d09743d04f25fdfb00ffee8d821a1422c7d3f4e97ce97e100 -m 0011223344556677889900112233445500112233445566778899001122334455
 ```
 
-output
-```
-3030313132323333343435353636373738383939303031313232333334343535
-```
-
-Here, we use ckb-auth to verify the signature from geth:
-```shell
-ckb-auth-cli ethereum verify -a 027a5b3c90216149a42ceaa0431ac7179d0e663b -s 2d87792d122d9187433bffee9723483cca9c8f848d14a9b772f247ff75637103448d825ff0366a1b6572f48b03ef28705feedeb009e9d95c190922435ae271f401 -m 3030313132323333343435353636373738383939303031313232333334343535
-```
