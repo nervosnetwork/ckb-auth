@@ -13,8 +13,9 @@ Download the binary archive from [here](https://bitcoincore.org/bin/bitcoin-core
 
 After installation is complete, start the background program: `bitcoind`. The signature and verify we need to do later need to rely on this service to process.
 ```shell
-bitcoind
+bitcoind -chain=regtest -daemonwait
 ```
+(For the convenience of testing, start Bitcoin Core in Regtest mode and run it in the background, waiting until it is fully started.)
 
 Normally, we will only be using `signature` and `verify` here, without involving on-chain data. Therefore, you can consider disabling network transmission in the configuration file.
 Instructions on how to configure it will be provided in the following section.
