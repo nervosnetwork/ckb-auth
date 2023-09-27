@@ -23,7 +23,7 @@ throughout the process.
 The following blockchains are supported:
 
 * [Bitcoin](./docs/bitcoin.md)
-* Ethereum
+* [Ethereum](./docs/ethereum.md)
 * EOS
 * Tron
 * Dogecoin
