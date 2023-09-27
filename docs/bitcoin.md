@@ -1,18 +1,17 @@
 # [Bitcoin Lock](../README.md)
 
-Here, we will be conducting comparative testing using [Bitcoin Core](https://bitcoincore.org) (Version 25.0), an official wallet. 
-For a more in-depth look at the specific implementations of Bitcoin, you can refer to the [source code](https://github.com/bitcoin/bitcoin).
+Here, use the official wallet [Bitcoin Core](https://bitcoincore.org) (Version 25.0). ([Source code](https://github.com/bitcoin/bitcoin))
 
-**Please note:** that we will be using `legacy addresses`. This choice is due to the fact that the current version (25.0) of Bitcoin Core defaults to `segwit addresses`, which are not supported by `signmessage` and `verifymessage`. For further details on this matter, you can check the [Github Issues](https://github.com/bitcoin/bitcoin/issues/10542).
+**Please note:** that we will be using `legacy addresses`. This choice is due to the fact that the current version (25.0) of Bitcoin Core defaults to `segwit addresses`, which are not supported by `signmessage` and `verifymessage`. For further details on this matter, For details, please see this [Github Issues](https://github.com/bitcoin/bitcoin/issues/10542).
 
 
 ## Quick Start
 
 ### Install Bitcoin Core
 
-Download the binary archive from [here](https://bitcoincore.org/bin/bitcoin-core-25.0/), choose the file corresponding to your platform, and unarchive it. (Note: If you are using MacOS, we recommend downloading the `.tar.gz` file, `.dmg` file only provides GUI tools.)
+Download the binary archive from [here](https://bitcoincore.org/bin/bitcoin-core-25.0/), choose the file corresponding to platform, and unarchive it. (Note: If MacOS, we recommend downloading the `.tar.gz` file, `.dmg` file only provides GUI tools.)
 
-Once you have completed these steps, you can start the background program: `bitcoind`. The signature and verify we need to do later need to rely on this service to process.
+After installation is complete, start the background program: `bitcoind`. The signature and verify we need to do later need to rely on this service to process.
 ```shell
 bitcoind
 ```
@@ -37,7 +36,7 @@ Output address:
 
 ### Generate Signature
 
-First, you need to generate a 32-byte data segment as message:
+To begin, generate a 32-byte data segment as the message:
 ```shell
 message=0011223344556677889900112233445500112233445566778899001122334455
 ```
@@ -46,7 +45,7 @@ Next, use the `bitcoin-cli` for signing:
 ```shell
 bitcoin-cli -rpcwallet=Test signmessage 1CSbWFszmuQiPCRPsaDhhb2NuFTEZFQqih $message
 ```
-If the wallet has set a password before, you need to use `walletpassphrase` to unlock it first.
+If the wallet requires a password, unlock it first using `walletpassphrase`.
 
 Once the signing is successful, it will output the signature result, which is encoded in base64:
 ```
@@ -55,7 +54,7 @@ H0v6+IkWf0WL6MDCz0K6XeTiNSChoiDIEzgJQMadJi78NoHE3roRx8QX1mnK57on5w5doBXOFBn1kwpO
 
 ### Verify
 
-Here you can directly pass the address, signature and message to ckb-auth-cli to verify:
+Pass the address, signature and message to ckb-auth-cli to verify:
 ```shell
 ckb-auth-cli bitcoin verify -a 1CSbWFszmuQiPCRPsaDhhb2NuFTEZFQqih -s H0v6+IkWf0WL6MDCz0K6XeTiNSChoiDIEzgJQMadJi78NoHE3roRx8QX1mnK57on5w5doBXOFBn1kwpOpPgVwPM= -m 0011223344556677889900112233445500112233445566778899001122334455
 ```
@@ -65,7 +64,7 @@ ckb-auth-cli bitcoin verify -a 1CSbWFszmuQiPCRPsaDhhb2NuFTEZFQqih -s H0v6+IkWf0W
 
 ### Cofing Bitcoin Core
 
-If you wish to perform testing using a GUI or disable network activity, please refer to the configuration instructions below.
+For GUI testing or disabling network activity, refer to the configuration instructions below.
 [Help](https://jlopp.github.io/bitcoin-core-config-generator/)
 
 The configuration file for Bitcoin Core (`bitcoin.conf`) is located in different directories based on the platform:
@@ -73,7 +72,7 @@ The configuration file for Bitcoin Core (`bitcoin.conf`) is located in different
 - Windows: `%UserProfile%\AppData\Roaming\Bitcoin\bitcoin.conf`
 - MacOS: `$HOME/Library/Application Support/Bitcoin/bitcoin.conf`
 
-If you are using it for the first time, you will need to manually create these directories and files. If you want to specify a custom directory, you can also check the `bitcoind` or `bitcoin-qt` help.
+First time using, need to manually create these directories and files. 
 
 Disabling network activity is mainly done to reduce disk usage:
 
@@ -97,7 +96,7 @@ To create addresses in the GUI:
 
 - Create a wallet: `File` -> `Create Wallet`.
 - Generate a receiving address: In the `Receive` tab, click the "Create new receiving address" button.
-- After creation, you will see the `Address` in the lower part of a separate window. You can check the addresses held by the current wallet in the table below.
+- After creation, the 'Address' will be visible in the lower part of a separate window. The addresses held by the current wallet can be checked in the table below.
 
 If the address starts with `bc` or `tb`, make sure to verify the correctness of the above configurations.
 
@@ -109,11 +108,11 @@ To sign a message in the GUI:
 
 - `File` -> `Sign Message`, and enter the corresponding values for signing.
 
-In ckb-auth, the message uses a fixed 32 bytes, but it internally converts the message to hexadecimal with a length of 64 bytes. Therefore, ensure that the message remains 32 bytes when generating it. If the data to be signed is too long, consider hashing it. For signing in Bitcoin, you can directly use this string.
+In ckb-auth, the message uses a fixed 32 bytes, but it internally converts the message to hexadecimal with a length of 64 bytes. Therefore, ensure that the message remains 32 bytes when generating it. If the data to be signed is too long, consider hashing it. For signing in Bitcoin, just use string directly.
 
 Please note: When signing in Bitcoin, case sensitivity should be observed. Ckb-auth uses lowercase letters exclusively.
 
-The returned signature data is encoded in base64, with a fixed binary length of 65 bytes. In this case, no special handling is required. After decoding, you can directly pass it to ckb-auth.
+The returned signature data is encoded in base64, with a fixed binary length of 65 bytes. In this case, no special processing is required and passed directly to ckb-auth
 
 ### Verify
 
