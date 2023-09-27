@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use std::{collections::HashMap, mem::size_of, process::Stdio, result, vec};
 
-use crate::auth_program::{ALWAYS_SUCCESS, AUTH_DEMO, SECP256K1_DATA_BIN};
+use lazy_static::lazy_static;
 use std::{
     process::{Child, Command},
     sync::Arc,
@@ -41,19 +41,22 @@ pub const SOLANA_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE: usize = 510;
 pub const SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE: usize =
     SOLANA_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE + 2;
 
+lazy_static! {
+    pub static ref ORIGINAL_AUTH_PROGRAM: Bytes =
+        Bytes::from(&include_bytes!("../../../build/auth")[..]);
+    pub static ref LIBECC_AUTH_PROGRAM: Bytes =
+        Bytes::from(&include_bytes!("../../../build/auth_libecc")[..]);
+    pub static ref AUTH_DEMO: Bytes = Bytes::from(&include_bytes!("../../../build/auth_demo")[..]);
+    pub static ref SECP256K1_DATA_BIN: Bytes =
+        Bytes::from(&include_bytes!("../../../build/secp256k1_data_20210801")[..]);
+    pub static ref ALWAYS_SUCCESS: Bytes =
+        Bytes::from(&include_bytes!("../../../build/always_success")[..]);
+}
+
 pub mod auth_program {
     use ckb_types::bytes::Bytes;
-    use once_cell::sync::Lazy;
     use ref_thread_local::ref_thread_local;
     use ref_thread_local::RefThreadLocal;
-    use std::path::Path;
-
-    pub static ORIGINAL_AUTH_PROGRAM: Lazy<Bytes> = Lazy::new(|| get_data("../../build/auth"));
-    pub static LIBECC_AUTH_PROGRAM: Lazy<Bytes> = Lazy::new(|| get_data("../../build/auth_libecc"));
-    pub static AUTH_DEMO: Lazy<Bytes> = Lazy::new(|| get_data("../../build/auth_demo"));
-    pub static SECP256K1_DATA_BIN: Lazy<Bytes> =
-        Lazy::new(|| get_data("../../build/secp256k1_data_20210801"));
-    pub static ALWAYS_SUCCESS: Lazy<Bytes> = Lazy::new(|| get_data("../../build/always_success"));
 
     #[derive(Clone, Copy, Debug)]
     pub enum AuthProgramType {
@@ -65,18 +68,10 @@ pub mod auth_program {
         static managed PROGRAM_TO_USE: AuthProgramType = AuthProgramType::Original;
     }
 
-    fn get_data(path: &str) -> Bytes {
-        let dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-        let path = Path::new(dir.as_str()).join(path);
-        let data = std::fs::read(&path)
-            .unwrap_or_else(|_err| panic!("failed to load program: {}", path.display()));
-        Bytes::from(data)
-    }
-
     pub fn get_auth_program() -> &'static Bytes {
         match *PROGRAM_TO_USE.borrow() {
-            AuthProgramType::Original => &ORIGINAL_AUTH_PROGRAM,
-            AuthProgramType::Libecc => &LIBECC_AUTH_PROGRAM,
+            AuthProgramType::Original => &crate::ORIGINAL_AUTH_PROGRAM,
+            AuthProgramType::Libecc => &crate::LIBECC_AUTH_PROGRAM,
         }
     }
 
@@ -611,7 +606,8 @@ pub fn do_gen_args(config: &TestConfig, pub_key_hash: Option<Vec<u8>>) -> Bytes 
             .copy_from_slice(&incorrect_pubkey.as_slice()[0..20]);
     }
 
-    let sighash_all_cell_data_hash = CellOutput::calc_data_hash(&auth_program::get_auth_program());
+    let sighash_all_cell_data_hash: Byte32 =
+        CellOutput::calc_data_hash(&auth_program::get_auth_program());
     entry_type
         .code_hash
         .copy_from_slice(sighash_all_cell_data_hash.as_slice());

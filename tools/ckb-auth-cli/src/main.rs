@@ -1,16 +1,18 @@
 mod auth_script;
+mod bitcoin;
 mod cardano;
 mod litecoin;
 mod monero;
-mod solana;
 mod ripple;
+mod solana;
 mod utils;
 
 use crate::monero::MoneroLockArgs;
+use bitcoin::BitcoinLockArgs;
 use cardano::CardanoLockArgs;
 use litecoin::LitecoinLockArgs;
-use solana::SolanaLockArgs;
 use ripple::RippleLockArgs;
+use solana::SolanaLockArgs;
 
 use anyhow::{anyhow, Error};
 use clap::{ArgMatches, Command};
@@ -80,6 +82,7 @@ fn main() -> Result<(), Error> {
         Box::new(MoneroLockArgs {}) as Box<dyn BlockChainArgs>,
         Box::new(SolanaLockArgs {}) as Box<dyn BlockChainArgs>,
         Box::new(RippleLockArgs {}) as Box<dyn BlockChainArgs>,
+        Box::new(BitcoinLockArgs {}) as Box<dyn BlockChainArgs>,
     ];
 
     let matches = cli(block_chain_args.as_slice()).get_matches();
