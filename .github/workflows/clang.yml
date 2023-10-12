@@ -42,6 +42,8 @@ jobs:
       run: make -f examples/auth-demo/Makefile.clang all
     - name: Run auth_rust tests
       run: cd tests/auth_rust && cargo test
+    - name: Clean auth_rust
+      run: rm -rf tests/auth_rust/target
     - name: Install ckb-debugger
       run: cd tests/auth_spawn_rust && make install
     - name: Run auth_spawn_rust tests
