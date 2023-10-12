@@ -233,6 +233,28 @@ int validate_signature_eth(void *prefilled_data, const uint8_t *sig,
     return ret;
 }
 
+int validate_signature_eos(void *prefilled_data, const uint8_t *sig, size_t sig_len, const uint8_t *msg, size_t msg_len,
+                           uint8_t *output, size_t *output_len) {
+    int err = 0;
+    if (*output_len < BLAKE160_SIZE) {
+        return SECP256K1_PUBKEY_SIZE;
+    }
+    uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
+    size_t out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
+    err = _recover_secp256k1_pubkey_btc(sig, sig_len, msg, msg_len, out_pubkey, &out_pubkey_size, false);
+    CHECK(err);
+
+    blake2b_state ctx;
+    blake2b_init(&ctx, BLAKE2B_BLOCK_SIZE);
+    blake2b_update(&ctx, out_pubkey, out_pubkey_size);
+    blake2b_final(&ctx, out_pubkey, BLAKE2B_BLOCK_SIZE);
+
+    memcpy(output, out_pubkey, BLAKE160_SIZE);
+    *output_len = BLAKE160_SIZE;
+exit:
+    return err;
+}
+
 int validate_signature_btc(void *prefilled_data, const uint8_t *sig,
                            size_t sig_len, const uint8_t *msg, size_t msg_len,
                            uint8_t *output, size_t *output_len) {
@@ -651,24 +673,6 @@ static void split_hex_hash(const uint8_t *source, unsigned char *dest) {
     }
 }
 
-int convert_eos_message(const uint8_t *msg, size_t msg_len, uint8_t *new_msg,
-                        size_t new_msg_len) {
-    int err = 0;
-    if (msg_len != new_msg_len || msg_len != BLAKE2B_BLOCK_SIZE)
-        return ERROR_INVALID_ARG;
-    int split_message_len = BLAKE2B_BLOCK_SIZE * 2 + 5;
-    unsigned char splited_message[split_message_len];
-    /* split message to words length <= 12 */
-    split_hex_hash(msg, splited_message);
-
-    const mbedtls_md_info_t *md_info =
-        mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-
-    err = md_string(md_info, msg, msg_len, new_msg);
-    if (err != 0) return err;
-    return 0;
-}
-
 #define MESSAGE_HEX_LEN 64
 int convert_btc_message_variant(const uint8_t *msg, size_t msg_len,
                                 uint8_t *new_msg, size_t new_msg_len,
@@ -964,7 +968,7 @@ __attribute__((visibility("default"))) int ckb_auth_validate(
     } else if (auth_algorithm_id == AuthAlgorithmIdEos) {
         CHECK2(signature_size == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
         err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_eth, convert_eos_message);
+                     message_size, validate_signature_eos, convert_copy);
         CHECK(err);
     } else if (auth_algorithm_id == AuthAlgorithmIdTron) {
         CHECK2(signature_size == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);

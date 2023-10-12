@@ -24,7 +24,7 @@ The following blockchains are supported:
 
 * [Bitcoin](./docs/bitcoin.md)
 * [Ethereum](./docs/ethereum.md)
-* EOS
+* [EOS](./docs/EOS.md)
 * Tron
 * Dogecoin
 * CKB

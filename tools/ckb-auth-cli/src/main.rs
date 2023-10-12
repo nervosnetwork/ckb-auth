@@ -1,6 +1,7 @@
 mod auth_script;
 mod bitcoin;
 mod cardano;
+mod eos;
 mod ethereum;
 mod litecoin;
 mod monero;
@@ -11,6 +12,7 @@ mod utils;
 use crate::monero::MoneroLockArgs;
 use bitcoin::BitcoinLockArgs;
 use cardano::CardanoLockArgs;
+use eos::EosLockArgs;
 use ethereum::EthereumLockArgs;
 use litecoin::LitecoinLockArgs;
 use ripple::RippleLockArgs;
@@ -86,6 +88,7 @@ fn main() -> Result<(), Error> {
         Box::new(RippleLockArgs {}) as Box<dyn BlockChainArgs>,
         Box::new(BitcoinLockArgs {}) as Box<dyn BlockChainArgs>,
         Box::new(EthereumLockArgs {}) as Box<dyn BlockChainArgs>,
+        Box::new(EosLockArgs {}) as Box<dyn BlockChainArgs>,
     ];
 
     let matches = cli(block_chain_args.as_slice()).get_matches();
