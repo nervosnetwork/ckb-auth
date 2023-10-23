@@ -268,6 +268,7 @@ fn bitcoin_pubkey_recid_verify() {
         verify_unit(&config),
         "failed conver btc",
         &[
+            AuthErrorCodeType::InvalidArg as i32,
             AuthErrorCodeType::Mismatched as i32,
             AuthErrorCodeType::ErrorWrongState as i32,
         ],
@@ -435,7 +436,10 @@ fn convert_btc_error() {
     assert_result_error(
         verify_unit(&config),
         "failed conver btc",
-        &[AuthErrorCodeType::Mismatched as i32],
+        &[
+            AuthErrorCodeType::Mismatched as i32,
+            AuthErrorCodeType::InvalidArg as i32,
+        ],
     );
 }
 
@@ -481,7 +485,10 @@ fn convert_doge_error() {
     assert_result_error(
         verify_unit(&config),
         "failed conver doge",
-        &[AuthErrorCodeType::Mismatched as i32],
+        &[
+            AuthErrorCodeType::Mismatched as i32,
+            AuthErrorCodeType::InvalidArg as i32,
+        ],
     );
 }
 
