@@ -1,22 +1,20 @@
 # [Tron](../README.md)
 
-Tron's wallets or tools do not support standalone signature operations. Therefore, the officially provided SDK and `ckb-auth` are used here for comparative testing.
+Tron's wallets and tools do not support standalone signature operations. Therefore, we use the officially provided SDK and `ckb-auth` for comparative testing.
 [Official website](https://tronweb.network/)
 
 Tron's signature mechanism relies on secp256k1, which is also used by [Ethereum](./ethereum.md).
 
-
 ## TronWeb
-`TronWeb` is an official SDK provided by Tron, Source code on [GitHub](https://github.com/tronprotocol/tronweb). Inside the [`tools/tron`](../tools/tron/) directory, there is a simple signature demo. This demo generates a set of keys, sign a message with the private key from this set, and verifies the signature.
+`TronWeb` is the official SDK provided by Tron, with its source code available on [GitHub](https://github.com/tronprotocol/tronweb). Within the [`tools/tron`](../tools/tron/) directory, there is a straightforward signature demo. This demo generates a set of keys, signs a message with the private key from this set, and verifies the signature.
 
 The message is a 32-byte binary data, corresponding to the ckb signature message.
 
-The demo require `nodejs` and `tronweb` module.
-- **Node.js**: The [Official website](https://nodejs.org/en). Download the appropriate binary package, extract it, and add the directory to your `PATH`.
-- To install 'tronweb' navigate to the directory [`tools/tron`](../tools/tron/) and run the command: `npm install tronweb`. (Note that for this command, This command may require proxy configuration. It will place the dependencies in the `node_modules` directory in the current location.)
+To run the demo, you will need `nodejs` and the `tronweb` module.
+- **Node.js**: You can download the appropriate binary package from the [Official website](https://nodejs.org/en), extract it, and add the directory to your `PATH`.
+- To install 'tronweb', navigate to the directory [`tools/tron`](../tools/tron/) and run the command: `npm install tronweb`. (Please note that this command may require proxy configuration and will place the dependencies in the `node_modules` directory in the current location.)
 
-
-Run demo, after installing the dependencies.
+Once you've installed the dependencies, you can run the demo using this command:
 ```bash
 node main.js
 ```
@@ -41,17 +39,17 @@ Success
 ```
 
 Here's an explanation of the output content:
-- `key-privateKey`: This is the plaintext private key, stored as a hexadecimal string.
+- `key-privateKey`: This is the plaintext private key stored as a hexadecimal string.
 - `key-publicKey`: The plaintext public key, also in hexadecimal string format.
-- `key-address-base58`: The address encoded in base58. Tron typically uses this format.
-- `key-address-hex`: The hexadecimal form of the address. It's not commonly used.
-- `msg data`: The data to be signed is a fixed length of 32 bytes, which is necessary for verification in ckb-auth-cli.
+- `key-address-base58`: The address encoded in base58, commonly used in Tron.
+- `key-address-hex`: The hexadecimal form of the address, which is not commonly used.
+- `msg data`: The data to be signed is a fixed length of 32 bytes, necessary for verification in ckb-auth-cli.
 - `msg hash`: The actual data used for signing, derived from multiple hashes of the msg data. This result is displayed for reference or debugging purposes.
 - `sign`: The result of the signature, in hexadecimal string format. In this case, it's 65 bytes long.
 - `verify ret pubkey address`: The result of the signature, in hexadecimal string format. In this case, it's 65 bytes long.
 
 ## Address
-In Tron, the address is encoded by default in base58 format, and after decoding, it consists of 42 bytes. 
+In Tron, the address is encoded by default in base58 format, and after decoding, it consists of 42 bytes.
 
 The first byte is a fixed value of 0x41, and the subsequent data structure is the same as in `Ethereum`. [Refer to](https://developers.tron.network/docs/account).
 
