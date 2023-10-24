@@ -850,13 +850,23 @@ impl Auth for CKbAuth {
 pub struct EthereumAuth {
     pub privkey: secp256k1::SecretKey,
     pub pubkey: secp256k1::PublicKey,
+
+    pub chain_id: Option<u8>,
+    pub recid: Option<u8>,
+    pub recid_add_27: bool,
 }
 impl EthereumAuth {
-    fn new() -> Box<dyn Auth> {
+    fn new() -> Box<EthereumAuth> {
         let generator: secp256k1::Secp256k1<secp256k1::All> = secp256k1::Secp256k1::new();
         let mut rng = thread_rng();
         let (privkey, pubkey) = generator.generate_keypair(&mut rng);
-        Box::new(EthereumAuth { privkey, pubkey })
+        Box::new(EthereumAuth {
+            privkey,
+            pubkey,
+            chain_id: None,
+            recid: None,
+            recid_add_27: false,
+        })
     }
     pub fn get_eth_pub_key_hash(pubkey: &secp256k1::PublicKey) -> Vec<u8> {
         let pubkey = pubkey.serialize_uncompressed();
@@ -896,7 +906,17 @@ impl Auth for EthereumAuth {
         ret
     }
     fn sign(&self, msg: &H256) -> Bytes {
-        Self::eth_sign(msg, &self.privkey)
+        let mut sign = Self::eth_sign(msg, &self.privkey).to_vec();
+
+        if self.chain_id.is_some() {
+            sign[64] = sign.get(64).unwrap().clone() + self.chain_id.as_ref().unwrap() * 2 + 35;
+        } else if self.recid.is_some() {
+            sign[64] = self.recid.as_ref().unwrap().clone();
+        } else if self.recid_add_27 {
+            sign[64] += 27;
+        }
+
+        Bytes::from(sign)
     }
 }
 

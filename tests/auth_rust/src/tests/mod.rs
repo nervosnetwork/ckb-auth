@@ -349,7 +349,13 @@ fn convert_eth_error() {
     let (privkey, pubkey) = generator.generate_keypair(&mut rng);
 
     let auth: Box<dyn Auth> = Box::new(EthConverFaileAuth {
-        0: EthereumAuth { privkey, pubkey },
+        0: EthereumAuth {
+            privkey,
+            pubkey,
+            chain_id: None,
+            recid: None,
+            recid_add_27: false,
+        },
     });
 
     let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
@@ -705,8 +711,42 @@ fn abnormal_algorithm_type() {
 
 #[test]
 fn ethereum_recid() {
-    // TODO
-    let auth = crate::EthereumAuth::new();
-    let auth: Box<dyn Auth> = auth;
-    unit_test_common_all_runtype(&auth);
+    let mut auth = EthereumAuth::new();
+    auth.chain_id = Some(20);
+    unit_test_common_all_runtype(&(auth as Box<dyn Auth>));
+
+    let mut auth = EthereumAuth::new();
+    auth.chain_id = Some(31);
+    unit_test_common_all_runtype(&(auth as Box<dyn Auth>));
+    
+    let mut auth = EthereumAuth::new();
+    auth.recid_add_27 = true;
+    unit_test_common_all_runtype(&(auth as Box<dyn Auth>));
+
+    let mut auth = EthereumAuth::new();
+    auth.recid = Some(3);
+    let config = TestConfig::new(&(auth as Box<dyn Auth>), EntryCategoryType::Spawn, 1);
+    assert_result_error(
+        verify_unit(&config),
+        "recid(3) check ",
+        &[AuthErrorCodeType::InvalidArg as i32],
+    );
+
+    let mut auth = EthereumAuth::new();
+    auth.recid = Some(26);
+    let config = TestConfig::new(&(auth as Box<dyn Auth>), EntryCategoryType::Spawn, 1);
+    assert_result_error(
+        verify_unit(&config),
+        "recid(26) check",
+        &[AuthErrorCodeType::InvalidArg as i32],
+    );
+
+    let mut auth = EthereumAuth::new();
+    auth.recid = Some(34);
+    let config = TestConfig::new(&(auth as Box<dyn Auth>), EntryCategoryType::Spawn, 1);
+    assert_result_error(
+        verify_unit(&config),
+        "recid(34) check",
+        &[AuthErrorCodeType::InvalidArg as i32],
+    );
 }
