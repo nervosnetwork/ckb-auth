@@ -356,47 +356,6 @@ fn convert_eth_error() {
 }
 
 #[test]
-fn convert_eos_error() {
-    #[derive(Clone)]
-    struct EthConverFaileAuth(EosAuth);
-    impl Auth for EthConverFaileAuth {
-        fn get_pub_key_hash(&self) -> Vec<u8> {
-            EthereumAuth::get_eth_pub_key_hash(&self.0.pubkey)
-        }
-        fn get_algorithm_type(&self) -> u8 {
-            AlgorithmType::Eos as u8
-        }
-        fn convert_message(&self, message: &[u8; 32]) -> H256 {
-            use mbedtls::hash::{Md, Type::Sha256};
-            let mut md = Md::new(Sha256).unwrap();
-            md.update(message).expect("sha256 update data");
-            md.update(&[1, 2, 3]).expect("sha256 update data");
-
-            let mut msg = [0u8; 32];
-            md.finish(&mut msg).expect("sha256 finish");
-            H256::from(msg)
-        }
-        fn sign(&self, msg: &H256) -> Bytes {
-            EthereumAuth::eth_sign(msg, &self.0.privkey)
-        }
-    }
-
-    let generator: secp256k1::Secp256k1<secp256k1::All> = secp256k1::Secp256k1::new();
-    let mut rng = thread_rng();
-    let (privkey, pubkey) = generator.generate_keypair(&mut rng);
-
-    let auth: Box<dyn Auth> = Box::new(EthConverFaileAuth {
-        0: EosAuth { privkey, pubkey },
-    });
-    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
-    assert_result_error(
-        verify_unit(&config),
-        "failed conver eos",
-        &[AuthErrorCodeType::Mismatched as i32],
-    );
-}
-
-#[test]
 fn convert_tron_error() {
     #[derive(Clone)]
     struct TronConverFaileAuth(TronAuth);

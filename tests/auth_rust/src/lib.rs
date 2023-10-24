@@ -110,6 +110,16 @@ pub fn calculate_sha256(buf: &[u8]) -> [u8; 32] {
     c.finalize().into()
 }
 
+pub fn calculate_ripemd160(buf: &[u8]) -> [u8; 20] {
+    use mbedtls::hash::*;
+    let mut md = Md::new(Type::Ripemd).unwrap();
+    md.update(buf).expect("hash ripemd update");
+    let mut out = [0u8; 20];
+    md.finish(&mut out).expect("hash ripemd finish");
+
+    out
+}
+
 #[derive(Clone, Copy)]
 pub enum AlgorithmType {
     Ckb = 0,
@@ -892,30 +902,41 @@ impl Auth for EthereumAuth {
 
 #[derive(Clone)]
 pub struct EosAuth {
-    pub privkey: secp256k1::SecretKey,
-    pub pubkey: secp256k1::PublicKey,
+    pub privkey: Privkey,
+    pub compress: bool,
 }
 impl EosAuth {
     fn new() -> Box<dyn Auth> {
-        let generator: secp256k1::Secp256k1<secp256k1::All> = secp256k1::Secp256k1::new();
-        let mut rng = thread_rng();
-        let (privkey, pubkey) = generator.generate_keypair(&mut rng);
-        Box::new(EosAuth { privkey, pubkey })
+        let privkey = Generator::random_privkey();
+        Box::new(BitcoinAuth {
+            privkey,
+            compress: true,
+        })
     }
 }
 impl Auth for EosAuth {
     fn get_pub_key_hash(&self) -> Vec<u8> {
-        EthereumAuth::get_eth_pub_key_hash(&self.pubkey)
+        let pub_key = self.privkey.pubkey().expect("pubkey");
+        let pub_key_vec: Vec<u8>;
+        if self.compress {
+            pub_key_vec = pub_key.serialize();
+        } else {
+            let mut temp: BytesMut = BytesMut::with_capacity(65);
+            temp.put_u8(4);
+            temp.put(Bytes::from(pub_key.as_bytes().to_vec()));
+            pub_key_vec = temp.freeze().to_vec();
+        }
+
+        ckb_hash::blake2b_256(pub_key_vec)[..20].to_vec()
     }
     fn get_algorithm_type(&self) -> u8 {
         AlgorithmType::Eos as u8
     }
     fn convert_message(&self, message: &[u8; 32]) -> H256 {
-        let msg = calculate_sha256(message);
-        H256::from(msg)
+        H256::from(message.clone())
     }
     fn sign(&self, msg: &H256) -> Bytes {
-        EthereumAuth::eth_sign(msg, &self.privkey)
+        BitcoinAuth::btc_sign(msg, &self.privkey, self.compress)
     }
 }
 
@@ -966,8 +987,6 @@ impl BitcoinAuth {
         })
     }
     pub fn get_btc_pub_key_hash(privkey: &Privkey, compress: bool) -> Vec<u8> {
-        use mbedtls::hash::{Md, Type};
-
         let pub_key = privkey.pubkey().expect("pubkey");
         let pub_key_vec: Vec<u8>;
         if compress {
@@ -981,8 +1000,7 @@ impl BitcoinAuth {
 
         let pub_hash = calculate_sha256(&pub_key_vec);
 
-        let mut msg = [0u8; 20];
-        Md::hash(Type::Ripemd, &pub_hash, &mut msg).expect("hash ripemd");
+        let msg = calculate_ripemd160(&pub_hash);
         msg.to_vec()
     }
     pub fn btc_convert_message(message: &[u8; 32]) -> H256 {
@@ -1599,16 +1617,6 @@ impl RippleAuth {
         })
     }
 
-    fn hash_ripemd160(data: &[u8]) -> [u8; 20] {
-        use mbedtls::hash::*;
-        let mut md = Md::new(Type::Ripemd).unwrap();
-        md.update(data).expect("hash ripemd update");
-        let mut out = [0u8; 20];
-        md.finish(&mut out).expect("hash ripemd finish");
-
-        out
-    }
-
     fn hash_sha256(data: &[u8]) -> [u8; 32] {
         use mbedtls::hash::*;
         let mut md = Md::new(Type::Sha256).unwrap();
@@ -1638,7 +1646,7 @@ impl RippleAuth {
 
     pub fn hex_to_address(data: &[u8]) -> String {
         let data = Self::hash_sha256(data);
-        let data: [u8; 20] = Self::hash_ripemd160(&data);
+        let data: [u8; 20] = calculate_ripemd160(&data);
 
         let mut data = {
             let mut buf = vec![0u8];
@@ -1652,7 +1660,7 @@ impl RippleAuth {
     }
 
     fn get_hash(data: &[u8]) -> [u8; 20] {
-        Self::hash_ripemd160(&Self::hash_sha256(data))
+        calculate_ripemd160(&Self::hash_sha256(data))
     }
 
     fn generate_tx(ckb_sign_msg: &[u8], pubkey: &[u8], sign: Option<&[u8]>) -> Vec<u8> {

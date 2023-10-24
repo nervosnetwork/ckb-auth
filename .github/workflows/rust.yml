@@ -38,6 +38,8 @@ jobs:
       run: make all-via-docker
     - name: Run auth_rust tests
       run: cd tests/auth_rust && bash run.sh
+    - name: Clean auth_rust
+      run: rm -rf tests/auth_rust/target
     - name: Install ckb-debugger
       run: cd tests/auth_spawn_rust && make install
     - name: Run auth_spawn_rust tests
