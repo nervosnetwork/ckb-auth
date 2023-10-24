@@ -270,7 +270,7 @@ int validate_signature_eos(void *prefilled_data, const uint8_t *sig, size_t sig_
     }
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
     size_t out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
-    err = _recover_secp256k1_pubkey_btc(sig, sig_len, msg, msg_len, out_pubkey, &out_pubkey_size, false);
+    err = _recover_secp256k1_pubkey_btc(sig, sig_len, msg, msg_len, out_pubkey, &out_pubkey_size);
     CHECK(err);
 
     blake2b_state ctx;

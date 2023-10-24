@@ -903,29 +903,32 @@ impl Auth for EthereumAuth {
 #[derive(Clone)]
 pub struct EosAuth {
     pub privkey: Privkey,
-    pub compress: bool,
+    pub v_type: BitcoinSignVType,
 }
 impl EosAuth {
     fn new() -> Box<dyn Auth> {
         let privkey = Generator::random_privkey();
         Box::new(BitcoinAuth {
             privkey,
-            compress: true,
+            v_type: BitcoinSignVType::default(),
         })
     }
 }
 impl Auth for EosAuth {
     fn get_pub_key_hash(&self) -> Vec<u8> {
         let pub_key = self.privkey.pubkey().expect("pubkey");
-        let pub_key_vec: Vec<u8>;
-        if self.compress {
-            pub_key_vec = pub_key.serialize();
-        } else {
-            let mut temp: BytesMut = BytesMut::with_capacity(65);
-            temp.put_u8(4);
-            temp.put(Bytes::from(pub_key.as_bytes().to_vec()));
-            pub_key_vec = temp.freeze().to_vec();
-        }
+        let pub_key_vec: Vec<u8> = match self.v_type {
+            BitcoinSignVType::P2PKHUncompressed => {
+                let mut temp: BytesMut = BytesMut::with_capacity(65);
+                temp.put_u8(4);
+                temp.put(Bytes::from(pub_key.as_bytes().to_vec()));
+                temp.freeze().to_vec()
+            }
+            BitcoinSignVType::P2PKHCompressed => pub_key.serialize(),
+            _ => {
+                panic!("Unsupport")
+            }
+        };
 
         ckb_hash::blake2b_256(pub_key_vec)[..20].to_vec()
     }
@@ -936,7 +939,7 @@ impl Auth for EosAuth {
         H256::from(message.clone())
     }
     fn sign(&self, msg: &H256) -> Bytes {
-        BitcoinAuth::btc_sign(msg, &self.privkey, self.compress)
+        BitcoinAuth::btc_sign(msg, &self.privkey, self.v_type)
     }
 }
 
@@ -973,30 +976,46 @@ impl Auth for TronAuth {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum BitcoinSignVType {
+    P2PKHUncompressed,
+    P2PKHCompressed,
+    SegwitP2SH,
+    SegwitBech32,
+}
+impl Default for BitcoinSignVType {
+    fn default() -> Self {
+        Self::P2PKHCompressed
+    }
+}
+
 #[derive(Clone)]
 pub struct BitcoinAuth {
     pub privkey: Privkey,
-    pub compress: bool,
+    pub v_type: BitcoinSignVType,
 }
 impl BitcoinAuth {
     pub fn new() -> Box<BitcoinAuth> {
         let privkey = Generator::random_privkey();
         Box::new(BitcoinAuth {
             privkey,
-            compress: true,
+            v_type: BitcoinSignVType::default(),
         })
     }
-    pub fn get_btc_pub_key_hash(privkey: &Privkey, compress: bool) -> Vec<u8> {
+    pub fn get_btc_pub_key_hash(privkey: &Privkey, v_type: BitcoinSignVType) -> Vec<u8> {
         let pub_key = privkey.pubkey().expect("pubkey");
-        let pub_key_vec: Vec<u8>;
-        if compress {
-            pub_key_vec = pub_key.serialize();
-        } else {
-            let mut temp: BytesMut = BytesMut::with_capacity(65);
-            temp.put_u8(4);
-            temp.put(Bytes::from(pub_key.as_bytes().to_vec()));
-            pub_key_vec = temp.freeze().to_vec();
-        }
+        let pub_key_vec: Vec<u8> = match v_type {
+            BitcoinSignVType::P2PKHUncompressed => {
+                let mut temp: BytesMut = BytesMut::with_capacity(65);
+                temp.put_u8(4);
+                temp.put(Bytes::from(pub_key.as_bytes().to_vec()));
+                temp.freeze().to_vec()
+            }
+            BitcoinSignVType::P2PKHCompressed => pub_key.serialize(),
+            _ => {
+                panic!("Unsupport")
+            }
+        };
 
         let pub_hash = calculate_sha256(&pub_key_vec);
 
@@ -1017,17 +1036,18 @@ impl BitcoinAuth {
 
         H256::from(msg)
     }
-    pub fn btc_sign(msg: &H256, privkey: &Privkey, compress: bool) -> Bytes {
+    pub fn btc_sign(msg: &H256, privkey: &Privkey, v_type: BitcoinSignVType) -> Bytes {
         let sign = privkey.sign_recoverable(&msg).expect("sign").serialize();
         assert_eq!(sign.len(), 65);
         let recid = sign[64];
 
-        let mark: u8;
-        if compress {
-            mark = recid + 31;
-        } else {
-            mark = recid + 27;
+        let mark = match v_type {
+            BitcoinSignVType::P2PKHUncompressed => recid + 27,
+            BitcoinSignVType::P2PKHCompressed => recid + 31,
+            BitcoinSignVType::SegwitP2SH => recid + 35,
+            BitcoinSignVType::SegwitBech32 => recid + 39,
         };
+
         let mut ret = BytesMut::with_capacity(65);
         ret.put_u8(mark);
         ret.put(&sign[0..64]);
@@ -1036,7 +1056,7 @@ impl BitcoinAuth {
 }
 impl Auth for BitcoinAuth {
     fn get_pub_key_hash(&self) -> Vec<u8> {
-        BitcoinAuth::get_btc_pub_key_hash(&self.privkey, self.compress)
+        BitcoinAuth::get_btc_pub_key_hash(&self.privkey, self.v_type)
     }
     fn get_algorithm_type(&self) -> u8 {
         AlgorithmType::Bitcoin as u8
@@ -1045,27 +1065,27 @@ impl Auth for BitcoinAuth {
         BitcoinAuth::btc_convert_message(message)
     }
     fn sign(&self, msg: &H256) -> Bytes {
-        BitcoinAuth::btc_sign(msg, &self.privkey, self.compress)
+        BitcoinAuth::btc_sign(msg, &self.privkey, self.v_type)
     }
 }
 
 #[derive(Clone)]
 pub struct DogecoinAuth {
     pub privkey: Privkey,
-    pub compress: bool,
+    pub v_type: BitcoinSignVType,
 }
 impl DogecoinAuth {
     pub fn new() -> Box<DogecoinAuth> {
         let privkey = Generator::random_privkey();
         Box::new(DogecoinAuth {
             privkey,
-            compress: true,
+            v_type: BitcoinSignVType::default(),
         })
     }
 }
 impl Auth for DogecoinAuth {
     fn get_pub_key_hash(&self) -> Vec<u8> {
-        BitcoinAuth::get_btc_pub_key_hash(&self.privkey, self.compress)
+        BitcoinAuth::get_btc_pub_key_hash(&self.privkey, self.v_type)
     }
     fn get_algorithm_type(&self) -> u8 {
         AlgorithmType::Dogecoin as u8
@@ -1085,7 +1105,7 @@ impl Auth for DogecoinAuth {
         H256::from(msg)
     }
     fn sign(&self, msg: &H256) -> Bytes {
-        BitcoinAuth::btc_sign(msg, &self.privkey, self.compress)
+        BitcoinAuth::btc_sign(msg, &self.privkey, self.v_type)
     }
 }
 
@@ -1095,7 +1115,7 @@ pub struct LitecoinAuth {
     pub official: bool,
     // Use raw [u8; 32] to easily convert this into Privkey and SecretKey
     pub sk: [u8; 32],
-    pub compress: bool,
+    pub v_type: BitcoinSignVType,
     pub network: bitcoin::Network,
 }
 impl LitecoinAuth {
@@ -1104,7 +1124,7 @@ impl LitecoinAuth {
         Box::new(LitecoinAuth {
             official: false,
             sk,
-            compress: true,
+            v_type: BitcoinSignVType::default(),
             network: bitcoin::Network::Testnet,
         })
     }
@@ -1123,7 +1143,7 @@ impl LitecoinAuth {
 }
 impl Auth for LitecoinAuth {
     fn get_pub_key_hash(&self) -> Vec<u8> {
-        let hash = BitcoinAuth::get_btc_pub_key_hash(&self.get_privkey(), self.compress);
+        let hash = BitcoinAuth::get_btc_pub_key_hash(&self.get_privkey(), self.v_type);
         hash
     }
     fn get_algorithm_type(&self) -> u8 {
@@ -1148,7 +1168,7 @@ impl Auth for LitecoinAuth {
     }
     fn sign(&self, msg: &H256) -> Bytes {
         if !self.official {
-            return BitcoinAuth::btc_sign(msg, &self.get_privkey(), self.compress);
+            return BitcoinAuth::btc_sign(msg, &self.get_privkey(), self.v_type.clone());
         }
         let daemon = LitecoinDaemon::new();
         let wallet_name = "ckb-auth-test-wallet";

@@ -19,9 +19,9 @@ use hex_literal::hex;
 use crate::{
     assert_script_error, auth_builder, auth_program::use_libecc, build_resolved_tx, debug_printer,
     gen_args, gen_tx, gen_tx_scripts_verifier, gen_tx_with_grouped_args, sign_tx, AlgorithmType,
-    Auth, AuthErrorCodeType, BitcoinAuth, CKbAuth, CkbMultisigAuth, DogecoinAuth, DummyDataLoader,
-    EntryCategoryType, EosAuth, EthereumAuth, LitecoinAuth, SchnorrAuth, TestConfig, TronAuth,
-    MAX_CYCLES,
+    Auth, AuthErrorCodeType, BitcoinAuth, BitcoinSignVType, CKbAuth, CkbMultisigAuth, DogecoinAuth,
+    DummyDataLoader, EntryCategoryType, EosAuth, EthereumAuth, LitecoinAuth, SchnorrAuth,
+    TestConfig, TronAuth, MAX_CYCLES,
 };
 
 fn verify_unit(config: &TestConfig) -> Result<u64, ckb_error::Error> {
@@ -170,6 +170,11 @@ fn unit_test_common_with_runtype(
     unit_test_common_with_auth(&auth, run_type);
 }
 
+fn unit_test_common_all_runtype(auth: &Box<dyn Auth>) {
+    unit_test_common_with_auth(auth, EntryCategoryType::DynamicLinking);
+    unit_test_common_with_auth(auth, EntryCategoryType::Spawn);
+}
+
 fn unit_test_common(algorithm_type: AlgorithmType) {
     for t in [EntryCategoryType::DynamicLinking, EntryCategoryType::Spawn] {
         unit_test_common_with_runtype(algorithm_type, t, false);
@@ -208,12 +213,11 @@ fn bitcoin_verify() {
 }
 
 #[test]
-fn bitcoin_uncompress_verify() {
+fn bitcoin_v_type_verify() {
     let mut auth = crate::BitcoinAuth::new();
-    auth.compress = false;
+    auth.v_type = BitcoinSignVType::P2PKHUncompressed;
     let auth: Box<dyn Auth> = auth;
-    unit_test_common_with_auth(&auth, EntryCategoryType::DynamicLinking);
-    unit_test_common_with_auth(&auth, EntryCategoryType::Spawn);
+    unit_test_common_all_runtype(&auth);
 }
 
 #[test]
@@ -222,7 +226,7 @@ fn bitcoin_pubkey_recid_verify() {
     pub struct BitcoinFailedAuth(BitcoinAuth);
     impl Auth for BitcoinFailedAuth {
         fn get_pub_key_hash(&self) -> Vec<u8> {
-            BitcoinAuth::get_btc_pub_key_hash(&self.0.privkey, self.0.compress)
+            BitcoinAuth::get_btc_pub_key_hash(&self.0.privkey, self.0.v_type)
         }
         fn get_algorithm_type(&self) -> u8 {
             AlgorithmType::Bitcoin as u8
@@ -245,7 +249,7 @@ fn bitcoin_pubkey_recid_verify() {
                 recid = rng.gen_range(0, 4);
             }
             let mut mark: u8 = sign[64];
-            if self.0.compress {
+            if self.0.v_type == BitcoinSignVType::P2PKHCompressed {
                 mark = mark | 4;
             }
             let mut ret = BytesMut::with_capacity(65);
@@ -259,7 +263,7 @@ fn bitcoin_pubkey_recid_verify() {
     let auth: Box<dyn Auth> = Box::new(BitcoinFailedAuth {
         0: BitcoinAuth {
             privkey,
-            compress: true,
+            v_type: BitcoinSignVType::default(),
         },
     });
 
@@ -400,7 +404,7 @@ fn convert_btc_error() {
     struct BtcConverFaileAuth(BitcoinAuth);
     impl Auth for BtcConverFaileAuth {
         fn get_pub_key_hash(&self) -> Vec<u8> {
-            BitcoinAuth::get_btc_pub_key_hash(&self.0.privkey, self.0.compress)
+            BitcoinAuth::get_btc_pub_key_hash(&self.0.privkey, self.0.v_type)
         }
         fn get_algorithm_type(&self) -> u8 {
             AlgorithmType::Bitcoin as u8
@@ -420,7 +424,7 @@ fn convert_btc_error() {
             H256::from(msg)
         }
         fn sign(&self, msg: &H256) -> Bytes {
-            BitcoinAuth::btc_sign(msg, &self.0.privkey, self.0.compress)
+            BitcoinAuth::btc_sign(msg, &self.0.privkey, self.0.v_type)
         }
     }
 
@@ -428,7 +432,7 @@ fn convert_btc_error() {
     let auth: Box<dyn Auth> = Box::new(BtcConverFaileAuth {
         0: BitcoinAuth {
             privkey,
-            compress: true,
+            v_type: BitcoinSignVType::default(),
         },
     });
 
@@ -449,7 +453,7 @@ fn convert_doge_error() {
     struct DogeConverFaileAuth(DogecoinAuth);
     impl Auth for DogeConverFaileAuth {
         fn get_pub_key_hash(&self) -> Vec<u8> {
-            BitcoinAuth::get_btc_pub_key_hash(&self.0.privkey, self.0.compress)
+            BitcoinAuth::get_btc_pub_key_hash(&self.0.privkey, self.0.v_type)
         }
         fn get_algorithm_type(&self) -> u8 {
             AlgorithmType::Bitcoin as u8
@@ -469,7 +473,7 @@ fn convert_doge_error() {
             H256::from(msg)
         }
         fn sign(&self, msg: &H256) -> Bytes {
-            BitcoinAuth::btc_sign(msg, &self.0.privkey, self.0.compress)
+            BitcoinAuth::btc_sign(msg, &self.0.privkey, self.0.v_type)
         }
     }
 
@@ -477,7 +481,7 @@ fn convert_doge_error() {
     let auth: Box<dyn Auth> = Box::new(DogeConverFaileAuth {
         0: DogecoinAuth {
             privkey,
-            compress: true,
+            v_type: BitcoinSignVType::default(),
         },
     });
 
@@ -498,7 +502,7 @@ fn convert_lite_error() {
     struct LiteConverFaileAuth(LitecoinAuth);
     impl Auth for LiteConverFaileAuth {
         fn get_pub_key_hash(&self) -> Vec<u8> {
-            BitcoinAuth::get_btc_pub_key_hash(&self.0.get_privkey(), self.0.compress)
+            BitcoinAuth::get_btc_pub_key_hash(&self.0.get_privkey(), self.0.v_type)
         }
         fn get_algorithm_type(&self) -> u8 {
             AlgorithmType::Bitcoin as u8
@@ -518,7 +522,7 @@ fn convert_lite_error() {
             H256::from(msg)
         }
         fn sign(&self, msg: &H256) -> Bytes {
-            BitcoinAuth::btc_sign(msg, &self.0.get_privkey(), self.0.compress)
+            BitcoinAuth::btc_sign(msg, &self.0.get_privkey(), self.0.v_type)
         }
     }
 
@@ -527,7 +531,7 @@ fn convert_lite_error() {
         0: LitecoinAuth {
             official: false,
             sk,
-            compress: true,
+            v_type: BitcoinSignVType::default(),
             network: bitcoin::Network::Testnet,
         },
     });
@@ -697,4 +701,12 @@ fn abnormal_algorithm_type() {
             &[AuthErrorCodeType::NotImplemented as i32],
         );
     }
+}
+
+#[test]
+fn ethereum_recid() {
+    // TODO
+    let auth = crate::EthereumAuth::new();
+    let auth: Box<dyn Auth> = auth;
+    unit_test_common_all_runtype(&auth);
 }
