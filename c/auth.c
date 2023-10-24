@@ -240,9 +240,15 @@ int validate_signature_eth(void *prefilled_data, const uint8_t *sig,
 
     // where the V value will be 27 or 28 for legacy reasons
     // https://ethereum.github.io/yellowpaper/paper.pdf
-    if (recid == 27 || recid == 28) {
-        recid = recid - 27;
+    if (recid < 35) {
+        if (recid == 27 || recid == 28) {
+            recid = recid - 27;
+        }
+    } else {
+        // recid = (recid - 35) % 2;
+        recid = (recid - 1) % 2;
     }
+
     if (recid != 0 && recid != 1) {
         return ERROR_INVALID_ARG;
     }
