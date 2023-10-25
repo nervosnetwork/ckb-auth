@@ -127,17 +127,26 @@ static int _recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
     return ret;
 }
 
+typedef enum {
+    BTCVType_P2PKHUncompressed = 1,
+    BTCVType_P2PKHCompressed,
+    BTCVType_SegwitP2SH,
+    BTCVType_SegwitBech32,
+} BTCVType;
+
 // Refer to: https://en.bitcoin.it/wiki/BIP_0137
-int get_btc_recid(uint8_t d, bool *compressed) {
+int get_btc_recid(uint8_t d, BTCVType *v_type) {
     if (d >= 27 && d <= 30) {  // P2PKH uncompressed
-        if (compressed) *compressed = false;
+        *v_type = BTCVType_P2PKHUncompressed;
         return d - 27;
     } else if (d >= 31 && d <= 34) {  // P2PKH compressed
-        if (compressed) *compressed = true;
+        *v_type = BTCVType_P2PKHCompressed;
         return d - 31;
     } else if (d >= 35 && d <= 38) {  // Segwit P2SH
+        *v_type = BTCVType_SegwitP2SH;
         return d - 35;
     } else if (d >= 39 && d <= 42) {  // Segwit Bech32
+        *v_type = BTCVType_SegwitBech32;
         return d - 39;
     } else {
         return -1;
@@ -157,8 +166,8 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
         return ERROR_INVALID_ARG;
     }
 
-    bool rec_compressed = false;
-    int recid = get_btc_recid(sig[0], &rec_compressed);
+    BTCVType v_type;
+    int recid = get_btc_recid(sig[0], &v_type);
     if (recid == -1) {
         return ERROR_INVALID_ARG;
     }
@@ -185,18 +194,38 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
     }
 
     unsigned int flag = SECP256K1_EC_COMPRESSED;
-    if (rec_compressed) {
-        *out_pubkey_size = SECP256K1_PUBKEY_SIZE;
-        flag = SECP256K1_EC_COMPRESSED;
-    } else {
+    if (v_type == BTCVType_P2PKHUncompressed) {
         *out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
         flag = SECP256K1_EC_UNCOMPRESSED;
-    }
-    // change 4
-    if (secp256k1_ec_pubkey_serialize(&context, out_pubkey, out_pubkey_size,
-                                      &pubkey, flag) != 1) {
+        if (secp256k1_ec_pubkey_serialize(&context, out_pubkey, out_pubkey_size, &pubkey, flag) != 1) {
+            return ERROR_WRONG_STATE;
+        }
+    } else if (v_type == BTCVType_P2PKHCompressed || v_type == BTCVType_SegwitBech32 || v_type == BTCVType_SegwitP2SH) {
+        *out_pubkey_size = SECP256K1_PUBKEY_SIZE;
+        flag = SECP256K1_EC_COMPRESSED;
+        if (secp256k1_ec_pubkey_serialize(&context, out_pubkey, out_pubkey_size, &pubkey, flag) != 1) {
+            return ERROR_WRONG_STATE;
+        }
+
+        if (v_type == BTCVType_SegwitP2SH) {
+            const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+            unsigned char temp[SHA256_SIZE];
+            int err = md_string(md_info, out_pubkey, *out_pubkey_size, temp);
+            if (err) return err;
+
+            md_info = mbedtls_md_info_from_type(MBEDTLS_MD_RIPEMD160);
+            err = md_string(md_info, temp, SHA256_SIZE, temp);
+            if (err) return err;
+
+            out_pubkey[0] = 0;
+            out_pubkey[1] = BLAKE160_SIZE;
+            memcpy(out_pubkey + 2, temp, BLAKE160_SIZE);
+            *out_pubkey_size = 22;
+        }
+    } else {
         return ERROR_WRONG_STATE;
     }
+
     return ret;
 }
 
