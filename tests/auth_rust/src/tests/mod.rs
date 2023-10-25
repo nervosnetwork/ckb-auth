@@ -216,8 +216,19 @@ fn bitcoin_verify() {
 fn bitcoin_v_type_verify() {
     let mut auth = crate::BitcoinAuth::new();
     auth.v_type = BitcoinSignVType::P2PKHUncompressed;
-    let auth: Box<dyn Auth> = auth;
-    unit_test_common_all_runtype(&auth);
+    unit_test_common_all_runtype(&(auth as Box<dyn Auth>));
+
+    let mut auth = crate::BitcoinAuth::new();
+    auth.v_type = BitcoinSignVType::P2PKHCompressed;
+    unit_test_common_all_runtype(&(auth as Box<dyn Auth>));
+
+    let mut auth = crate::BitcoinAuth::new();
+    auth.v_type = BitcoinSignVType::SegwitP2SH;
+    unit_test_common_all_runtype(&(auth as Box<dyn Auth>));
+
+    let mut auth = crate::BitcoinAuth::new();
+    auth.v_type = BitcoinSignVType::SegwitBech32;
+    unit_test_common_all_runtype(&(auth as Box<dyn Auth>));
 }
 
 #[test]
@@ -226,7 +237,7 @@ fn bitcoin_pubkey_recid_verify() {
     pub struct BitcoinFailedAuth(BitcoinAuth);
     impl Auth for BitcoinFailedAuth {
         fn get_pub_key_hash(&self) -> Vec<u8> {
-            BitcoinAuth::get_btc_pub_key_hash(&self.0.privkey, self.0.v_type)
+            self.0.get_pub_key_hash()
         }
         fn get_algorithm_type(&self) -> u8 {
             AlgorithmType::Bitcoin as u8
@@ -235,12 +246,9 @@ fn bitcoin_pubkey_recid_verify() {
             BitcoinAuth::btc_convert_message(message)
         }
         fn sign(&self, msg: &H256) -> Bytes {
-            let sign = self
-                .0
-                .privkey
-                .sign_recoverable(&msg)
-                .expect("sign")
-                .serialize();
+            let priv_key = Privkey::from_slice(&self.0.secret_key);
+
+            let sign = priv_key.sign_recoverable(&msg).expect("sign").serialize();
             assert_eq!(sign.len(), 65);
 
             let mut rng = rand::thread_rng();
@@ -259,12 +267,8 @@ fn bitcoin_pubkey_recid_verify() {
         }
     }
 
-    let privkey = Generator::random_privkey();
     let auth: Box<dyn Auth> = Box::new(BitcoinFailedAuth {
-        0: BitcoinAuth {
-            privkey,
-            v_type: BitcoinSignVType::default(),
-        },
+        0: BitcoinAuth::default(),
     });
 
     let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
@@ -410,7 +414,7 @@ fn convert_btc_error() {
     struct BtcConverFaileAuth(BitcoinAuth);
     impl Auth for BtcConverFaileAuth {
         fn get_pub_key_hash(&self) -> Vec<u8> {
-            BitcoinAuth::get_btc_pub_key_hash(&self.0.privkey, self.0.v_type)
+            self.0.get_pub_key_hash()
         }
         fn get_algorithm_type(&self) -> u8 {
             AlgorithmType::Bitcoin as u8
@@ -430,16 +434,12 @@ fn convert_btc_error() {
             H256::from(msg)
         }
         fn sign(&self, msg: &H256) -> Bytes {
-            BitcoinAuth::btc_sign(msg, &self.0.privkey, self.0.v_type)
+            BitcoinAuth::btc_sign(msg, &self.0.secret_key, self.0.v_type)
         }
     }
 
-    let privkey = Generator::random_privkey();
     let auth: Box<dyn Auth> = Box::new(BtcConverFaileAuth {
-        0: BitcoinAuth {
-            privkey,
-            v_type: BitcoinSignVType::default(),
-        },
+        0: BitcoinAuth::default(),
     });
 
     let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
@@ -459,7 +459,7 @@ fn convert_doge_error() {
     struct DogeConverFaileAuth(DogecoinAuth);
     impl Auth for DogeConverFaileAuth {
         fn get_pub_key_hash(&self) -> Vec<u8> {
-            BitcoinAuth::get_btc_pub_key_hash(&self.0.privkey, self.0.v_type)
+            self.0.get_pub_key_hash()
         }
         fn get_algorithm_type(&self) -> u8 {
             AlgorithmType::Bitcoin as u8
@@ -479,15 +479,13 @@ fn convert_doge_error() {
             H256::from(msg)
         }
         fn sign(&self, msg: &H256) -> Bytes {
-            BitcoinAuth::btc_sign(msg, &self.0.privkey, self.0.v_type)
+            BitcoinAuth::btc_sign(msg, &self.0 .0.secret_key, self.0 .0.v_type)
         }
     }
 
-    let privkey = Generator::random_privkey();
     let auth: Box<dyn Auth> = Box::new(DogeConverFaileAuth {
         0: DogecoinAuth {
-            privkey,
-            v_type: BitcoinSignVType::default(),
+            0: BitcoinAuth::default(),
         },
     });
 
@@ -508,7 +506,7 @@ fn convert_lite_error() {
     struct LiteConverFaileAuth(LitecoinAuth);
     impl Auth for LiteConverFaileAuth {
         fn get_pub_key_hash(&self) -> Vec<u8> {
-            BitcoinAuth::get_btc_pub_key_hash(&self.0.get_privkey(), self.0.v_type)
+            self.0.get_pub_key_hash()
         }
         fn get_algorithm_type(&self) -> u8 {
             AlgorithmType::Bitcoin as u8
@@ -528,17 +526,14 @@ fn convert_lite_error() {
             H256::from(msg)
         }
         fn sign(&self, msg: &H256) -> Bytes {
-            BitcoinAuth::btc_sign(msg, &self.0.get_privkey(), self.0.v_type)
+            self.0.sign(msg)
         }
     }
 
-    let sk = Generator::random_secret_key().secret_bytes();
     let auth: Box<dyn Auth> = Box::new(LiteConverFaileAuth {
         0: LitecoinAuth {
             official: false,
-            sk,
-            v_type: BitcoinSignVType::default(),
-            network: bitcoin::Network::Testnet,
+            btc: BitcoinAuth::default(),
         },
     });
 
@@ -718,7 +713,7 @@ fn ethereum_recid() {
     let mut auth = EthereumAuth::new();
     auth.chain_id = Some(31);
     unit_test_common_all_runtype(&(auth as Box<dyn Auth>));
-    
+
     let mut auth = EthereumAuth::new();
     auth.recid_add_27 = true;
     unit_test_common_all_runtype(&(auth as Box<dyn Auth>));
