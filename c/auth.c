@@ -101,11 +101,6 @@ static int _recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
         return ret;
     }
 
-    int recid = sig[RECID_INDEX];
-    if (recid > 0x1b) {
-        recid = (recid - 0x1b) & 3;
-    }
-
     secp256k1_ecdsa_recoverable_signature signature;
     if (secp256k1_ecdsa_recoverable_signature_parse_compact(
             &context, &signature, sig, recid) == 0) {
