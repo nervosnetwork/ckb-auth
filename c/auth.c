@@ -83,7 +83,7 @@ exit:
 static int _recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
                                      const uint8_t *msg, size_t msg_len,
                                      uint8_t *out_pubkey,
-                                     size_t *out_pubkey_size, bool compressed) {
+                                     size_t *out_pubkey_size, int recid, bool compressed) {
     int ret = 0;
 
     if (sig_len != SECP256K1_SIGNATURE_SIZE) {
@@ -102,8 +102,7 @@ static int _recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
     }
 
     secp256k1_ecdsa_recoverable_signature signature;
-    if (secp256k1_ecdsa_recoverable_signature_parse_compact(
-            &context, &signature, sig, sig[RECID_INDEX]) == 0) {
+    if (secp256k1_ecdsa_recoverable_signature_parse_compact(&context, &signature, sig, (int)recid) == 0) {
         return ERROR_WRONG_STATE;
     }
 
@@ -128,12 +127,36 @@ static int _recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
     return ret;
 }
 
+typedef enum {
+    BTCVType_P2PKHUncompressed = 1,
+    BTCVType_P2PKHCompressed,
+    BTCVType_SegwitP2SH,
+    BTCVType_SegwitBech32,
+} BTCVType;
+
+// Refer to: https://en.bitcoin.it/wiki/BIP_0137
+int get_btc_recid(uint8_t d, BTCVType *v_type) {
+    if (d >= 27 && d <= 30) {  // P2PKH uncompressed
+        *v_type = BTCVType_P2PKHUncompressed;
+        return d - 27;
+    } else if (d >= 31 && d <= 34) {  // P2PKH compressed
+        *v_type = BTCVType_P2PKHCompressed;
+        return d - 31;
+    } else if (d >= 35 && d <= 38) {  // Segwit P2SH
+        *v_type = BTCVType_SegwitP2SH;
+        return d - 35;
+    } else if (d >= 39 && d <= 42) {  // Segwit Bech32
+        *v_type = BTCVType_SegwitBech32;
+        return d - 39;
+    } else {
+        return -1;
+    }
+}
+
 static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
                                          const uint8_t *msg, size_t msg_len,
                                          uint8_t *out_pubkey,
-                                         size_t *out_pubkey_size,
-                                         bool compressed) {
-    (void)compressed;
+                                         size_t *out_pubkey_size) {
     int ret = 0;
 
     if (sig_len != SECP256K1_SIGNATURE_SIZE) {
@@ -143,9 +166,11 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
         return ERROR_INVALID_ARG;
     }
 
-    // change 1
-    int recid = (sig[0] - 27) & 3;
-    bool comp = ((sig[0] - 27) & 4) != 0;
+    BTCVType v_type;
+    int recid = get_btc_recid(sig[0], &v_type);
+    if (recid == -1) {
+        return ERROR_INVALID_ARG;
+    }
 
     /* Load signature */
     secp256k1_context context;
@@ -169,18 +194,38 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
     }
 
     unsigned int flag = SECP256K1_EC_COMPRESSED;
-    if (comp) {
-        *out_pubkey_size = SECP256K1_PUBKEY_SIZE;
-        flag = SECP256K1_EC_COMPRESSED;
-    } else {
+    if (v_type == BTCVType_P2PKHUncompressed) {
         *out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
         flag = SECP256K1_EC_UNCOMPRESSED;
-    }
-    // change 4
-    if (secp256k1_ec_pubkey_serialize(&context, out_pubkey, out_pubkey_size,
-                                      &pubkey, flag) != 1) {
+        if (secp256k1_ec_pubkey_serialize(&context, out_pubkey, out_pubkey_size, &pubkey, flag) != 1) {
+            return ERROR_WRONG_STATE;
+        }
+    } else if (v_type == BTCVType_P2PKHCompressed || v_type == BTCVType_SegwitBech32 || v_type == BTCVType_SegwitP2SH) {
+        *out_pubkey_size = SECP256K1_PUBKEY_SIZE;
+        flag = SECP256K1_EC_COMPRESSED;
+        if (secp256k1_ec_pubkey_serialize(&context, out_pubkey, out_pubkey_size, &pubkey, flag) != 1) {
+            return ERROR_WRONG_STATE;
+        }
+
+        if (v_type == BTCVType_SegwitP2SH) {
+            const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+            unsigned char temp[SHA256_SIZE];
+            int err = md_string(md_info, out_pubkey, *out_pubkey_size, temp);
+            if (err) return err;
+
+            md_info = mbedtls_md_info_from_type(MBEDTLS_MD_RIPEMD160);
+            err = md_string(md_info, temp, SHA256_SIZE, temp);
+            if (err) return err;
+
+            out_pubkey[0] = 0;
+            out_pubkey[1] = BLAKE160_SIZE;
+            memcpy(out_pubkey + 2, temp, BLAKE160_SIZE);
+            *out_pubkey_size = 22;
+        }
+    } else {
         return ERROR_WRONG_STATE;
     }
+
     return ret;
 }
 
@@ -193,8 +238,8 @@ int validate_signature_ckb(void *prefilled_data, const uint8_t *sig,
     }
     uint8_t out_pubkey[SECP256K1_PUBKEY_SIZE];
     size_t out_pubkey_size = SECP256K1_PUBKEY_SIZE;
-    ret = _recover_secp256k1_pubkey(sig, sig_len, msg, msg_len, out_pubkey,
-                                    &out_pubkey_size, true);
+
+    ret = _recover_secp256k1_pubkey(sig, sig_len, msg, msg_len, out_pubkey, &out_pubkey_size, sig[RECID_INDEX], true);
     if (ret != 0) return ret;
 
     blake2b_state ctx;
@@ -217,8 +262,26 @@ int validate_signature_eth(void *prefilled_data, const uint8_t *sig,
     }
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
     size_t out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
-    ret = _recover_secp256k1_pubkey(sig, sig_len, msg, msg_len, out_pubkey,
-                                    &out_pubkey_size, false);
+
+    // https://github.com/ethereum/go-ethereum/blob/v1.13.4/crypto/signature_nocgo.go#L72
+    // The produced signature is in the [R || S || V] format where V is 0 or 1.
+    int recid = sig[RECID_INDEX];
+
+    // https://eips.ethereum.org/EIPS/eip-155
+    if (recid < 35) {
+        if (recid == 27 || recid == 28) {
+            recid = recid - 27;
+        }
+    } else {
+        // recid = (recid - 35) % 2;
+        recid = (recid - 1) % 2;
+    }
+
+    if (recid != 0 && recid != 1) {
+        return ERROR_INVALID_ARG;
+    }
+
+    ret = _recover_secp256k1_pubkey(sig, sig_len, msg, msg_len, out_pubkey, &out_pubkey_size, recid, false);
     if (ret != 0) return ret;
 
     // here are the 2 differences than validate_signature_secp256k1
@@ -241,7 +304,7 @@ int validate_signature_eos(void *prefilled_data, const uint8_t *sig, size_t sig_
     }
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
     size_t out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
-    err = _recover_secp256k1_pubkey_btc(sig, sig_len, msg, msg_len, out_pubkey, &out_pubkey_size, false);
+    err = _recover_secp256k1_pubkey_btc(sig, sig_len, msg, msg_len, out_pubkey, &out_pubkey_size);
     CHECK(err);
 
     blake2b_state ctx;
@@ -265,7 +328,7 @@ int validate_signature_btc(void *prefilled_data, const uint8_t *sig,
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
     size_t out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
     err = _recover_secp256k1_pubkey_btc(sig, sig_len, msg, msg_len, out_pubkey,
-                                        &out_pubkey_size, false);
+                                        &out_pubkey_size);
     CHECK(err);
 
     const mbedtls_md_info_t *md_info =
