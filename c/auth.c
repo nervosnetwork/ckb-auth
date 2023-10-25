@@ -267,8 +267,7 @@ int validate_signature_eth(void *prefilled_data, const uint8_t *sig,
     // The produced signature is in the [R || S || V] format where V is 0 or 1.
     int recid = sig[RECID_INDEX];
 
-    // where the V value will be 27 or 28 for legacy reasons
-    // https://ethereum.github.io/yellowpaper/paper.pdf
+    // https://eips.ethereum.org/EIPS/eip-155
     if (recid < 35) {
         if (recid == 27 || recid == 28) {
             recid = recid - 27;
