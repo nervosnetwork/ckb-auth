@@ -62,6 +62,7 @@ fn main() -> Result<(), Error> {
         Box::new(EthereumLockArgs {}) as Box<dyn BlockChainArgs>,
         Box::new(EosLockArgs {}) as Box<dyn BlockChainArgs>,
         Box::new(TronLockArgs {}) as Box<dyn BlockChainArgs>,
+        Box::new(DogecoinLockArgs {}) as Box<dyn BlockChainArgs>,
     ];
 
     let matches = cli(block_chain_args.as_slice()).get_matches();
