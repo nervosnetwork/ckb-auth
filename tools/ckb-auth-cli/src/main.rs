@@ -7,6 +7,7 @@ mod litecoin;
 mod monero;
 mod ripple;
 mod solana;
+mod tron;
 mod utils;
 
 use crate::monero::MoneroLockArgs;
@@ -17,6 +18,7 @@ use ethereum::EthereumLockArgs;
 use litecoin::LitecoinLockArgs;
 use ripple::RippleLockArgs;
 use solana::SolanaLockArgs;
+use tron::TronLockArgs;
 
 use anyhow::{anyhow, Error};
 use clap::{ArgMatches, Command};
@@ -89,6 +91,7 @@ fn main() -> Result<(), Error> {
         Box::new(BitcoinLockArgs {}) as Box<dyn BlockChainArgs>,
         Box::new(EthereumLockArgs {}) as Box<dyn BlockChainArgs>,
         Box::new(EosLockArgs {}) as Box<dyn BlockChainArgs>,
+        Box::new(TronLockArgs {}) as Box<dyn BlockChainArgs>,
     ];
 
     let matches = cli(block_chain_args.as_slice()).get_matches();

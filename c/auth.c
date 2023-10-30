@@ -102,7 +102,8 @@ static int _recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
     }
 
     secp256k1_ecdsa_recoverable_signature signature;
-    if (secp256k1_ecdsa_recoverable_signature_parse_compact(&context, &signature, sig, (int)recid) == 0) {
+    if (secp256k1_ecdsa_recoverable_signature_parse_compact(
+            &context, &signature, sig, recid) == 0) {
         return ERROR_WRONG_STATE;
     }
 
