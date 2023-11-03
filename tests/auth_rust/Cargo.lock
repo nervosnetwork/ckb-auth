@@ -865,7 +865,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ckb-auth-rs"
+name = "ckb-auth-tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",

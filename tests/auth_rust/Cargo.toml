@@ -1,5 +1,5 @@
 [package]
-name = "ckb-auth-rs"
+name = "ckb-auth-tests"
 version = "0.1.0"
 authors = ["joii <joii@cryptape.com"]
 edition = "2018"

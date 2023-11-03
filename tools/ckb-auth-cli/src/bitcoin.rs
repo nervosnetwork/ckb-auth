@@ -1,9 +1,9 @@
 use super::{BlockChain, BlockChainArgs};
 use crate::utils::decode_string;
 use anyhow::{anyhow, Error};
-use ckb_auth_rs::AlgorithmType;
+use ckb_auth_tests::AlgorithmType;
 use clap::{arg, ArgMatches, Command};
-// use ckb_auth_rs::AlgorithmType;
+// use ckb_auth_tests::AlgorithmType;
 // use hex::decode;
 
 pub struct BitcoinLockArgs {}

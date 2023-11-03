@@ -872,7 +872,7 @@ dependencies = [
  "base58-monero",
  "base64 0.21.2",
  "bs58 0.5.0",
- "ckb-auth-rs",
+ "ckb-auth-tests",
  "ckb-hash",
  "ckb-script",
  "ckb-types",
@@ -887,7 +887,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ckb-auth-rs"
+name = "ckb-auth-tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",

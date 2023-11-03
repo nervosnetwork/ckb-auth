@@ -1,4 +1,4 @@
-use ckb_auth_rs::{
+use ckb_auth_tests::{
     auth_builder, gen_tx_scripts_verifier, gen_tx_with_pub_key_hash, get_message_to_sign,
     set_signature, AlgorithmType, DummyDataLoader, EntryCategoryType, TestConfig, MAX_CYCLES,
 };

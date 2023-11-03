@@ -1,6 +1,6 @@
 use super::{BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use ckb_auth_rs::{AlgorithmType, RippleAuth};
+use ckb_auth_tests::{AlgorithmType, RippleAuth};
 use clap::{arg, ArgMatches, Command};
 use hex::decode;
 

@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Error};
-use ckb_auth_rs::AlgorithmType;
+use ckb_auth_tests::AlgorithmType;
 use ckb_vm::cost_model::estimate_cycles;
 use ckb_vm::registers::{A0, A1, A2, A3, A4, A5, A7};
 use ckb_vm::{Bytes, Memory, Register, SupportMachine, Syscalls};

@@ -1,6 +1,6 @@
 use super::{BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use ckb_auth_rs::AlgorithmType;
+use ckb_auth_tests::AlgorithmType;
 use clap::{arg, ArgMatches, Command};
 use hex::decode;
 
