@@ -1,6 +1,8 @@
-use super::{BlockChain, BlockChainArgs};
+use super::{
+    utils::{calculate_ripemd160, calculate_sha256},
+    BlockChain, BlockChainArgs,
+};
 use anyhow::{anyhow, Error};
-use ckb_auth_tests::RippleAuth;
 use ckb_auth_types::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
 use hex::decode;
@@ -36,15 +38,14 @@ impl BlockChain for RippleLock {
     fn parse(&self, operate_mathches: &ArgMatches) -> Result<(), Error> {
         let address = operate_mathches.get_one::<String>("hex_to_address");
         if address.is_some() {
-            let add =
-                RippleAuth::hex_to_address(&decode(address.unwrap()).expect("Decode address hex"));
+            let add = hex_to_address(&decode(address.unwrap()).expect("Decode address hex"));
 
             println!("{}", add);
         }
 
         let address = operate_mathches.get_one::<String>("address_to_hex");
         if address.is_some() {
-            let data = RippleAuth::base58_decode(&address.unwrap());
+            let data = ripple_base58_decode(&address.unwrap());
             println!("{}", hex::encode(data));
         }
 
@@ -60,7 +61,7 @@ impl BlockChain for RippleLock {
             let data = operate_mathches
                 .get_one::<String>("pubkey")
                 .expect("get ripple pubkey");
-            RippleAuth::base58_decode(&data)[..20].to_vec()
+            ripple_base58_decode(&data)[..20].to_vec()
         };
 
         let signature = {
@@ -91,4 +92,34 @@ impl BlockChain for RippleLock {
         println!("Signature verification succeeded");
         Ok(())
     }
+}
+
+fn ripple_base58_encode(d: &[u8]) -> String {
+    let alpha = bs58::Alphabet::new(b"rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz")
+        .expect("generate base58");
+
+    bs58::encode(d).with_alphabet(&alpha).into_string()
+}
+
+fn ripple_base58_decode(s: &str) -> Vec<u8> {
+    let alpha = bs58::Alphabet::new(b"rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz")
+        .expect("generate base58");
+
+    let hex = bs58::decode(s).with_alphabet(&alpha).into_vec().expect("");
+    hex[1..21].to_vec()
+}
+
+fn hex_to_address(data: &[u8]) -> String {
+    let data = calculate_sha256(data);
+    let data: [u8; 20] = calculate_ripemd160(&data);
+
+    let mut data = {
+        let mut buf = vec![0u8];
+        buf.extend_from_slice(&data);
+        buf
+    };
+
+    let checksum = calculate_sha256(&calculate_sha256(&data))[..4].to_vec();
+    data.extend_from_slice(&checksum);
+    ripple_base58_encode(&data)
 }

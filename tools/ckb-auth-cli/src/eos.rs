@@ -1,6 +1,5 @@
-use super::{BlockChain, BlockChainArgs};
+use super::{utils::calculate_ripemd160, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use ckb_auth_tests::calculate_ripemd160;
 use ckb_auth_types::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
 use hex::decode;
