@@ -693,13 +693,13 @@ exit:
 // AppDomain = Little endian domain length (uint32) + domain (string without trailling null)
 // Timestamp = Epoch seconds Little endian uint64
 // Payload = Arbitrary bytes, we use block hash here
-// See ton official document on ton-proof https://docs.ton.org/develop/dapps/ton-connect/sign
-int get_toncoin_message(const uint8_t *signed_msg, size_t signed_msg_len, const uint8_t *blockhash, uint8_t output[32]) {
+// See ton official documentation on ton-proof https://docs.ton.org/develop/dapps/ton-connect/sign
+int get_toncoin_message(const uint8_t *signed_msg, size_t signed_msg_len, const uint8_t *payload, size_t payload_len, uint8_t output[32]) {
     int err = 0;
     uint8_t preimage1[TONCOIN_MAX_PREIMAGE_SIZE];
     uint8_t preimage2[TONCOIN_PREIMAGE2_SIZE];
 
-    int preimage1_size = signed_msg_len + TONCOIN_MESSAGE_PREFIX_SIZE + TONCOIN_BLOCKHASH_SIZE;
+    int preimage1_size = TONCOIN_MESSAGE_PREFIX_SIZE + signed_msg_len + payload_len;
     CHECK2(preimage1_size <= TONCOIN_MAX_PREIMAGE_SIZE, ERROR_INVALID_ARG);
 
     const mbedtls_md_info_t *md_info =
@@ -707,7 +707,7 @@ int get_toncoin_message(const uint8_t *signed_msg, size_t signed_msg_len, const 
 
     memcpy(preimage1, "ton-proof-item-v2/", TONCOIN_MESSAGE_PREFIX_SIZE);
     memcpy(preimage1+TONCOIN_MESSAGE_PREFIX_SIZE, signed_msg, signed_msg_len);
-    memcpy(preimage1+TONCOIN_MESSAGE_PREFIX_SIZE+signed_msg_len, blockhash, TONCOIN_BLOCKHASH_SIZE);
+    memcpy(preimage1+TONCOIN_MESSAGE_PREFIX_SIZE+signed_msg_len, payload, payload_len);
     preimage2[0] = 0xff;
     preimage2[1] = 0xff;
     memcpy(preimage2+2, "ton-connect", TONCOIN_MESSAGE_PREFIX2_SIZE);
@@ -724,17 +724,43 @@ int validate_signature_toncoin(void *prefilled_data, const uint8_t *sig,
                               size_t *output_len) {
     int err = 0;
 
-    CHECK2(sig_len == TONCOIN_WRAPPED_SIGNATURE_SIZE, ERROR_INVALID_ARG);
-    CHECK2(msg_len == TONCOIN_BLOCKHASH_SIZE, ERROR_INVALID_ARG);
+    // CHECK2(sig_len == TONCOIN_WRAPPED_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+    // CHECK2(msg_len == TONCOIN_BLOCKHASH_SIZE, ERROR_INVALID_ARG);
     sig_len = (size_t)sig[0] | ((size_t)sig[1] << 8);
-    CHECK2(sig_len <= TONCOIN_UNWRAPPED_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+    // CHECK2(sig_len <= TONCOIN_UNWRAPPED_SIGNATURE_SIZE, ERROR_INVALID_ARG);
     const uint8_t *signature_ptr = sig + 2;
     const uint8_t *pub_key_ptr =  signature_ptr + TONCOIN_SIGNATURE_SIZE;
     const uint8_t *signed_msg_ptr = signature_ptr + TONCOIN_SIGNATURE_SIZE + TONCOIN_PUBKEY_SIZE;
     size_t signed_msg_len = sig_len - TONCOIN_SIGNATURE_SIZE - TONCOIN_PUBKEY_SIZE;
 
+    // work chain 00000000
+    // address a0b96c234f6dede6d56df40ca81315bb73c30d1a9d9f8fbc14d440c73ef6d510
+    // domain length 0a000000
+    // domain 67657467656d732e696f
+    // timestamp b2be426500000000
+    // payload 67656d73
+    // pubkey [125 83 194 93 133 166 0 197 175 183 42 101 19 27 201 200 62 79 196 203 177 50 148 82 80 89 55 226 2 107 176 92] 7d53c25d85a600c5afb72a65131bc9c83e4fc4cbb1329452505937e2026bb05c
+    // message [54 2 145 80 238 94 100 43 18 158 166 231 71 2 7 54 82 179 47 69 192 105 11 164 79 59 10 80 226 80 64 168] 36029150ee5e642b129ea6e74702073652b32f45c0690ba44f3b0a50e25040a8
+    // signature [120 223 111 175 230 47 234 249 185 136 27 130 253 214 129 11 95 15 171 8 70 80 7 157 180 224 199 185 164 161 213 82 65 56 172 43 67 98 2 58 79 247 213 136 195 77 70 49 25 161 217 237 228 254 47 135 73 55 90 9 26 226 185 1] 78df6fafe62feaf9b9881b82fdd6810b5f0fab084650079db4e0c7b9a4a1d5524138ac2b4362023a4ff7d588c34d463119a1d9ede4fe2f8749375a091ae2b901
+
+    const uint8_t test_signed_msg[] = { 0x00, 0x00, 0x00, 0x00, 0xa0, 0xb9, 0x6c, 0x23, 0x4f, 0x6d, 0xed, 0xe6, 0xd5, 0x6d, 0xf4, 0x0c, 0xa8, 0x13, 0x15, 0xbb, 0x73, 0xc3, 0x0d, 0x1a, 0x9d, 0x9f, 0x8f, 0xbc, 0x14, 0xd4, 0x40, 0xc7, 0x3e, 0xf6, 0xd5, 0x10, 0x0a, 0x00, 0x00, 0x00, 0x67, 0x65, 0x74, 0x67, 0x65, 0x6d, 0x73, 0x2e, 0x69, 0x6f, 0xb2, 0xbe, 0x42, 0x65, 0x00, 0x00, 0x00, 0x00 };
+    const uint8_t test_payload[] = {0x67, 0x65, 0x6d, 0x73};
+    const uint8_t test_pubkey[] = {0x7d, 0x53, 0xc2, 0x5d, 0x85, 0xa6, 0x00, 0xc5, 0xaf, 0xb7, 0x2a, 0x65, 0x13, 0x1b, 0xc9, 0xc8, 0x3e, 0x4f, 0xc4, 0xcb, 0xb1, 0x32, 0x94, 0x52, 0x50, 0x59, 0x37, 0xe2, 0x02, 0x6b, 0xb0, 0x5c};
+    const uint8_t test_signature[] = {0x78, 0xdf, 0x6f, 0xaf, 0xe6, 0x2f, 0xea, 0xf9, 0xb9, 0x88, 0x1b, 0x82, 0xfd, 0xd6, 0x81, 0x0b, 0x5f, 0x0f, 0xab, 0x08, 0x46, 0x50, 0x07, 0x9d, 0xb4, 0xe0, 0xc7, 0xb9, 0xa4, 0xa1, 0xd5, 0x52, 0x41, 0x38, 0xac, 0x2b, 0x43, 0x62, 0x02, 0x3a, 0x4f, 0xf7, 0xd5, 0x88, 0xc3, 0x4d, 0x46, 0x31, 0x19, 0xa1, 0xd9, 0xed, 0xe4, 0xfe, 0x2f, 0x87, 0x49, 0x37, 0x5a, 0x09, 0x1a, 0xe2, 0xb9, 0x01};
+    const uint8_t test_message[] = {0x36, 0x02, 0x91, 0x50, 0xee, 0x5e, 0x64, 0x2b, 0x12, 0x9e, 0xa6, 0xe7, 0x47, 0x02, 0x07, 0x36, 0x52, 0xb3, 0x2f, 0x45, 0xc0, 0x69, 0x0b, 0xa4, 0x4f, 0x3b, 0x0a, 0x50, 0xe2, 0x50, 0x40, 0xa8};
+
     uint8_t message[32];
-    CHECK(get_toncoin_message(signed_msg_ptr, signed_msg_len, msg, message));
+    signed_msg_ptr = test_signed_msg;
+    signed_msg_len = sizeof(test_signed_msg);
+    msg = test_payload;
+    msg_len = sizeof(test_payload);
+    CHECK(get_toncoin_message(signed_msg_ptr, signed_msg_len, msg, msg_len, message));
+
+    int same = memcmp(test_message, message, sizeof(message));
+    CHECK2(same == 0, ERROR_MISMATCHED);
+
+    signature_ptr = test_signature;
+    pub_key_ptr = test_pubkey;
 
     int suc = ed25519_verify(signature_ptr, message, sizeof(message), pub_key_ptr);
     CHECK2(suc == 1, ERROR_WRONG_STATE);
