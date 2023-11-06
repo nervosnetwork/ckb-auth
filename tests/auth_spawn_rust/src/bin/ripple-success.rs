@@ -1,7 +1,7 @@
 use auth_spawn_rust::{
     generate_sighash_all, get_auth_code_hash, get_auth_hash_type, read_tx_template, update_witness,
-    AuthEntryCategoryType,
 };
+use ckb_auth_types::EntryCategoryType;
 use ckb_mock_tx_types::ReprMockTransaction;
 use ckb_types::bytes::Bytes;
 use hex::decode;
@@ -15,7 +15,7 @@ fn update_args(tx: &mut ReprMockTransaction, pubkey: [u8; 20]) {
     let mut args: Vec<u8> = vec![0x0Eu8];
     args.extend_from_slice(&pubkey);
     args.extend_from_slice(&get_auth_code_hash());
-    args.extend_from_slice(&[get_auth_hash_type(), AuthEntryCategoryType::Spawn as u8]);
+    args.extend_from_slice(&[get_auth_hash_type(), EntryCategoryType::Spawn as u8]);
 
     for input in &mut tx.mock_info.inputs {
         input.output.lock.args =

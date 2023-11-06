@@ -1,6 +1,7 @@
 use super::{BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use ckb_auth_tests::{AlgorithmType, RippleAuth};
+use ckb_auth_tests::RippleAuth;
+use ckb_auth_types::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
 use hex::decode;
 
@@ -80,7 +81,12 @@ impl BlockChain for RippleLock {
         )
         .expect("parse ripple message");
 
-        super::auth_script::run_auth_exec(AlgorithmType::Ripple, &pubkey, &message, &signature)?;
+        super::auth_script::run_auth_exec(
+            AuthAlgorithmIdType::Ripple,
+            &pubkey,
+            &message,
+            &signature,
+        )?;
 
         println!("Signature verification succeeded");
         Ok(())

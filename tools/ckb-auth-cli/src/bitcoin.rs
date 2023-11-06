@@ -1,10 +1,8 @@
 use super::{BlockChain, BlockChainArgs};
 use crate::utils::decode_string;
 use anyhow::{anyhow, Error};
-use ckb_auth_tests::AlgorithmType;
+use ckb_auth_types::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
-// use ckb_auth_tests::AlgorithmType;
-// use hex::decode;
 
 pub struct BitcoinLockArgs {}
 
@@ -78,7 +76,7 @@ impl BlockChain for BitcoinLock {
         let pubkey_hash = &address[1..21];
 
         super::auth_script::run_auth_exec(
-            AlgorithmType::Bitcoin,
+            AuthAlgorithmIdType::Bitcoin,
             pubkey_hash,
             &message,
             &signature,

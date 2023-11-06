@@ -59,6 +59,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "base58-monero",
+ "ckb-auth-types",
  "ckb-crypto",
  "ckb-debugger-api",
  "ckb-hash",
@@ -174,6 +175,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95916998c798756098a4eb1b3f2cd510659705a9817bf203d61abd30fbec3e7b"
 
 [[package]]
+name = "blake2b-ref"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "294d17c72e0ba59fad763caa112368d0672083779cdebbb97164f4bb4c1e339a"
+
+[[package]]
 name = "blake2b-rs"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -212,6 +219,12 @@ checksum = "fa79dedbb091f449f1f39e53edf88d5dbe95f895dae6135a8d7b881fb5af73f5"
 dependencies = [
  "byte-tools",
 ]
+
+[[package]]
+name = "buddy-alloc"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f0d2da64a6a895d5a7e0724882825d50f83c13396b1b9f1878e19a024bab395"
 
 [[package]]
 name = "bumpalo"
@@ -363,6 +376,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ckb-auth-types"
+version = "0.1.0"
+dependencies = [
+ "ckb-std",
+ "hex",
+ "log 0.4.20",
+]
+
+[[package]]
 name = "ckb-chain-spec"
 version = "0.109.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -497,7 +519,7 @@ version = "0.109.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e82f135970de1fe6728b243c11866f81cde1bc4610ea82d6673dabfaa211296"
 dependencies = [
- "blake2b-ref",
+ "blake2b-ref 0.2.1",
  "blake2b-rs",
 ]
 
@@ -617,6 +639,28 @@ dependencies = [
  "ckb-vm",
  "faster-hex 0.6.1",
  "serde",
+]
+
+[[package]]
+name = "ckb-standalone-types"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5c776d70eb4f60a22a3180857646d77b2da8d33c0c4a063ad9f6610fc94609f"
+dependencies = [
+ "blake2b-ref 0.3.1",
+ "cfg-if 1.0.0",
+ "molecule",
+]
+
+[[package]]
+name = "ckb-std"
+version = "0.14.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a08518aa0fd4ce069d3ec80b63dcd3d6543ad3805ad1c0b4e1d8e4d38f8a9fc"
+dependencies = [
+ "buddy-alloc",
+ "cc",
+ "ckb-standalone-types",
 ]
 
 [[package]]

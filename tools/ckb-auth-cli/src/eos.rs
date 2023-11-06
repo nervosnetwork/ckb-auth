@@ -1,6 +1,7 @@
 use super::{BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use ckb_auth_tests::{calculate_ripemd160, AlgorithmType};
+use ckb_auth_tests::calculate_ripemd160;
+use ckb_auth_types::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
 use hex::decode;
 use sha2::{Digest, Sha256};
@@ -135,8 +136,13 @@ impl BlockChain for EosLock {
         }
 
         let pubkey_hash = ckb_hash::blake2b_256(pubkey);
-        
-        super::auth_script::run_auth_exec(AlgorithmType::Eos, &pubkey_hash[..20], &message, &sign)?;
+
+        super::auth_script::run_auth_exec(
+            AuthAlgorithmIdType::Eos,
+            &pubkey_hash[..20],
+            &message,
+            &sign,
+        )?;
 
         println!("Success");
         Ok(())

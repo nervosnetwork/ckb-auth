@@ -1,6 +1,7 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
+use ckb_auth_types::EntryCategoryType;
 use ckb_chain_spec::consensus::{Consensus, ConsensusBuilder};
 use ckb_crypto::secp::{Generator, Privkey, Pubkey};
 use ckb_types::{
@@ -18,10 +19,10 @@ use hex_literal::hex;
 
 use crate::{
     assert_script_error, auth_builder, auth_program::use_libecc, build_resolved_tx, debug_printer,
-    gen_args, gen_tx, gen_tx_scripts_verifier, gen_tx_with_grouped_args, sign_tx, AlgorithmType,
-    Auth, AuthErrorCodeType, BitcoinAuth, BitcoinSignVType, CKbAuth, CkbMultisigAuth, DogecoinAuth,
-    DummyDataLoader, EntryCategoryType, EosAuth, EthereumAuth, LitecoinAuth, SchnorrAuth,
-    TestConfig, TronAuth, MAX_CYCLES,
+    gen_args, gen_tx, gen_tx_scripts_verifier, gen_tx_with_grouped_args, sign_tx, Auth,
+    AuthAlgorithmIdType, AuthErrorCodeType, BitcoinAuth, BitcoinSignVType, CKbAuth,
+    CkbMultisigAuth, DogecoinAuth, DummyDataLoader, EosAuth, EthereumAuth, LitecoinAuth,
+    SchnorrAuth, TestConfig, TronAuth, MAX_CYCLES,
 };
 
 fn verify_unit(config: &TestConfig) -> Result<u64, ckb_error::Error> {
@@ -98,7 +99,7 @@ fn unit_test_multiple_group(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
 fn unit_test_faileds(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
     // public key
     {
-        let mut config = TestConfig::new(auth, run_type, 1);
+        let mut config = TestConfig::new(auth, run_type.clone(), 1);
         config.incorrect_pubkey = true;
 
         assert_result_error(
@@ -110,7 +111,7 @@ fn unit_test_faileds(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
 
     // sign data
     {
-        let mut config = TestConfig::new(&auth, run_type, 1);
+        let mut config = TestConfig::new(&auth, run_type.clone(), 1);
         config.incorrect_sign = true;
         assert_result_error(
             verify_unit(&config),
@@ -124,9 +125,9 @@ fn unit_test_faileds(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
 
     // sign size bigger
     {
-        let mut config = TestConfig::new(&auth, run_type, 1);
+        let mut config = TestConfig::new(&auth, run_type.clone(), 1);
         config.incorrect_sign_size = crate::TestConfigIncorrectSing::Bigger;
-        let mut config = TestConfig::new(&auth, run_type, 1);
+        let mut config = TestConfig::new(&auth, run_type.clone(), 1);
         config.incorrect_sign = true;
         assert_result_error(
             verify_unit(&config),
@@ -154,15 +155,15 @@ fn unit_test_faileds(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
 }
 
 fn unit_test_common_with_auth(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
-    unit_test_success(auth, run_type);
-    unit_test_multiple_args(auth, run_type);
-    unit_test_multiple_group(auth, run_type);
+    unit_test_success(auth, run_type.clone());
+    unit_test_multiple_args(auth, run_type.clone());
+    unit_test_multiple_group(auth, run_type.clone());
 
-    unit_test_faileds(auth, run_type);
+    unit_test_faileds(auth, run_type.clone());
 }
 
 fn unit_test_common_with_runtype(
-    algorithm_type: AlgorithmType,
+    algorithm_type: AuthAlgorithmIdType,
     run_type: EntryCategoryType,
     using_official_client: bool,
 ) {
@@ -175,41 +176,41 @@ fn unit_test_common_all_runtype(auth: &Box<dyn Auth>) {
     unit_test_common_with_auth(auth, EntryCategoryType::Spawn);
 }
 
-fn unit_test_common(algorithm_type: AlgorithmType) {
+fn unit_test_common(algorithm_type: AuthAlgorithmIdType) {
     for t in [EntryCategoryType::DynamicLinking, EntryCategoryType::Spawn] {
-        unit_test_common_with_runtype(algorithm_type, t, false);
+        unit_test_common_with_runtype(algorithm_type.clone(), t, false);
     }
 }
 
-fn unit_test_common_official(algorithm_type: AlgorithmType) {
+fn unit_test_common_official(algorithm_type: AuthAlgorithmIdType) {
     for t in [EntryCategoryType::DynamicLinking, EntryCategoryType::Spawn] {
-        unit_test_common_with_runtype(algorithm_type, t, true);
+        unit_test_common_with_runtype(algorithm_type.clone(), t, true);
     }
 }
 
 #[test]
 fn ckb_verify() {
-    unit_test_common(AlgorithmType::Ckb);
+    unit_test_common(AuthAlgorithmIdType::Ckb);
 }
 
 #[test]
 fn ethereum_verify() {
-    unit_test_common(AlgorithmType::Ethereum);
+    unit_test_common(AuthAlgorithmIdType::Ethereum);
 }
 
 #[test]
 fn eos_verify() {
-    unit_test_common(AlgorithmType::Eos);
+    unit_test_common(AuthAlgorithmIdType::Eos);
 }
 
 #[test]
 fn tron_verify() {
-    unit_test_common(AlgorithmType::Tron);
+    unit_test_common(AuthAlgorithmIdType::Tron);
 }
 
 #[test]
 fn bitcoin_verify() {
-    unit_test_common(AlgorithmType::Bitcoin);
+    unit_test_common(AuthAlgorithmIdType::Bitcoin);
 }
 
 #[test]
@@ -240,7 +241,7 @@ fn bitcoin_pubkey_recid_verify() {
             self.0.get_pub_key_hash()
         }
         fn get_algorithm_type(&self) -> u8 {
-            AlgorithmType::Bitcoin as u8
+            AuthAlgorithmIdType::Bitcoin as u8
         }
         fn convert_message(&self, message: &[u8; 32]) -> H256 {
             BitcoinAuth::btc_convert_message(message)
@@ -285,12 +286,12 @@ fn bitcoin_pubkey_recid_verify() {
 
 #[test]
 fn dogecoin_verify() {
-    unit_test_common(AlgorithmType::Dogecoin);
+    unit_test_common(AuthAlgorithmIdType::Dogecoin);
 }
 
 #[test]
 fn litecoin_verify() {
-    unit_test_common(AlgorithmType::Litecoin);
+    unit_test_common(AuthAlgorithmIdType::Litecoin);
 }
 
 #[test]
@@ -299,28 +300,28 @@ fn litecoin_verify_official() {
     if which::which("litecoin-cli").is_err() {
         return;
     }
-    unit_test_common_official(AlgorithmType::Litecoin);
+    unit_test_common_official(AuthAlgorithmIdType::Litecoin);
 }
 
 #[test]
 fn monero_verify() {
-    unit_test_common(AlgorithmType::Monero);
+    unit_test_common(AuthAlgorithmIdType::Monero);
 }
 
 #[test]
 fn solana_verify() {
-    unit_test_common(AlgorithmType::Solana);
+    unit_test_common(AuthAlgorithmIdType::Solana);
 }
 
 #[test]
 fn ripple_verify() {
-    unit_test_common(AlgorithmType::Ripple);
+    unit_test_common(AuthAlgorithmIdType::Ripple);
 }
 
 #[test]
 fn secp256r1_verify() {
     use_libecc();
-    unit_test_common(AlgorithmType::Secp256r1);
+    unit_test_common(AuthAlgorithmIdType::Secp256r1);
 }
 
 #[test]
@@ -332,7 +333,7 @@ fn convert_eth_error() {
             EthereumAuth::get_eth_pub_key_hash(&self.0.pubkey)
         }
         fn get_algorithm_type(&self) -> u8 {
-            AlgorithmType::Ethereum as u8
+            AuthAlgorithmIdType::Ethereum as u8
         }
         fn convert_message(&self, message: &[u8; 32]) -> H256 {
             let eth_prefix: &[u8; 28] = b"\x19Ethereum Signed Xessage:\n32";
@@ -379,7 +380,7 @@ fn convert_tron_error() {
             EthereumAuth::get_eth_pub_key_hash(&self.0.pubkey)
         }
         fn get_algorithm_type(&self) -> u8 {
-            AlgorithmType::Tron as u8
+            AuthAlgorithmIdType::Tron as u8
         }
         fn convert_message(&self, message: &[u8; 32]) -> H256 {
             let eth_prefix: &[u8; 24] = b"\x19TRON Signed Xessage:\n32";
@@ -417,7 +418,7 @@ fn convert_btc_error() {
             self.0.get_pub_key_hash()
         }
         fn get_algorithm_type(&self) -> u8 {
-            AlgorithmType::Bitcoin as u8
+            AuthAlgorithmIdType::Bitcoin as u8
         }
         fn convert_message(&self, message: &[u8; 32]) -> H256 {
             let message_magic = b"\x18Bitcoin Signed Xessage:\n\x40";
@@ -462,7 +463,7 @@ fn convert_doge_error() {
             self.0.get_pub_key_hash()
         }
         fn get_algorithm_type(&self) -> u8 {
-            AlgorithmType::Bitcoin as u8
+            AuthAlgorithmIdType::Bitcoin as u8
         }
         fn convert_message(&self, message: &[u8; 32]) -> H256 {
             let message_magic = b"\x18Bitcoin Signed Xessage:\n\x40";
@@ -509,7 +510,7 @@ fn convert_lite_error() {
             self.0.get_pub_key_hash()
         }
         fn get_algorithm_type(&self) -> u8 {
-            AlgorithmType::Bitcoin as u8
+            AuthAlgorithmIdType::Bitcoin as u8
         }
         fn convert_message(&self, message: &[u8; 32]) -> H256 {
             let message_magic = b"\x18Bitcoin Signed Xessage:\n\x40";
@@ -552,7 +553,7 @@ impl Auth for CkbMultisigFailedAuth {
         self.0.hash.clone()
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::CkbMultisig as u8
+        AuthAlgorithmIdType::CkbMultisig as u8
     }
     fn sign(&self, msg: &H256) -> Bytes {
         let sign_data = self.0.multickb_sign(msg);
@@ -567,13 +568,13 @@ impl Auth for CkbMultisigFailedAuth {
 }
 
 fn unit_test_ckbmultisig(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
-    unit_test_success(auth, run_type);
-    unit_test_multiple_args(auth, run_type);
-    unit_test_multiple_group(auth, run_type);
+    unit_test_success(auth, run_type.clone());
+    unit_test_multiple_args(auth, run_type.clone());
+    unit_test_multiple_group(auth, run_type.clone());
 
     // public key
     {
-        let mut config = TestConfig::new(auth, run_type, 1);
+        let mut config = TestConfig::new(auth, run_type.clone(), 1);
         config.incorrect_pubkey = true;
 
         assert_result_error(verify_unit(&config), "public key", &[-51]);
@@ -581,7 +582,7 @@ fn unit_test_ckbmultisig(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
 
     // sign data
     {
-        let mut config = TestConfig::new(&auth, run_type, 1);
+        let mut config = TestConfig::new(&auth, run_type.clone(), 1);
         config.incorrect_sign = true;
         assert_result_error(
             verify_unit(&config),
@@ -592,9 +593,9 @@ fn unit_test_ckbmultisig(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
 
     // sign size bigger
     {
-        let mut config = TestConfig::new(&auth, run_type, 1);
+        let mut config = TestConfig::new(&auth, run_type.clone(), 1);
         config.incorrect_sign_size = crate::TestConfigIncorrectSing::Bigger;
-        let mut config = TestConfig::new(&auth, run_type, 1);
+        let mut config = TestConfig::new(&auth, run_type.clone(), 1);
         config.incorrect_sign = true;
         assert_result_error(
             verify_unit(&config),
@@ -605,7 +606,7 @@ fn unit_test_ckbmultisig(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
 
     // sign size smaller
     {
-        let mut config = TestConfig::new(&auth, run_type, 1);
+        let mut config = TestConfig::new(&auth, run_type.clone(), 1);
         config.incorrect_sign_size = crate::TestConfigIncorrectSing::Smaller;
         assert_result_error(
             verify_unit(&config),
@@ -617,14 +618,14 @@ fn unit_test_ckbmultisig(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
     // cnt_failed
     {
         let auth: Box<dyn Auth> = CkbMultisigAuth::new(2, 3, 1);
-        let config = TestConfig::new(&auth, run_type, 1);
+        let config = TestConfig::new(&auth, run_type.clone(), 1);
         assert_result_error(verify_unit(&config), "cnt failed", &[-43]);
     }
 
     // cnt_failed
     {
         let auth: Box<dyn Auth> = CkbMultisigAuth::new(2, 2, 4);
-        let config = TestConfig::new(&auth, run_type, 1);
+        let config = TestConfig::new(&auth, run_type.clone(), 1);
         assert_result_error(verify_unit(&config), "require_first_n failed", &[-44]);
 
         // #define ERROR_INVALID_REQUIRE_FIRST_N -44
@@ -648,7 +649,7 @@ fn unit_test_ckbmultisig(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
                 }
             },
         });
-        let config = TestConfig::new(&auth, run_type, 1);
+        let config = TestConfig::new(&auth, run_type.clone(), 1);
         assert_result_error(verify_unit(&config), "require_first_n failed", &[-22]);
         // #define ERROR_WITNESS_SIZE -22
     }
@@ -666,7 +667,7 @@ fn ckbmultisig_verify_sing_size_failed() {}
 
 #[test]
 fn schnorr_verify() {
-    unit_test_common(AlgorithmType::SchnorrOrTaproot);
+    unit_test_common(AuthAlgorithmIdType::SchnorrOrTaproot);
 }
 
 #[test]

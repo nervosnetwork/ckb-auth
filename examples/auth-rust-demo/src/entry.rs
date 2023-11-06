@@ -12,8 +12,9 @@ use core::result::Result;
 
 use crate::error::Error;
 
-use ckb_auth_rs::ckb_auth::{
-    ckb_auth, AuthAlgorithmIdType, CkbAuthType, CkbEntryType, EntryCategoryType,
+use ckb_auth_rs::{
+    ckb_auth::{ckb_auth, CkbEntryType},
+    AuthAlgorithmIdType, CkbAuthType, EntryCategoryType,
 };
 
 use super::utils::generate_sighash_all::generate_sighash_all;

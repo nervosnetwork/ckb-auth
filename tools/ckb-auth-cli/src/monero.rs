@@ -4,9 +4,10 @@ use super::{utils::decode_string, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
 use ckb_auth_tests::{
     auth_builder, build_resolved_tx, debug_printer, gen_tx_scripts_verifier,
-    gen_tx_with_pub_key_hash, get_message_to_sign, set_signature, AlgorithmType, DummyDataLoader,
-    EntryCategoryType, MoneroAuth, TestConfig, MAX_CYCLES,
+    gen_tx_with_pub_key_hash, get_message_to_sign, set_signature, DummyDataLoader, MoneroAuth,
+    TestConfig, MAX_CYCLES,
 };
+use ckb_auth_types::{AuthAlgorithmIdType, EntryCategoryType};
 
 use ckb_types::bytes::{BufMut, BytesMut};
 use clap::{arg, ArgMatches, Command};
@@ -109,7 +110,7 @@ impl BlockChain for MoneroLock {
         // This is not intended as the monero-cli will do the conversion internally,
         // and then sign the converted message. With official set to be true, we don't
         // do this kind of conversion in the auth data structure.
-        let auth = auth_builder(AlgorithmType::Monero, true).unwrap();
+        let auth = auth_builder(AuthAlgorithmIdType::Monero, true).unwrap();
         let config = TestConfig::new(&auth, run_type, 1);
         let mut data_loader = DummyDataLoader::new();
         let tx = gen_tx_with_pub_key_hash(&mut data_loader, &config, pubkey_hash.to_vec());
@@ -156,7 +157,7 @@ impl BlockChain for MoneroLock {
         data.put(pub_key_info.as_slice());
         let signature = data.freeze();
 
-        let algorithm_type = AlgorithmType::Monero;
+        let algorithm_type = AuthAlgorithmIdType::Monero;
         let run_type = EntryCategoryType::Spawn;
         let auth = auth_builder(algorithm_type, false).unwrap();
         let config = TestConfig::new(&auth, run_type, 1);

@@ -1,6 +1,6 @@
 use super::{BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use ckb_auth_tests::AlgorithmType;
+use ckb_auth_types::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
 use hex::decode;
 
@@ -102,7 +102,7 @@ impl BlockChain for TronLock {
         }
 
         super::auth_script::run_auth_exec(
-            AlgorithmType::Tron,
+            AuthAlgorithmIdType::Tron,
             &address[1..21],
             &message,
             &signature,

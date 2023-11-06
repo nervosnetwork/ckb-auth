@@ -23,8 +23,9 @@ use rand::{distributions::Standard, thread_rng, Rng};
 use secp256k1;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
-use std::{collections::HashMap, mem::size_of, process::Stdio, result, vec};
+use std::{collections::HashMap, convert::TryInto, mem::size_of, process::Stdio, result, vec};
 
+use ckb_auth_types::{AuthAlgorithmIdType, CkbAuthType, EntryCategoryType};
 use lazy_static::lazy_static;
 use std::{
     process::{Child, Command},
@@ -120,27 +121,6 @@ pub fn calculate_ripemd160(buf: &[u8]) -> [u8; 20] {
     md.finish(&mut out).expect("hash ripemd finish");
 
     out
-}
-
-#[derive(Clone, Copy)]
-pub enum AlgorithmType {
-    Ckb = 0,
-    Ethereum = 1,
-    Eos = 2,
-    Tron = 3,
-    Bitcoin = 4,
-    Dogecoin = 5,
-    CkbMultisig = 6,
-    SchnorrOrTaproot = 7,
-    RSA = 8,
-    Iso9796_2 = 9,
-    Litecoin = 10,
-    Cardano = 11,
-    Monero = 12,
-    Solana = 13,
-    Ripple = 14,
-    Secp256r1 = 15,
-    OwnerLock = 0xFC,
 }
 
 #[derive(Default, Clone)]
@@ -525,23 +505,10 @@ pub fn gen_tx_with_grouped_args<R: Rng>(
 }
 
 #[derive(Serialize, Deserialize)]
-struct CkbAuthType {
-    algorithm_id: u8,
-    content: [u8; 20],
-}
-
-#[derive(Serialize, Deserialize)]
 struct EntryType {
     code_hash: [u8; 32],
     hash_type: u8,
     entry_category: u8,
-}
-
-#[derive(Clone, Copy)]
-pub enum EntryCategoryType {
-    // Exec = 0,
-    DynamicLinking = 1,
-    Spawn = 2,
 }
 
 #[derive(PartialEq, Eq)]
@@ -592,8 +559,12 @@ pub fn gen_args_with_pub_key_hash(config: &TestConfig, pub_key_hash: Vec<u8>) ->
 
 pub fn do_gen_args(config: &TestConfig, pub_key_hash: Option<Vec<u8>>) -> Bytes {
     let mut ckb_auth_type = CkbAuthType {
-        algorithm_id: config.auth.get_algorithm_type(),
-        content: [0; 20],
+        algorithm_id: config
+            .auth
+            .get_algorithm_type()
+            .try_into()
+            .unwrap_or(AuthAlgorithmIdType::Ckb),
+        pubkey_hash: [0; 20],
     };
 
     let mut entry_type = EntryType {
@@ -605,7 +576,9 @@ pub fn do_gen_args(config: &TestConfig, pub_key_hash: Option<Vec<u8>>) -> Bytes 
     if !config.incorrect_pubkey {
         let pub_hash = pub_key_hash.unwrap_or(config.auth.get_pub_key_hash());
         assert_eq!(pub_hash.len(), 20);
-        ckb_auth_type.content.copy_from_slice(pub_hash.as_slice());
+        ckb_auth_type
+            .pubkey_hash
+            .copy_from_slice(pub_hash.as_slice());
     } else {
         let mut rng = thread_rng();
         let incorrect_pubkey = {
@@ -614,7 +587,7 @@ pub fn do_gen_args(config: &TestConfig, pub_key_hash: Option<Vec<u8>>) -> Bytes 
             Vec::from(buf)
         };
         ckb_auth_type
-            .content
+            .pubkey_hash
             .copy_from_slice(&incorrect_pubkey.as_slice()[0..20]);
     }
 
@@ -625,7 +598,9 @@ pub fn do_gen_args(config: &TestConfig, pub_key_hash: Option<Vec<u8>>) -> Bytes 
         .copy_from_slice(sighash_all_cell_data_hash.as_slice());
 
     let mut bytes = BytesMut::with_capacity(size_of::<CkbAuthType>() + size_of::<EntryType>());
-    bytes.put(Bytes::from(bincode::serialize(&ckb_auth_type).unwrap()));
+    bytes.put_u8(config.auth.get_algorithm_type()); // Need to test algorithm_id out of range
+    bytes.put(Bytes::from(ckb_auth_type.pubkey_hash.to_vec()));
+
     bytes.put(Bytes::from(bincode::serialize(&entry_type).unwrap()));
 
     bytes.freeze()
@@ -758,53 +733,53 @@ pub trait Auth: DynClone {
     }
 }
 
-pub fn auth_builder(t: AlgorithmType, official: bool) -> result::Result<Box<dyn Auth>, i32> {
+pub fn auth_builder(t: AuthAlgorithmIdType, official: bool) -> result::Result<Box<dyn Auth>, i32> {
     match t {
-        AlgorithmType::Ckb => {
+        AuthAlgorithmIdType::Ckb => {
             return Ok(CKbAuth::new());
         }
-        AlgorithmType::Ethereum => {
+        AuthAlgorithmIdType::Ethereum => {
             return Ok(EthereumAuth::new());
         }
-        AlgorithmType::Eos => {
+        AuthAlgorithmIdType::Eos => {
             return Ok(EosAuth::new());
         }
-        AlgorithmType::Tron => {
+        AuthAlgorithmIdType::Tron => {
             return Ok(TronAuth::new());
         }
-        AlgorithmType::Bitcoin => {
+        AuthAlgorithmIdType::Bitcoin => {
             return Ok(BitcoinAuth::new());
         }
-        AlgorithmType::Dogecoin => {
+        AuthAlgorithmIdType::Dogecoin => {
             return Ok(DogecoinAuth::new());
         }
-        AlgorithmType::CkbMultisig => {}
-        AlgorithmType::SchnorrOrTaproot => {
+        AuthAlgorithmIdType::CkbMultisig => {}
+        AuthAlgorithmIdType::SchnorrOrTaproot => {
             return Ok(SchnorrAuth::new());
         }
-        AlgorithmType::RSA => {
+        AuthAlgorithmIdType::Rsa => {
             return Ok(RSAAuth::new());
         }
-        AlgorithmType::Iso9796_2 => {}
-        AlgorithmType::Litecoin => {
+        AuthAlgorithmIdType::Iso97962 => {}
+        AuthAlgorithmIdType::Litecoin => {
             return Ok(LitecoinAuth::new_official(official));
         }
-        AlgorithmType::Cardano => {
+        AuthAlgorithmIdType::Cardano => {
             panic!("unsupport cardano")
         }
-        AlgorithmType::Monero => {
+        AuthAlgorithmIdType::Monero => {
             return Ok(MoneroAuth::new());
         }
-        AlgorithmType::Solana => {
+        AuthAlgorithmIdType::Solana => {
             return Ok(SolanaAuth::new());
         }
-        AlgorithmType::Ripple => {
+        AuthAlgorithmIdType::Ripple => {
             return Ok(RippleAuth::new());
         }
-        AlgorithmType::Secp256r1 => {
+        AuthAlgorithmIdType::Secp256r1 => {
             return Ok(Secp256r1Auth::new());
         }
-        AlgorithmType::OwnerLock => {
+        AuthAlgorithmIdType::OwnerLock => {
             return Ok(OwnerLockAuth::new());
         }
     }
@@ -841,7 +816,7 @@ impl Auth for CKbAuth {
         CKbAuth::get_ckb_pub_key_hash(&self.privkey)
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::Ckb as u8
+        AuthAlgorithmIdType::Ckb as u8
     }
     fn sign(&self, msg: &H256) -> Bytes {
         CKbAuth::ckb_sign(msg, &self.privkey)
@@ -896,7 +871,7 @@ impl Auth for EthereumAuth {
         EthereumAuth::get_eth_pub_key_hash(&self.pubkey)
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::Ethereum as u8
+        AuthAlgorithmIdType::Ethereum as u8
     }
     fn convert_message(&self, message: &[u8; 32]) -> H256 {
         let eth_prefix: &[u8; 28] = b"\x19Ethereum Signed Message:\n32";
@@ -951,7 +926,7 @@ impl Auth for EosAuth {
         ckb_hash::blake2b_256(pub_key_vec)[..20].to_vec()
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::Eos as u8
+        AuthAlgorithmIdType::Eos as u8
     }
     fn convert_message(&self, message: &[u8; 32]) -> H256 {
         H256::from(message.clone())
@@ -979,7 +954,7 @@ impl Auth for TronAuth {
         EthereumAuth::get_eth_pub_key_hash(&self.pubkey)
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::Tron as u8
+        AuthAlgorithmIdType::Tron as u8
     }
     fn convert_message(&self, message: &[u8; 32]) -> H256 {
         let eth_prefix: &[u8; 24] = b"\x19TRON Signed Message:\n32";
@@ -1121,7 +1096,7 @@ impl Auth for BitcoinAuth {
         BitcoinAuth::get_btc_pub_key_hash(&self.secret_key, self.v_type, self.btc_network)
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::Bitcoin as u8
+        AuthAlgorithmIdType::Bitcoin as u8
     }
     fn convert_message(&self, message: &[u8; 32]) -> H256 {
         BitcoinAuth::btc_convert_message(message)
@@ -1145,7 +1120,7 @@ impl Auth for DogecoinAuth {
         self.0.get_pub_key_hash()
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::Dogecoin as u8
+        AuthAlgorithmIdType::Dogecoin as u8
     }
     fn convert_message(&self, message: &[u8; 32]) -> H256 {
         let message_magic = b"\x19Dogecoin Signed Message:\n\x40";
@@ -1203,7 +1178,7 @@ impl Auth for LitecoinAuth {
         hash
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::Litecoin as u8
+        AuthAlgorithmIdType::Litecoin as u8
     }
     fn convert_message(&self, message: &[u8; 32]) -> H256 {
         if self.official {
@@ -1494,7 +1469,7 @@ impl Auth for MoneroAuth {
         Self::get_pub_key_hash(&public_spend, &public_view, use_spend_key)
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::Monero as u8
+        AuthAlgorithmIdType::Monero as u8
     }
     fn convert_message(&self, message: &[u8; 32]) -> H256 {
         H256::from(message.clone())
@@ -1603,7 +1578,7 @@ impl Auth for SolanaAuth {
         Vec::from(&ckb_hash::blake2b_256(&pub_key)[..20])
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::Solana as u8
+        AuthAlgorithmIdType::Solana as u8
     }
     fn convert_message(&self, message: &[u8; 32]) -> H256 {
         H256::from(message.clone())
@@ -1799,7 +1774,7 @@ impl Auth for RippleAuth {
         Self::get_hash(&hex::decode(pubkey.to_string()).unwrap()).to_vec()
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::Ripple as u8
+        AuthAlgorithmIdType::Ripple as u8
     }
     fn convert_message(&self, message: &[u8; 32]) -> H256 {
         Self::ripple_conver_msg(message)
@@ -1860,7 +1835,7 @@ impl Auth for Secp256r1Auth {
         Vec::from(&hash[..20])
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::Secp256r1 as u8
+        AuthAlgorithmIdType::Secp256r1 as u8
     }
     fn convert_message(&self, message: &[u8; 32]) -> H256 {
         H256::from(message.clone())
@@ -1951,7 +1926,7 @@ impl Auth for CkbMultisigAuth {
         self.hash.clone()
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::CkbMultisig as u8
+        AuthAlgorithmIdType::CkbMultisig as u8
     }
     fn sign(&self, msg: &H256) -> Bytes {
         self.multickb_sign(msg)
@@ -1983,7 +1958,7 @@ impl Auth for SchnorrAuth {
         Vec::from(&ckb_hash::blake2b_256(xonly)[..20])
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::SchnorrOrTaproot as u8
+        AuthAlgorithmIdType::SchnorrOrTaproot as u8
     }
     fn get_sign_size(&self) -> usize {
         32 + 64
@@ -2125,7 +2100,7 @@ impl Auth for RSAAuth {
         hash[0..20].to_vec()
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::RSA as u8
+        AuthAlgorithmIdType::Rsa as u8
     }
     fn sign(&self, msg: &H256) -> Bytes {
         RSAAuth::rsa_sign(msg, &self.pri_key, &self.pub_key)
@@ -2147,7 +2122,7 @@ impl Auth for OwnerLockAuth {
         hash[0..20].to_vec()
     }
     fn get_algorithm_type(&self) -> u8 {
-        AlgorithmType::OwnerLock as u8
+        AuthAlgorithmIdType::OwnerLock as u8
     }
     fn sign(&self, _msg: &H256) -> Bytes {
         Bytes::from([0; 64].to_vec())

@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ckb-auth-types = { path = "../../ckb-auth-types" }
 ckb-debugger-api = { git = "https://github.com/nervosnetwork/ckb-standalone-debugger.git", rev="5077c6c" }
 ckb-mock-tx-types =  { git = "https://github.com/nervosnetwork/ckb-standalone-debugger.git", rev="5077c6c" }
 molecule = { version = "0.7.3", default-features = false }

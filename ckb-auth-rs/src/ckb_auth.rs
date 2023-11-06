@@ -1,104 +1,18 @@
 extern crate alloc;
 
+use alloc::collections::BTreeMap;
 use alloc::ffi::CString;
-use alloc::ffi::NulError;
 use alloc::format;
+use alloc::vec::Vec;
+use ckb_auth_types::{CkbAuthError, CkbAuthType, EntryCategoryType};
 use ckb_std::{
     ckb_types::core::ScriptHashType,
     dynamic_loading_c_impl::{CKBDLContext, Library, Symbol},
     high_level::spawn_cell,
-    syscalls::SysError,
 };
-use log::info;
-// use core::ffi::CStr;
-use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
 use core::mem::size_of_val;
-use core::mem::transmute;
 use hex::encode;
-
-#[derive(Debug)]
-pub enum CkbAuthError {
-    UnknowAlgorithmID,
-    DynamicLinkingUninit,
-    LoadDLError,
-    LoadDLFuncError,
-    RunDLError,
-    ExecError(SysError),
-    EncodeArgs,
-}
-
-impl From<SysError> for CkbAuthError {
-    fn from(err: SysError) -> Self {
-        info!("exec error: {:?}", err);
-        Self::ExecError(err)
-    }
-}
-
-impl From<NulError> for CkbAuthError {
-    fn from(err: NulError) -> Self {
-        info!("Exec encode args failed: {:?}", err);
-        Self::EncodeArgs
-    }
-}
-
-#[derive(Clone)]
-pub enum AuthAlgorithmIdType {
-    Ckb = 0,
-    Ethereum = 1,
-    Eos = 2,
-    Tron = 3,
-    Bitcoin = 4,
-    Dogecoin = 5,
-    CkbMultisig = 6,
-    Schnorr = 7,
-    Rsa = 8,
-    Iso97962 = 9,
-    OwnerLock = 0xFC,
-}
-
-impl Into<u8> for AuthAlgorithmIdType {
-    fn into(self) -> u8 {
-        self as u8
-    }
-}
-
-impl TryFrom<u8> for AuthAlgorithmIdType {
-    type Error = CkbAuthError;
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        if (value >= AuthAlgorithmIdType::Ckb.into()
-            && value <= AuthAlgorithmIdType::Iso97962.into())
-            || value == AuthAlgorithmIdType::OwnerLock.into()
-        {
-            Ok(unsafe { transmute(value) })
-        } else {
-            Err(CkbAuthError::UnknowAlgorithmID)
-        }
-    }
-}
-
-pub struct CkbAuthType {
-    pub algorithm_id: AuthAlgorithmIdType,
-    pub pubkey_hash: [u8; 20],
-}
-
-pub enum EntryCategoryType {
-    // Exec = 0,
-    DynamicLinking = 1,
-    Spawn = 2,
-}
-
-impl TryFrom<u8> for EntryCategoryType {
-    type Error = CkbAuthError;
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            // 0 => Ok(Self::Exec),
-            1 => Ok(Self::DynamicLinking),
-            2 => Ok(Self::Spawn),
-            _ => Err(CkbAuthError::EncodeArgs),
-        }
-    }
-}
+use log::info;
 
 pub struct CkbEntryType {
     pub code_hash: [u8; 32],

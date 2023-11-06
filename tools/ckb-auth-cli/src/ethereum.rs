@@ -1,6 +1,6 @@
 use super::{BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use ckb_auth_tests::AlgorithmType;
+use ckb_auth_types::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
 use hex::decode;
 
@@ -95,7 +95,12 @@ impl BlockChain for BitcoinLock {
             return Err(anyhow!("ethereum message size is not 32"));
         }
 
-        super::auth_script::run_auth_exec(AlgorithmType::Ethereum, &address, &message, &signature)?;
+        super::auth_script::run_auth_exec(
+            AuthAlgorithmIdType::Ethereum,
+            &address,
+            &message,
+            &signature,
+        )?;
 
         println!("Ethereum Signature verification succeeded!");
         Ok(())

@@ -15,6 +15,7 @@ use anyhow;
 use anyhow::Context;
 use blockchain::Bytes as BlockchainBytes;
 use blockchain::WitnessArgs;
+use ckb_auth_types::EntryCategoryType;
 use ckb_hash::new_blake2b;
 use ckb_types::core::ScriptHashType;
 use ckb_types::packed;
@@ -35,12 +36,6 @@ use lazy_static::lazy_static;
 use serde_json::from_str as from_json_str;
 use smt::build_tree;
 use sparse_merkle_tree::H256;
-
-pub enum AuthEntryCategoryType {
-    // Exec = 0,
-    // DL = 1,
-    Spawn = 2,
-}
 
 lazy_static! {
     pub static ref AUTH_DL: Bytes = Bytes::from(&include_bytes!("../../../build/auth")[..]);
@@ -236,7 +231,7 @@ pub fn update_auth_code_hash(tx: &mut ReprMockTransaction) {
     for input in tx.mock_info.inputs.as_mut_slice() {
         let mut buf = input.output.lock.args.as_bytes().to_vec();
         buf.extend_from_slice(&hash);
-        buf.extend_from_slice(&[get_auth_hash_type(), AuthEntryCategoryType::Spawn as u8]);
+        buf.extend_from_slice(&[get_auth_hash_type(), EntryCategoryType::Spawn as u8]);
 
         input.output.lock.args = JsonBytes::from_vec(buf);
     }
