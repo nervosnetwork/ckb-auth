@@ -1,42 +1,9 @@
-mod auth_script;
-mod bitcoin;
-mod cardano;
-mod eos;
-mod ethereum;
-mod litecoin;
-mod monero;
-mod ripple;
-mod solana;
-mod tron;
-mod utils;
-
-use crate::monero::MoneroLockArgs;
-use bitcoin::BitcoinLockArgs;
-use cardano::CardanoLockArgs;
-use eos::EosLockArgs;
-use ethereum::EthereumLockArgs;
-use litecoin::LitecoinLockArgs;
-use ripple::RippleLockArgs;
-use solana::SolanaLockArgs;
-use tron::TronLockArgs;
-
 use anyhow::{anyhow, Error};
-use clap::{ArgMatches, Command};
-
-trait BlockChainArgs {
-    fn block_chain_name(&self) -> &'static str;
-    fn reg_parse_args(&self, cmd: Command) -> Command;
-    fn reg_generate_args(&self, cmd: Command) -> Command;
-    fn reg_verify_args(&self, cmd: Command) -> Command;
-
-    fn get_block_chain(&self) -> Box<dyn BlockChain>;
-}
-
-trait BlockChain {
-    fn parse(&self, operate_mathches: &ArgMatches) -> Result<(), Error>;
-    fn generate(&self, operate_mathches: &ArgMatches) -> Result<(), Error>;
-    fn verify(&self, operate_mathches: &ArgMatches) -> Result<(), Error>;
-}
+use ckb_auth_cli::{
+    BitcoinLockArgs, BlockChainArgs, CardanoLockArgs, EosLockArgs, EthereumLockArgs,
+    LitecoinLockArgs, MoneroLockArgs, RippleLockArgs, SolanaLockArgs, TronLockArgs,
+};
+use clap::Command;
 
 fn cli(block_chain_args: &[Box<dyn BlockChainArgs>]) -> Command {
     let mut cmd = Command::new("ckb-auth-cli")
