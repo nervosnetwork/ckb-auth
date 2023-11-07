@@ -1,4 +1,5 @@
-use super::{
+use crate::{
+    auth_script::run_auth_exec,
     utils::{calculate_ripemd160, calculate_sha256},
     BlockChain, BlockChainArgs,
 };
@@ -82,12 +83,7 @@ impl BlockChain for RippleLock {
         )
         .expect("parse ripple message");
 
-        super::auth_script::run_auth_exec(
-            AuthAlgorithmIdType::Ripple,
-            &pubkey,
-            &message,
-            &signature,
-        )?;
+        run_auth_exec(AuthAlgorithmIdType::Ripple, &pubkey, &message, &signature)?;
 
         println!("Signature verification succeeded");
         Ok(())

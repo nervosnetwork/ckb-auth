@@ -1,4 +1,4 @@
-use super::{utils::calculate_ripemd160, BlockChain, BlockChainArgs};
+use crate::{auth_script::run_auth_exec, utils::calculate_ripemd160, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
 use ckb_auth_types::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
@@ -136,7 +136,7 @@ impl BlockChain for EosLock {
 
         let pubkey_hash = ckb_hash::blake2b_256(pubkey);
 
-        super::auth_script::run_auth_exec(
+        run_auth_exec(
             AuthAlgorithmIdType::Eos,
             &pubkey_hash[..20],
             &message,

@@ -1,4 +1,4 @@
-use super::{BlockChain, BlockChainArgs};
+use crate::{auth_script::run_auth_exec, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
 use ckb_auth_types::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
@@ -103,7 +103,7 @@ pub fn cardano_verify(pubkey_hash: &[u8], message: &[u8], sign: &[u8]) -> Result
         panic!("Cardano message len is not 32 ({})", message.len());
     }
 
-    super::auth_script::run_auth_exec(AuthAlgorithmIdType::Cardano, pubkey_hash, message, sign)
+    run_auth_exec(AuthAlgorithmIdType::Cardano, pubkey_hash, message, sign)
 }
 
 fn get_data_by_cddl(path: &str) -> Vec<u8> {

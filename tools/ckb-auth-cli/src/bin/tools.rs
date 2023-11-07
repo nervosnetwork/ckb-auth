@@ -1,7 +1,10 @@
 use anyhow::{anyhow, Error};
 use ckb_auth_cli::{
-    BitcoinLockArgs, BlockChainArgs, CardanoLockArgs, EosLockArgs, EthereumLockArgs,
-    LitecoinLockArgs, MoneroLockArgs, RippleLockArgs, SolanaLockArgs, TronLockArgs,
+    chain_command::{
+        BitcoinLockArgs, CardanoLockArgs, EosLockArgs, EthereumLockArgs, LitecoinLockArgs,
+        MoneroLockArgs, RippleLockArgs, SolanaLockArgs, TronLockArgs,
+    },
+    BlockChainArgs,
 };
 use clap::Command;
 

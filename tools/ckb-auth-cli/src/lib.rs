@@ -1,24 +1,7 @@
 mod auth_script;
-mod bitcoin;
-mod cardano;
-mod eos;
-mod ethereum;
-mod litecoin;
-mod monero;
-mod ripple;
-mod solana;
-mod tron;
 mod utils;
 
-pub use crate::monero::MoneroLockArgs;
-pub use bitcoin::BitcoinLockArgs;
-pub use cardano::CardanoLockArgs;
-pub use eos::EosLockArgs;
-pub use ethereum::EthereumLockArgs;
-pub use litecoin::LitecoinLockArgs;
-pub use ripple::RippleLockArgs;
-pub use solana::SolanaLockArgs;
-pub use tron::TronLockArgs;
+pub mod chain_command;
 
 use anyhow::Error;
 use clap::{ArgMatches, Command};

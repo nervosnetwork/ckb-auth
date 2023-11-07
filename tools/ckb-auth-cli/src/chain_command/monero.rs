@@ -1,6 +1,6 @@
 extern crate monero as monero_rs;
 
-use super::{utils::decode_string, BlockChain, BlockChainArgs};
+use crate::{utils::decode_string, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
 use ckb_auth_tests::{
     auth_builder, build_resolved_tx, debug_printer, gen_tx_scripts_verifier,

@@ -1,4 +1,4 @@
-use super::{BlockChain, BlockChainArgs};
+use crate::{auth_script::run_auth_exec, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
 use ckb_auth_types::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
@@ -25,13 +25,13 @@ impl BlockChainArgs for EthereumLockArgs {
     }
 
     fn get_block_chain(&self) -> Box<dyn BlockChain> {
-        Box::new(BitcoinLock {})
+        Box::new(EthereumLock {})
     }
 }
 
-pub struct BitcoinLock {}
+pub struct EthereumLock {}
 
-impl BlockChain for BitcoinLock {
+impl BlockChain for EthereumLock {
     fn parse(&self, _operate_mathches: &ArgMatches) -> Result<(), Error> {
         Err(anyhow!("ethereum does not generate"))
     }
@@ -95,7 +95,7 @@ impl BlockChain for BitcoinLock {
             return Err(anyhow!("ethereum message size is not 32"));
         }
 
-        super::auth_script::run_auth_exec(
+        run_auth_exec(
             AuthAlgorithmIdType::Ethereum,
             &address,
             &message,

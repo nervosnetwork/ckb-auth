@@ -1,4 +1,4 @@
-use super::{BlockChain, BlockChainArgs};
+use crate::{auth_script::run_auth_exec, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
 use ckb_auth_types::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
@@ -101,7 +101,7 @@ impl BlockChain for TronLock {
             return Err(anyhow!("message len is not 32 ({})", message.len()));
         }
 
-        super::auth_script::run_auth_exec(
+        run_auth_exec(
             AuthAlgorithmIdType::Tron,
             &address[1..21],
             &message,
