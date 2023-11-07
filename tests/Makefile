@@ -67,6 +67,7 @@ install_corss:
 	tar xzvf cross-x86_64-unknown-linux-gnu.tar.gz
 	mv cross ~/.cargo/bin
 	mv cross-util ~/.cargo/bin
+	docker pull nervos/ckb-riscv-gnu-toolchain:focal-20230214
 
 install_litecoin_tools:
 	tarball=litecoin.tar.gz
