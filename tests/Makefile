@@ -43,6 +43,7 @@ install_all: \
 	install_ckb_debugger \
 	install_capsule \
 	install_moleculec \
+	install_corss \
 	install_litecoin_tools \
 	install_monero_tools \
 	install_solana_tools \
@@ -60,6 +61,12 @@ install_capsule:
 
 install_moleculec:
 	cargo install moleculec --git https://github.com/nervosnetwork/molecule.git --rev 1306c29c529ab375e0368ffeb691bd8c7bbf0403
+
+install_corss:
+	wget https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz
+	tar xzvf cross-x86_64-unknown-linux-gnu.tar.gz
+	mv cross ~/.cargo/bin
+	mv cross-util ~/.cargo/bin
 
 install_litecoin_tools:
 	tarball=litecoin.tar.gz
