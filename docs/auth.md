@@ -154,7 +154,14 @@ Key parameters:
 - pubkey: 32 compressed pubkey.
 - pubkey hash: sha256 and ripemd160 of pubkey, refer to [ckb-auth-cli ripple parse](../tools/ckb-auth-cli/src/ripple.rs).
 
-...
+#### Toncoin (algorithm_id=16)
+The witness of a valid toncoin transaction should be a sequence of the following data.
+The whole length of the witness must be exactly 512. If there are any space left, pad it with zero.
+
+- size of the following data combined (little-endian `uint16_t`)
+- signature
+- public key
+- the message without prefix and payload
 
 ### Low Level APIs
 
