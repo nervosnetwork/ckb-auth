@@ -2,7 +2,7 @@ use crate::utils::encode_to_string;
 
 use crate::{utils::decode_string, BlockChain, BlockChainArgs};
 use anyhow::Error;
-use ckb_auth_tests::{
+use auth_c_tests::{
     auth_builder, debug_printer, gen_tx_scripts_verifier, gen_tx_with_pub_key_hash,
     get_message_to_sign, set_signature, DummyDataLoader, SolanaAuth, TestConfig, MAX_CYCLES,
 };

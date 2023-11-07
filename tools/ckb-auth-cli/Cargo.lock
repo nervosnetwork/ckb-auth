@@ -362,6 +362,52 @@ dependencies = [
 ]
 
 [[package]]
+name = "auth_c_tests"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base58-monero",
+ "base64 0.21.2",
+ "bincode",
+ "bitcoin",
+ "blake2b-rs 0.1.5",
+ "bs58 0.5.0",
+ "ckb-auth-types",
+ "ckb-chain-spec",
+ "ckb-crypto",
+ "ckb-error",
+ "ckb-hash",
+ "ckb-script",
+ "ckb-traits",
+ "ckb-types",
+ "ckb-vm",
+ "clap 4.3.19",
+ "dyn-clone",
+ "hex",
+ "hex-literal 0.4.1",
+ "lazy_static",
+ "log",
+ "mbedtls",
+ "monero",
+ "once_cell",
+ "p256",
+ "rand 0.6.5",
+ "ref_thread_local",
+ "ripple-keypairs",
+ "secp256k1 0.22.2",
+ "serde",
+ "serde_json",
+ "sha2 0.10.7",
+ "sha3 0.9.1",
+ "solana-cli-output",
+ "solana-sdk",
+ "sparse-merkle-tree",
+ "tempdir",
+ "tiny-keccak",
+ "which",
+]
+
+[[package]]
 name = "autocfg"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -881,10 +927,10 @@ name = "ckb-auth-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "auth_c_tests",
  "base58-monero",
  "base64 0.21.2",
  "bs58 0.5.0",
- "ckb-auth-tests",
  "ckb-auth-types",
  "ckb-hash",
  "ckb-script",
@@ -897,52 +943,6 @@ dependencies = [
  "monero",
  "serde_json",
  "sha2 0.10.7",
-]
-
-[[package]]
-name = "ckb-auth-tests"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "base58-monero",
- "base64 0.21.2",
- "bincode",
- "bitcoin",
- "blake2b-rs 0.1.5",
- "bs58 0.5.0",
- "ckb-auth-types",
- "ckb-chain-spec",
- "ckb-crypto",
- "ckb-error",
- "ckb-hash",
- "ckb-script",
- "ckb-traits",
- "ckb-types",
- "ckb-vm",
- "clap 4.3.19",
- "dyn-clone",
- "hex",
- "hex-literal 0.4.1",
- "lazy_static",
- "log",
- "mbedtls",
- "monero",
- "once_cell",
- "p256",
- "rand 0.6.5",
- "ref_thread_local",
- "ripple-keypairs",
- "secp256k1 0.22.2",
- "serde",
- "serde_json",
- "sha2 0.10.7",
- "sha3 0.9.1",
- "solana-cli-output",
- "solana-sdk",
- "sparse-merkle-tree",
- "tempdir",
- "tiny-keccak",
- "which",
 ]
 
 [[package]]
