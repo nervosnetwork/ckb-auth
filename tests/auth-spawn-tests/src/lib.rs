@@ -3,6 +3,7 @@ pub mod auto_complete;
 pub mod combine_lock_mol;
 pub mod hash;
 pub mod smt;
+pub mod cardano;
 
 pub mod blockchain {
     pub use ckb_types::packed::{

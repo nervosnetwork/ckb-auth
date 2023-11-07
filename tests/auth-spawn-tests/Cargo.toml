@@ -25,3 +25,7 @@ ripple-keypairs = "0.1.0"
 hex = "0.4.3"
 base58-monero = "1.0.0"
 mbedtls = "0.8.1"
+cardano-serialization-lib = "11.4.0"
+cardano-message-signing = { git = "https://github.com/Emurgo/message-signing.git" }
+cbor_event = "2.4.0"
+blake2b-rs = "0.2.0"

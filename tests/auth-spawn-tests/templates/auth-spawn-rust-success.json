@@ -25,7 +25,7 @@
             },
             "type": "{{ def_type auth-script-test }}"
           },
-          "data": "0x{{ data ../../../build/debug/auth-rust-demo }}"
+          "data": "0x{{ data ../../../build/auth-rust-demo }}"
         },
         {
           "output": {

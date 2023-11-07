@@ -1,6 +1,12 @@
 cargo build
 
-sign_hash=`./target/debug/get-sign-hash`
+mkdir -p test_data
+./bin/cardano-cli node key-gen \
+		--cold-verification-key-file test_data/cold.vkey.json \
+		--cold-signing-key-file test_data/cold.skey.json \
+		--operational-certificate-issue-counter-file test_data/cold.counter.json
+
+sign_hash=`./target/debug/cardano-success --get-sign-hash`
 
 ./bin/cardano-cli transaction build-raw \
   --shelley-era \
