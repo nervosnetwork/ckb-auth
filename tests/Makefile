@@ -21,12 +21,13 @@ all_tests:
 
 build-examples:
 	cd .. && make -f examples/auth-demo/Makefile all-via-docker
-	docker pull nervos/ckb-riscv-gnu-toolchain:focal-20230214
 	cd ../examples/auth-rust-demo && capsule build && mv build/debug/auth-rust-demo ../../build
 
 build-examples-with-clang:
 	cd .. && make -f examples/auth-demo/Makefile.clang all
-	cd ../examples/auth-rust-demo && capsule build && mv build/debug/auth-rust-demo ../../build
+	cd ../examples/auth-rust-demo && \
+		capsule build && \
+		mv build/debug/auth-rust-demo ../../build
 
 c-tests:
 	cd auth-c-tests && cargo test
@@ -64,10 +65,11 @@ install_moleculec:
 	cargo install moleculec --git https://github.com/nervosnetwork/molecule.git --rev 1306c29c529ab375e0368ffeb691bd8c7bbf0403
 
 install_cross:
-	wget -q https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz
-	tar xzvf cross-x86_64-unknown-linux-gnu.tar.gz
-	mv cross ~/.cargo/bin
-	mv cross-util ~/.cargo/bin
+	cargo install cross --git https://github.com/cross-rs/cross
+#	wget -q https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz
+#	tar xzvf cross-x86_64-unknown-linux-gnu.tar.gz
+#	mv cross ~/.cargo/bin
+#	mv cross-util ~/.cargo/bin
 
 install_litecoin_tools:
 	tarball=litecoin.tar.gz
