@@ -17,7 +17,7 @@ use ckb_auth_rs::{
     AuthAlgorithmIdType, CkbAuthType, EntryCategoryType,
 };
 
-use super::utils::generate_sighash_all::generate_sighash_all;
+use crate::utils::generate_sighash_all::generate_sighash_all;
 use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, core::ScriptHashType, prelude::*},
