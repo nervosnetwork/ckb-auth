@@ -1,6 +1,21 @@
 
 
+# This may cause insufficient storage space, so add clean
 all: \
+	build-examples \
+	c-tests \
+	clean-c-tests \
+	spawn-tests \
+	clean-spawn-tests
+
+all-with-clang: \
+	build-examples-with-clang \
+	c-tests \
+	clean-c-tests \
+	spawn-tests \
+	clean-spawn-tests
+
+all_tests:
 	c-tests \
 	spawn-tests
 
@@ -8,11 +23,21 @@ build-examples:
 	cd .. && make -f examples/auth-demo/Makefile all-via-docker
 	cd ../examples/auth-rust-demo && capsule build && mv build/debug/auth-rust-demo ../../build
 
+build-examples-with-clang:
+	cd .. && make -f examples/auth-demo/Makefile.clang all
+	cd ../examples/auth-rust-demo && capsule build && mv build/debug/auth-rust-demo ../../build
+
 c-tests:
 	cd auth-c-tests && cargo test
 
+clean-c-tests:
+	rm -rf auth-c-tests/target
+
 spawn-tests:
 	cd auth-spawn-tests && make all
+
+clean-spawn-tests:
+	rm -rf auth-spawn-tests/target
 
 install_all: \
 	install_ckb_debugger \
@@ -58,6 +83,9 @@ install_solana_tools:
 	solana --help
 	solana-keygen new --force --no-bip39-passphrase
 
+CARDANO_LOCK_TOOLS_URL=https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-8.0.0-linux.tar.gz
+#For Mac use the link below
+#CARDANO_LOCK_TOOLS_URL=https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-8.0.0-macos.tar.gz
 install_cardano_tools:
 	mkdir -p bin
 	cd bin && wget ${CARDANO_LOCK_TOOLS_URL} && tar -xf `basename -- $(CARDANO_LOCK_TOOLS_URL)`
