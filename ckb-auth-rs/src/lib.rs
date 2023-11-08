@@ -18,6 +18,7 @@ pub enum CkbAuthError {
     LoadDLFuncError,
     RunDLError,
     ExecError(SysError),
+    SignatureMissing,
     EncodeArgs,
 }
 

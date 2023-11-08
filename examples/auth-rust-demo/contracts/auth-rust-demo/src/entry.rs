@@ -58,7 +58,11 @@ pub fn main() -> Result<(), Error> {
 
         let witness_args =
             load_witness_args(0, Source::GroupInput).map_err(|_| Error::WitnessError)?;
-        witness_args.as_slice()[20..].to_vec()
+        witness_args
+            .lock()
+            .to_opt()
+            .ok_or(CkbAuthError::SignatureMissing)?
+            .raw_data()
     };
 
     let id = CkbAuthType {
