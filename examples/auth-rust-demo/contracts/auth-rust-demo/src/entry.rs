@@ -12,12 +12,11 @@ use core::result::Result;
 
 use crate::error::Error;
 
+use crate::utils::generate_sighash_all::generate_sighash_all;
 use ckb_auth_rs::{
     ckb_auth::{ckb_auth, CkbEntryType},
-    AuthAlgorithmIdType, CkbAuthType, EntryCategoryType,
+    AuthAlgorithmIdType, CkbAuthError, CkbAuthType, EntryCategoryType,
 };
-
-use crate::utils::generate_sighash_all::generate_sighash_all;
 use ckb_std::{
     ckb_constants::Source,
     ckb_types::{bytes::Bytes, core::ScriptHashType, prelude::*},
@@ -63,14 +62,16 @@ pub fn main() -> Result<(), Error> {
     };
 
     let id = CkbAuthType {
-        algorithm_id: AuthAlgorithmIdType::try_from(auth_id)?,
+        algorithm_id: AuthAlgorithmIdType::try_from(auth_id).map_err(|f| CkbAuthError::from(f))?,
         pubkey_hash: pubkey_hash,
     };
 
     let entry = CkbEntryType {
         code_hash,
         hash_type,
-        entry_category: EntryCategoryType::try_from(entry_type).unwrap(),
+        entry_category: EntryCategoryType::try_from(entry_type)
+            .map_err(|f| CkbAuthError::from(f))
+            .unwrap(),
     };
 
     ckb_auth(&entry, &id, &signature, &message)?;

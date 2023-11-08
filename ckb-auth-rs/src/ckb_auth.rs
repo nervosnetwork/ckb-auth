@@ -1,10 +1,11 @@
 extern crate alloc;
 
+use crate::CkbAuthError;
 use alloc::collections::BTreeMap;
 use alloc::ffi::CString;
 use alloc::format;
 use alloc::vec::Vec;
-use ckb_auth_types::{CkbAuthError, CkbAuthType, EntryCategoryType};
+use ckb_auth_types::{CkbAuthType, EntryCategoryType};
 use ckb_std::{
     ckb_types::core::ScriptHashType,
     dynamic_loading_c_impl::{CKBDLContext, Library, Symbol},

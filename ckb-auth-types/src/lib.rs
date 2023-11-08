@@ -1,36 +1,8 @@
 #![no_std]
 
-use alloc::ffi::NulError;
-use ckb_std::syscalls::SysError;
 use core::mem::transmute;
-use log::info;
 
 extern crate alloc;
-
-#[derive(Debug)]
-pub enum CkbAuthError {
-    UnknowAlgorithmID,
-    DynamicLinkingUninit,
-    LoadDLError,
-    LoadDLFuncError,
-    RunDLError,
-    ExecError(SysError),
-    EncodeArgs,
-}
-
-impl From<SysError> for CkbAuthError {
-    fn from(err: SysError) -> Self {
-        info!("exec error: {:?}", err);
-        Self::ExecError(err)
-    }
-}
-
-impl From<NulError> for CkbAuthError {
-    fn from(err: NulError) -> Self {
-        info!("Exec encode args failed: {:?}", err);
-        Self::EncodeArgs
-    }
-}
 
 #[derive(Clone)]
 pub enum AuthAlgorithmIdType {
@@ -53,6 +25,11 @@ pub enum AuthAlgorithmIdType {
     OwnerLock = 0xFC,
 }
 
+pub enum CkbAuthTypesError {
+    UnknowAlgorithmID,
+    EncodeArgs,
+}
+
 impl Into<u8> for AuthAlgorithmIdType {
     fn into(self) -> u8 {
         self as u8
@@ -60,7 +37,7 @@ impl Into<u8> for AuthAlgorithmIdType {
 }
 
 impl TryFrom<u8> for AuthAlgorithmIdType {
-    type Error = CkbAuthError;
+    type Error = CkbAuthTypesError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if (value >= AuthAlgorithmIdType::Ckb.into()
             && value <= AuthAlgorithmIdType::Iso97962.into())
@@ -68,7 +45,7 @@ impl TryFrom<u8> for AuthAlgorithmIdType {
         {
             Ok(unsafe { transmute(value) })
         } else {
-            Err(CkbAuthError::UnknowAlgorithmID)
+            Err(CkbAuthTypesError::UnknowAlgorithmID)
         }
     }
 }
@@ -81,13 +58,13 @@ pub enum EntryCategoryType {
 }
 
 impl TryFrom<u8> for EntryCategoryType {
-    type Error = CkbAuthError;
+    type Error = CkbAuthTypesError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             // 0 => Ok(Self::Exec),
             1 => Ok(Self::DynamicLinking),
             2 => Ok(Self::Spawn),
-            _ => Err(CkbAuthError::EncodeArgs),
+            _ => Err(CkbAuthTypesError::EncodeArgs),
         }
     }
 }

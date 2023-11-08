@@ -63,11 +63,6 @@ dependencies = [
 [[package]]
 name = "ckb-auth-types"
 version = "0.1.0"
-dependencies = [
- "ckb-std",
- "hex",
- "log",
-]
 
 [[package]]
 name = "ckb-standalone-types"
