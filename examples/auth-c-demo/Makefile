@@ -22,9 +22,9 @@ BUILDER_DOCKER := nervos/ckb-riscv-gnu-toolchain@sha256:d3f649ef8079395eb25a21ce
 all: build/auth_demo
 
 all-via-docker:
-	docker run --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make -f examples/auth-demo/Makefile all"
+	docker run --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make -f examples/auth-c-demo/Makefile all"
 
-build/auth_demo: examples/auth-demo/auth_demo.c c/ckb_auth.h
+build/auth_demo: examples/auth-c-demo/auth_demo.c c/ckb_auth.h
 	$(CC) $(AUTH_CFLAGS) $(LDFLAGS) -o $@ $^
 	$(OBJCOPY) --only-keep-debug $@ $@.debug
 	$(OBJCOPY) --strip-debug --strip-all $@

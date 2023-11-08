@@ -20,11 +20,11 @@ all_tests:
 	spawn-tests
 
 build-examples:
-	cd .. && make -f examples/auth-demo/Makefile all-via-docker
+	cd .. && make -f examples/auth-c-demo/Makefile all-via-docker
 	cd ../examples/auth-rust-demo && capsule build && mv build/debug/auth-rust-demo ../../build
 
 build-examples-with-clang:
-	cd .. && make -f examples/auth-demo/Makefile.clang all
+	cd .. && make -f examples/auth-c-demo/Makefile.clang all
 	cd ../examples/auth-rust-demo && \
 		capsule build && \
 		mv build/debug/auth-rust-demo ../../build
@@ -66,10 +66,6 @@ install_moleculec:
 
 install_cross:
 	cargo install cross --git https://github.com/cross-rs/cross
-#	wget -q https://github.com/cross-rs/cross/releases/download/v0.2.5/cross-x86_64-unknown-linux-gnu.tar.gz
-#	tar xzvf cross-x86_64-unknown-linux-gnu.tar.gz
-#	mv cross ~/.cargo/bin
-#	mv cross-util ~/.cargo/bin
 
 install_litecoin_tools:
 	tarball=litecoin.tar.gz

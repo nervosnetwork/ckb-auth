@@ -22,8 +22,8 @@ AUTH_CFLAGS=$(subst ckb-c-std-lib,ckb-c-stdlib-2023,$(CFLAGS)) -Wno-array-bounds
 
 all: build/auth_demo
 
-build/auth_demo: examples/auth-demo/auth_demo.c c/ckb_auth.h
-	$(CC) $(AUTH_CFLAGS) $(LDFLAGS) -o $@ examples/auth-demo/auth_demo.c
+build/auth_demo: examples/auth-c-demo/auth_demo.c c/ckb_auth.h
+	$(CC) $(AUTH_CFLAGS) $(LDFLAGS) -o $@ examples/auth-c-demo/auth_demo.c
 	$(OBJCOPY) --only-keep-debug $@ $@.debug
 	$(OBJCOPY) --strip-debug --strip-all $@
 
