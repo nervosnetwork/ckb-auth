@@ -97,5 +97,5 @@ CARDANO_LOCK_TOOLS_URL=https://update-cardano-mainnet.iohk.io/cardano-node-relea
 #For Mac use the link below
 #CARDANO_LOCK_TOOLS_URL=https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-8.0.0-macos.tar.gz
 install_cardano_tools:
-	mkdir -p bin
-	cd bin && wget -q ${CARDANO_LOCK_TOOLS_URL} && tar -xf `basename -- $(CARDANO_LOCK_TOOLS_URL)`
+	mkdir -p auth-spawn-tests/bin
+	cd auth-spawn-tests/bin && wget -q ${CARDANO_LOCK_TOOLS_URL} && tar -xf `basename -- $(CARDANO_LOCK_TOOLS_URL)`
