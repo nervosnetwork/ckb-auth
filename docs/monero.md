@@ -11,6 +11,12 @@ See [the docs](./auth.md) for more details.
 
 # Generate and verify transaction with ckb-auth-cli
 
+Assume that the message (`sighash_all` result) to be signed is
+
+```
+8fe9f62674d51f3103a3635433e73b4fcdadf6faa3b0c8392546ca6af161aa12
+```
+
 ## Get the pub key hash with `parse` sub command.
 Here the argument given to `-a` is the address of monero account, while the argument given to `-m` refers to
 whether the spend key or view key is used to sign the transaction (only spend key mode is supported).
@@ -21,14 +27,7 @@ which outputs
 ```
 a55ec8bb5b93aaffefd754996cb097228839aad6
 ```
-## Get the message to sign with `generate` subcommand.
-```
-ckb-auth-cli monero generate -p a55ec8bb5b93aaffefd754996cb097228839aad6
-```
-which outputs the message to sign
-```
-157ea09579f09cf96307f6b23d6fd61c3cff123076d44c27e2e9bedf02135e87
-```
+
 ## Sign the message with monero-wallet-cli
 Following the steps below to set up a monero wallet, save above message to a binary file,
 e.g. running `printf "$(printf 157ea09579f09cf96307f6b23d6fd61c3cff123076d44c27e2e9bedf02135e87 | fold -w 2 | xargs -n 1 printf '\\x%s')" > ckb-auth-test-message`
@@ -44,7 +43,7 @@ Stripping prefix `SigV2`, this is the base64-encoded signature.
 
 ## Verify the signature with `verify` subcommand
 ```
-ckb-auth-cli monero verify -p a55ec8bb5b93aaffefd754996cb097228839aad6 -s 3ZKheximq145tW14dshL17Jpqp2GJn296GfRnGqt3pMeaZU7xoEEAFr2Xm7Jc7xZjYWf6KhstZanA73to7uF6rea -a 41eBLjYsK28CJD5z2b7FojMCDg6vERASShVZqAvnsC9LhS7saG8CmMo5Rm92wgnT8wa6nJVu57MHHjmnoyvTpCG7NQ7dErc -m spend
+ckb-auth-cli monero verify -p a55ec8bb5b93aaffefd754996cb097228839aad6 -s 3ZKheximq145tW14dshL17Jpqp2GJn296GfRnGqt3pMeaZU7xoEEAFr2Xm7Jc7xZjYWf6KhstZanA73to7uF6rea -a 41eBLjYsK28CJD5z2b7FojMCDg6vERASShVZqAvnsC9LhS7saG8CmMo5Rm92wgnT8wa6nJVu57MHHjmnoyvTpCG7NQ7dErc --mode spend --message 157ea09579f09cf96307f6b23d6fd61c3cff123076d44c27e2e9bedf02135e87
 ```
 This commands return zero if and only if verification succeeded.
 
