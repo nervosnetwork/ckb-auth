@@ -16,25 +16,13 @@ including transaction hash and other witnesses in this input group)
 with `litecoin-cli`, and then leverage ckb-auth to check the validity of this signature.
 See [the docs](./auth.md) for more details.
 
-# Generate and verify transaction with ckb-auth-cli
-[`ckb-auth-cli`](../tools/ckb-auth-cli) is a command line utility to easily generate and verify ckb-auth transactions. Below assume that the working directory is `tests/auth_rust`.
+# Verify transaction with ckb-auth-cli
+Assume that the message (`sighash_all` result) to be signed is
 
-## Get the pub key hash with `parse` sub command.
-```
-ckb-auth-cli -- litecoin parse -a msv9GiUuCGEaoWzu7YcPDJo8hu5ij3Nzjn
-```
-which outputs
-```
-88043d56e0079d30927ebf8bb99358d7ddad7ad8
-```
-## Get the message to sign with `generate` subcommand.
-```
-ckb-auth-cli -- litecoin generate -a msv9GiUuCGEaoWzu7YcPDJo8hu5ij3Nzjn
-```
-which outputs
 ```
 8fe9f62674d51f3103a3635433e73b4fcdadf6faa3b0c8392546ca6af161aa12
 ```
+
 ## Sign the message with litecoin-cli
 ``
 litecoin-cli -rpcwallet=ckb-auth-test-wallet -testnet signmessage msv9GiUuCGEaoWzu7YcPDJo8hu5ij3Nzjn 8fe9f62674d51f3103a3635433e73b4fcdadf6faa3b0c8392546ca6af161aa12
@@ -45,7 +33,7 @@ ICbd+cH5vWtimef3mJZf0nwbR30Em1zTDQW7WGOJZ1aia2wwUL9DFJdO88P6ChF15mQmirb/525+V9u8
 ```
 ## Verify the signature with `verify` subcommand
 ```
-ckb-auth-cli -- litecoin verify -s ICbd+cH5vWtimef3mJZf0nwbR30Em1zTDQW7WGOJZ1aia2wwUL9DFJdO88P6ChF15mQmirb/525+V9u8BWVZY2E= --encoding base64 -p 88043d56e0079d30927ebf8bb99358d7ddad7ad8
+ckb-auth-cli -- litecoin verify -s ICbd+cH5vWtimef3mJZf0nwbR30Em1zTDQW7WGOJZ1aia2wwUL9DFJdO88P6ChF15mQmirb/525+V9u8BWVZY2E= --encoding base64 -p 88043d56e0079d30927ebf8bb99358d7ddad7ad8 -m 8fe9f62674d51f3103a3635433e73b4fcdadf6faa3b0c8392546ca6af161aa12
 ```
 This commands return zero if and only if verification succeeded.
 
