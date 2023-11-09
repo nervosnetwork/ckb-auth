@@ -1,18 +1,13 @@
 extern crate monero as monero_rs;
 
-use crate::{utils::decode_string, BlockChain, BlockChainArgs};
+use crate::{auth_script::run_auth_exec, utils::decode_string, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use auth_c_tests::{
-    auth_builder, build_resolved_tx, debug_printer, gen_tx_scripts_verifier,
-    gen_tx_with_pub_key_hash, get_message_to_sign, set_signature, DummyDataLoader, MoneroAuth,
-    TestConfig, MAX_CYCLES,
-};
-use ckb_auth_types::{AuthAlgorithmIdType, EntryCategoryType};
+use ckb_auth_types::AuthAlgorithmIdType;
 
 use ckb_types::bytes::{BufMut, BytesMut};
 use clap::{arg, ArgMatches, Command};
 use core::str::FromStr;
-use hex::encode;
+
 use monero_rs::Address;
 
 #[allow(dead_code)]
@@ -36,6 +31,19 @@ impl FromStr for MoneroMode {
     }
 }
 
+pub fn get_pub_key_info(
+    public_spend: &monero::PublicKey,
+    public_view: &monero::PublicKey,
+    use_spend_key: bool,
+) -> Vec<u8> {
+    let mut buff = BytesMut::with_capacity(1 + 32 * 2);
+    let mode: u8 = if use_spend_key { 0 } else { 1 };
+    buff.put_u8(mode);
+    buff.put(public_spend.as_bytes());
+    buff.put(public_view.as_bytes());
+    buff.freeze().into()
+}
+
 pub struct MoneroLockArgs {}
 
 impl BlockChainArgs for MoneroLockArgs {
@@ -55,11 +63,12 @@ impl BlockChainArgs for MoneroLockArgs {
     fn reg_verify_args(&self, cmd: Command) -> Command {
         cmd.arg(arg!(-a --address <ADDRESS> "The pubkey address whose hash verify against"))
             .arg(
-                arg!(-m --mode <MODE> "The mode to sign transactions (currently the only valid value is spend)")
+                arg!(--mode <MODE> "The mode to sign transactions (currently the only valid value is spend)")
                     .required(false),
             )
             .arg(arg!(-p --pubkeyhash <PUBKEYHASH> "The pubkey hash to include in the message"))
             .arg(arg!(-s --signature <SIGNATURE> "The signature to verify"))
+            .arg(arg!(-m --message <MESSAGE> "The message to verify"))
     }
 
     fn get_block_chain(&self) -> Box<dyn BlockChain> {
@@ -70,54 +79,12 @@ impl BlockChainArgs for MoneroLockArgs {
 pub struct MoneroLock {}
 
 impl BlockChain for MoneroLock {
-    fn parse(&self, operate_matches: &ArgMatches) -> Result<(), Error> {
-        let address = operate_matches
-            .get_one::<String>("address")
-            .expect("get parse address");
-
-        let address: Address = FromStr::from_str(address)?;
-
-        let mode = operate_matches
-            .get_one::<String>("mode")
-            .map(String::as_str)
-            .unwrap_or("spend");
-
-        let mode: MoneroMode = FromStr::from_str(mode)?;
-        let pubkey_hash = MoneroAuth::get_pub_key_hash(
-            &address.public_spend,
-            &address.public_view,
-            mode == MoneroMode::Spend,
-        );
-
-        println!("{}", encode(pubkey_hash));
-
-        Ok(())
+    fn parse(&self, _operate_mathches: &ArgMatches) -> Result<(), Error> {
+        Err(anyhow!("litecoin does not parse"))
     }
 
-    fn generate(&self, operate_matches: &ArgMatches) -> Result<(), Error> {
-        let pubkey_hash = operate_matches
-            .get_one::<String>("pubkeyhash")
-            .expect("Must get pubkeyhash");
-        let pubkey_hash: [u8; 20] = decode_string(pubkey_hash, "hex")
-            .expect("decode pubkey")
-            .try_into()
-            .unwrap();
-
-        let run_type = EntryCategoryType::Spawn;
-        // Note that we must set the official parameter of auth_builder to be true here.
-        // The difference between official=true and official=false is that the later
-        // convert the message to a form that can be signed directly with secp256k1.
-        // This is not intended as the monero-cli will do the conversion internally,
-        // and then sign the converted message. With official set to be true, we don't
-        // do this kind of conversion in the auth data structure.
-        let auth = auth_builder(AuthAlgorithmIdType::Monero, true).unwrap();
-        let config = TestConfig::new(&auth, run_type, 1);
-        let mut data_loader = DummyDataLoader::new();
-        let tx = gen_tx_with_pub_key_hash(&mut data_loader, &config, pubkey_hash.to_vec());
-        let message_to_sign = get_message_to_sign(tx, &config);
-
-        println!("{}", encode(message_to_sign.as_bytes()));
-        Ok(())
+    fn generate(&self, _operate_mathches: &ArgMatches) -> Result<(), Error> {
+        Err(anyhow!("litecoin does not generate"))
     }
 
     fn verify(&self, operate_matches: &ArgMatches) -> Result<(), Error> {
@@ -147,7 +114,7 @@ impl BlockChain for MoneroLock {
             .unwrap_or("spend");
 
         let mode: MoneroMode = FromStr::from_str(mode)?;
-        let pub_key_info = MoneroAuth::get_pub_key_info(
+        let pub_key_info = get_pub_key_info(
             &address.public_spend,
             &address.public_view,
             mode == MoneroMode::Spend,
@@ -157,23 +124,20 @@ impl BlockChain for MoneroLock {
         data.put(pub_key_info.as_slice());
         let signature = data.freeze();
 
-        let algorithm_type = AuthAlgorithmIdType::Monero;
-        let run_type = EntryCategoryType::Spawn;
-        let auth = auth_builder(algorithm_type, false).unwrap();
-        let config = TestConfig::new(&auth, run_type, 1);
-        let mut data_loader = DummyDataLoader::new();
-        let tx = gen_tx_with_pub_key_hash(&mut data_loader, &config, pubkey_hash.to_vec());
-        let signature = signature;
-        let tx = set_signature(tx, &signature);
-        let _resolved_tx = build_resolved_tx(&data_loader, &tx);
+        let message = hex::decode(
+            operate_matches
+                .get_one::<String>("message")
+                .expect("get message from args"),
+        )
+        .expect("decode message");
 
-        let mut verifier = gen_tx_scripts_verifier(tx, data_loader);
-        verifier.set_debug_printer(debug_printer);
-        let result = verifier.verify(MAX_CYCLES);
-        if result.is_err() {
-            dbg!(result.unwrap_err());
-            panic!("Verification failed");
-        }
+        run_auth_exec(
+            AuthAlgorithmIdType::Monero,
+            &pubkey_hash,
+            &message,
+            &signature,
+        )?;
+
         println!("Signature verification succeeded!");
 
         Ok(())

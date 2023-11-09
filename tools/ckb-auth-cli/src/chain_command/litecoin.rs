@@ -1,12 +1,8 @@
-use crate::{BlockChain, BlockChainArgs};
+use crate::{auth_script::run_auth_exec, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use auth_c_tests::{
-    auth_builder, debug_printer, gen_tx_scripts_verifier, gen_tx_with_pub_key_hash,
-    get_message_to_sign, set_signature, DummyDataLoader, TestConfig, MAX_CYCLES,
-};
-use ckb_auth_types::{AuthAlgorithmIdType, EntryCategoryType};
+use ckb_auth_types::{AuthAlgorithmIdType};
 use clap::{arg, ArgMatches, Command};
-use hex::{decode, encode};
+use hex::{decode};
 
 pub struct LitecoinLockArgs {}
 
@@ -25,6 +21,7 @@ impl BlockChainArgs for LitecoinLockArgs {
         cmd .arg(arg!(-a --address <ADDRESS> "The pubkey address whose hash verify against"))
       .arg(arg!(-p --pubkeyhash <PUBKEYHASH> "The pubkey hash to verify against"))
       .arg(arg!(-s --signature <SIGNATURE> "The signature to verify"))
+      .arg(arg!(-m --message <message> "The message to verify"))
       .arg(arg!(-e --encoding <ENCODING> "The encoding of the signature (may be hex or base64)"))
     }
 
@@ -36,38 +33,12 @@ impl BlockChainArgs for LitecoinLockArgs {
 pub struct LitecoinLock {}
 
 impl BlockChain for LitecoinLock {
-    fn parse(&self, operate_mathches: &ArgMatches) -> Result<(), Error> {
-        let address = operate_mathches
-            .get_one::<String>("address")
-            .expect("get parse address");
-
-        let pubkey_hash: [u8; 20] = get_pub_key_hash_from_address(address)?
-            .try_into()
-            .expect("address buf to [u8; 20]");
-
-        println!("{}", encode(pubkey_hash));
-
-        Ok(())
+    fn parse(&self, _operate_mathches: &ArgMatches) -> Result<(), Error> {
+        Err(anyhow!("litecoin does not parse"))
     }
 
-    fn generate(&self, operate_mathches: &ArgMatches) -> Result<(), Error> {
-        let pubkey_hash = get_pubkey_hash_by_args(operate_mathches)?;
-
-        let run_type = EntryCategoryType::Spawn;
-        // Note that we must set the official parameter of auth_builder to be true here.
-        // The difference between official=true and official=false is that the later
-        // convert the message to a form that can be signed directly with secp256k1.
-        // This is not intended as the litecoin-cli will do the conversion internally,
-        // and then sign the converted message. With official set to be true, we don't
-        // do this kind of conversion in the auth data structure.
-        let auth = auth_builder(AuthAlgorithmIdType::Litecoin, true).unwrap();
-        let config = TestConfig::new(&auth, run_type, 1);
-        let mut data_loader = DummyDataLoader::new();
-        let tx = gen_tx_with_pub_key_hash(&mut data_loader, &config, pubkey_hash.to_vec());
-        let message_to_sign = get_message_to_sign(tx, &config);
-
-        println!("{}", encode(message_to_sign.as_bytes()));
-        Ok(())
+    fn generate(&self, _operate_mathches: &ArgMatches) -> Result<(), Error> {
+        Err(anyhow!("litecoin does not generate"))
     }
 
     fn verify(&self, operate_mathches: &ArgMatches) -> Result<(), Error> {
@@ -77,28 +48,32 @@ impl BlockChain for LitecoinLock {
             .get_one::<String>("signature")
             .expect("get verify signature");
 
+        let _message = hex::decode(
+            operate_mathches
+                .get_one::<String>("message")
+                .expect("get message from args"),
+        )
+        .expect("decode message");
+
         let encoding = operate_mathches
             .get_one::<String>("encoding")
             .expect("get verify encoding");
 
         let signature: Vec<u8> = decode_string(signature, encoding)?;
 
-        let algorithm_type = AuthAlgorithmIdType::Litecoin;
-        let run_type = EntryCategoryType::Spawn;
-        let auth = auth_builder(algorithm_type, false).unwrap();
-        let config = TestConfig::new(&auth, run_type, 1);
-        let mut data_loader = DummyDataLoader::new();
-        let tx = gen_tx_with_pub_key_hash(&mut data_loader, &config, pubkey_hash.to_vec());
-        let signature = signature.into();
-        let tx = set_signature(tx, &signature);
-        let mut verifier = gen_tx_scripts_verifier(tx, data_loader);
+        let message = hex::decode(
+            operate_mathches
+                .get_one::<String>("message")
+                .expect("get message from args"),
+        )
+        .expect("decode message");
+        run_auth_exec(
+            AuthAlgorithmIdType::Litecoin,
+            &pubkey_hash,
+            &message,
+            &signature,
+        )?;
 
-        verifier.set_debug_printer(debug_printer);
-        let result = verifier.verify(MAX_CYCLES);
-        if result.is_err() {
-            dbg!(result.unwrap_err());
-            panic!("Verification failed");
-        }
         println!("Signature verification succeeded!");
 
         Ok(())
