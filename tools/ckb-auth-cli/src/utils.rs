@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use anyhow::{anyhow, Error};
 
 pub(crate) fn decode_string(s: &str, encoding: &str) -> Result<Vec<u8>, Error> {

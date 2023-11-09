@@ -9,21 +9,14 @@ with `solana-cli`, and then leverage ckb-auth to check the validity of this sign
 See [the docs](./auth.md) for more details.
 
 # Generate and verify transaction with ckb-auth-cli
+Assume that the message (`sighash_all` result) to be signed is
 
-## Get the pub key hash with `parse` sub command.
-Here the argument given to `-a` is the address of solana account
 ```
-ckb-auth-cli solana parse -a JA6jjaAha7SNVryoecCcNTH7vvqwhX8nBDiyAfeP1FcV
+e0dcaff0aac47033faf574450bf90b792777b3ce3e284e2d6b3559a5dbb12a09
 ```
-which outputs
-```
-8b4db9387c6ac45ce2cd8fbd6216582c71e3c87f
-```
-## Get the message to sign with `generate` subcommand.
-```
-ckb-auth-cli solana generate -p 8b4db9387c6ac45ce2cd8fbd6216582c71e3c87f
-```
-which outputs the message to sign
+
+whose base58 representation is
+
 ```
 G8mW5A2r4ab8gnmCB4abus21BN8vyMa3hbLg91AcsMon
 ```
@@ -48,7 +41,7 @@ The actual message signed is in the message field.
 
 ## Verify the signature with `verify` subcommand
 ```
-ckb-auth-cli solana verify -a JA6jjaAha7SNVryoecCcNTH7vvqwhX8nBDiyAfeP1FcV -s yvm9SbU1RorG4Kz6BLRbwmg2JhdZNgbRM1dH4NwBzEqU7UgAnNL41sAVSAp1nVUoXnYzq3qq2TNgDv9SNgb7GpH -m AgABBJSNMEbMgjVcD2BXPvhOXxJU05GvhaDy1fk4eHjaxqwi/utkQqq8LIfr9fI22x+/1HP8IUQtr3uq8nk4FejyvYJTmxv1p8BT0M957h8yk9jMKdP9h5TCYtl0IFgKC5YD/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4Nyv8KrEcDP69XRFC/kLeSd3s84+KE4tazVZpduxKgkBAwIBAgwCAAAAAAAAAAAAAAA=
+ckb-auth-cli solana verify -a JA6jjaAha7SNVryoecCcNTH7vvqwhX8nBDiyAfeP1FcV -s yvm9SbU1RorG4Kz6BLRbwmg2JhdZNgbRM1dH4NwBzEqU7UgAnNL41sAVSAp1nVUoXnYzq3qq2TNgDv9SNgb7GpH --solanamessage AgABBJSNMEbMgjVcD2BXPvhOXxJU05GvhaDy1fk4eHjaxqwi/utkQqq8LIfr9fI22x+/1HP8IUQtr3uq8nk4FejyvYJTmxv1p8BT0M957h8yk9jMKdP9h5TCYtl0IFgKC5YD/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4Nyv8KrEcDP69XRFC/kLeSd3s84+KE4tazVZpduxKgkBAwIBAgwCAAAAAAAAAAAAAAA= -m e0dcaff0aac47033faf574450bf90b792777b3ce3e284e2d6b3559a5dbb12a09
 ```
 This commands return zero if and only if verification succeeded.
 
