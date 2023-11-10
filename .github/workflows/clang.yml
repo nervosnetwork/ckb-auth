@@ -15,7 +15,7 @@ jobs:
     - name: Install llvm 16
       run: sudo apt-get purge --auto-remove llvm python3-lldb-14 llvm-14 && wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 16
     - name: Install tools
-      run: cd tests && make install_all
+      run: cd tests && make install-all
     - name: Build contract with clang
       run: make -f Makefile.clang all
     - name: Run all testcases

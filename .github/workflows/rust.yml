@@ -13,7 +13,7 @@ jobs:
       with:
         submodules: recursive
     - name: Install tools
-      run: cd tests && make install_all
+      run: cd tests && make install-all
     - name: Build contract
       run: make all-via-docker
     - name: Run all testcases

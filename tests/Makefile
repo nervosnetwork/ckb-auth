@@ -40,7 +40,7 @@ clean-c-tests:
 	rm -rf auth-c-tests/target
 
 spawn-tests:
-	export PATH=`pwd`/bin/:$PATH && cd auth-spawn-tests && make all
+	export PATH=`pwd`/bin/:$(PATH) && cd auth-spawn-tests && make all
 
 clean-spawn-tests:
 	rm -rf auth-spawn-tests/target
@@ -110,21 +110,21 @@ endif
 
 install-litecoin-tools:
 	wget -nv $(litecoin_tools_url)
-	tar xvzf `basename -- $(litecoin_tools_url)`
+	tar xvf `basename -- $(litecoin_tools_url)`
 	cp -r litecoin-*/bin/* ./bin
 	rm -rf litecoin*
 	bin/litecoin-cli --version
 
 install-monero-tools:
 	wget -nv $(monero_tools_url)
-	tar xvzf `basename -- $(monero_tools_url)`
+	tar xvf `basename -- $(monero_tools_url)`
 	cp -r monero-*/* bin
 	rm -rf monero-* bin/ANONYMITY_NETWORKS.md bin/README.md bin/LICENSE
 	bin/monero-wallet-cli --version
 
 install-solana-tools:
 	wget -nv $(solana_tools_url)
-	tar xvzf `basename -- $(solana_tools_url)`
+	tar xvf `basename -- $(solana_tools_url)`
 	cp -r solana-*/bin/* bin
 	rm -rf solana-*
 	bin/solana --version
@@ -132,7 +132,7 @@ install-solana-tools:
 
 install-cardano-tools:
 	wget -nv $(cardano_tools_url)
-	tar xvzf `basename -- $(cardano_tools_url)` -C bin
+	tar xvf `basename -- $(cardano_tools_url)` -C bin
 	rm -rf cardano-*
 
 bin:

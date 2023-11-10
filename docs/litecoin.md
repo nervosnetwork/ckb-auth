@@ -46,7 +46,7 @@ The commands below download the official `litecoin` binaries (e.g. `litecoind` f
 ```bash
 tarball=litecoin.tar.gz
 wget -O "$tarball" https://download.litecoin.org/litecoin-0.21.2.2/linux/litecoin-0.21.2.2-x86_64-linux-gnu.tar.gz
-tar xvzf "$tarball"
+tar xvf "$tarball"
 sudo cp -r litecoin-*/* /usr/local
 ```
 
