@@ -2,9 +2,7 @@ use crate::auth_script::run_auth_exec;
 
 use crate::{utils::decode_string, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use auth_c_tests::SolanaAuth;
 use ckb_auth_types::AuthAlgorithmIdType;
-use ckb_types::bytes::{BufMut, BytesMut};
 use clap::{arg, ArgMatches, Command};
 
 pub struct SolanaLockArgs {}
