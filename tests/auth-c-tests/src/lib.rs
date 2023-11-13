@@ -758,7 +758,7 @@ pub fn auth_builder(t: AuthAlgorithmIdType, official: bool) -> result::Result<Bo
             return Ok(SchnorrAuth::new());
         }
         AuthAlgorithmIdType::Rsa => {
-            return Ok(RSAAuth::new());
+            panic!("unsupport rsa")
         }
         AuthAlgorithmIdType::Iso97962 => {}
         AuthAlgorithmIdType::Litecoin => {
@@ -1981,134 +1981,6 @@ impl Auth for SchnorrAuth {
         ret.put(Bytes::from(xonly.clone()));
         ret.put(Bytes::from(sign.as_ref().to_vec()));
         ret.freeze()
-    }
-}
-
-#[derive(Clone)]
-struct RSAAuth {
-    pub pri_key: Vec<u8>,
-    pub pub_key: Vec<u8>,
-}
-impl RSAAuth {
-    fn new() -> Box<dyn Auth> {
-        let bits = 1024;
-        let exponent = 65537;
-
-        use mbedtls::pk::Pk;
-        use mbedtls::rng::ctr_drbg::CtrDrbg;
-
-        let mut rng =
-            CtrDrbg::new(Arc::new(mbedtls::rng::OsEntropy::new()), None).expect("new ctrdrbg rng");
-        let mut rsa_key = Pk::generate_rsa(&mut rng, bits, exponent).expect("generate rsa");
-
-        let pri_key = {
-            let mut buf = [0u8; 1024 * 4];
-            let r = rsa_key
-                .write_private_der(&mut buf)
-                .expect("export private key")
-                .unwrap();
-            r.to_vec()
-        };
-
-        let pub_key = {
-            let mut buf = [0u8; 1024 * 4];
-            let r = rsa_key
-                .write_public_der(&mut buf)
-                .expect("export public key")
-                .unwrap();
-            r.to_vec()
-        };
-
-        Box::new(RSAAuth { pri_key, pub_key })
-    }
-    fn rsa_sign(msg: &H256, privkey: &[u8], pubkey: &[u8]) -> Bytes {
-        let mut sig = Vec::<u8>::new();
-        sig.push(1); // algorithm id
-        sig.push(1); // key size, 1024
-        sig.push(0); // padding, PKCS# 1.5
-        sig.push(6); // hash type SHA256
-
-        let (e, n) = Self::get_e_n(pubkey);
-        sig.extend_from_slice(&e); // 4 bytes E
-        sig.extend_from_slice(&n); // N
-        sig.extend_from_slice(&Self::rsa_sign_msg(msg, privkey));
-
-        Bytes::from(sig.clone())
-    }
-    fn get_e_n(pub_key: &[u8]) -> (Vec<u8>, Vec<u8>) {
-        use mbedtls::pk::Pk;
-        let pub_key = Pk::from_public_key(pub_key).expect("");
-        let mut e = pub_key
-            .rsa_public_exponent()
-            .expect("rsa exponent")
-            .to_le_bytes()
-            .to_vec();
-        let mut n = pub_key
-            .rsa_public_modulus()
-            .expect("rsa modulus")
-            .to_binary()
-            .unwrap();
-        n.reverse();
-
-        while e.len() < 4 {
-            e.push(0);
-        }
-        while n.len() < 128 {
-            n.push(0);
-        }
-
-        (e, n)
-    }
-    fn rsa_sign_msg(msg: &H256, privkey: &[u8]) -> Vec<u8> {
-        use mbedtls::hash::Type::Sha256;
-        use mbedtls::pk::{Options, Pk, RsaPadding};
-        use mbedtls::rng::ctr_drbg::CtrDrbg;
-
-        let mut priv_key = Pk::from_private_key(privkey, None).expect("import rsa private key");
-        priv_key.set_options(Options::Rsa {
-            padding: RsaPadding::Pkcs1V15,
-        });
-        let mut rng = CtrDrbg::new(Arc::new(mbedtls::rng::OsEntropy::new()), None)
-            .expect("generate ctr drbg");
-        let mut signature = [0u8; 1024];
-
-        let mut md_hash = mbedtls::hash::Md::new(Sha256).expect("new sha256");
-        md_hash.update(msg.as_bytes()).expect("update sha256");
-        let mut sign_hash = [0u8; 32];
-        md_hash.finish(&mut sign_hash).expect("sha256 finish");
-
-        let size = priv_key
-            .sign(Sha256, &sign_hash, &mut signature, &mut rng)
-            .expect("rsa sign");
-        let signature = signature[..size].to_vec();
-        signature
-    }
-}
-impl Auth for RSAAuth {
-    fn get_sign_size(&self) -> usize {
-        264
-    }
-    fn get_pub_key_hash(&self) -> Vec<u8> {
-        let (e, n) = Self::get_e_n(&self.pub_key);
-
-        let mut sig = Vec::<u8>::new();
-        sig.push(1); // algorithm id
-        sig.push(1); // key size, 1024
-        sig.push(0); // padding, PKCS# 1.5
-        sig.push(6); // hash type SHA256
-
-        sig.extend_from_slice(&e);
-        sig.extend_from_slice(&n);
-
-        let hash = ckb_hash::blake2b_256(sig.as_slice());
-
-        hash[0..20].to_vec()
-    }
-    fn get_algorithm_type(&self) -> u8 {
-        AuthAlgorithmIdType::Rsa as u8
-    }
-    fn sign(&self, msg: &H256) -> Bytes {
-        RSAAuth::rsa_sign(msg, &self.pri_key, &self.pub_key)
     }
 }
 
