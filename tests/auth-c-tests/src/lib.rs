@@ -114,13 +114,13 @@ pub fn calculate_sha256(buf: &[u8]) -> [u8; 32] {
 }
 
 pub fn calculate_ripemd160(buf: &[u8]) -> [u8; 20] {
-    use mbedtls::hash::*;
-    let mut md = Md::new(Type::Ripemd).unwrap();
-    md.update(buf).expect("hash ripemd update");
-    let mut out = [0u8; 20];
-    md.finish(&mut out).expect("hash ripemd finish");
+    use ripemd::{Digest, Ripemd160};
 
-    out
+    let mut hasher = Ripemd160::new();
+    hasher.update(buf);
+    let buf = hasher.finalize()[..].to_vec();
+
+    buf.try_into().unwrap()
 }
 
 #[derive(Default, Clone)]
@@ -1673,16 +1673,6 @@ impl RippleAuth {
         })
     }
 
-    fn hash_sha256(data: &[u8]) -> [u8; 32] {
-        use mbedtls::hash::*;
-        let mut md = Md::new(Type::Sha256).unwrap();
-        md.update(data).expect("hash sha256 update");
-        let mut out = [0u8; 32];
-        md.finish(&mut out).expect("hash sha256 finish");
-
-        out
-    }
-
     pub fn base58_encode(d: &[u8]) -> String {
         let alpha =
             bs58::Alphabet::new(b"rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz")
@@ -1701,7 +1691,7 @@ impl RippleAuth {
     }
 
     pub fn hex_to_address(data: &[u8]) -> String {
-        let data = Self::hash_sha256(data);
+        let data = calculate_sha256(data);
         let data: [u8; 20] = calculate_ripemd160(&data);
 
         let mut data = {
@@ -1710,13 +1700,13 @@ impl RippleAuth {
             buf
         };
 
-        let checksum = Self::hash_sha256(&Self::hash_sha256(&data))[..4].to_vec();
+        let checksum = calculate_sha256(&calculate_sha256(&data))[..4].to_vec();
         data.extend_from_slice(&checksum);
         Self::base58_encode(&data)
     }
 
     fn get_hash(data: &[u8]) -> [u8; 20] {
-        calculate_ripemd160(&Self::hash_sha256(data))
+        calculate_ripemd160(&calculate_sha256(data))
     }
 
     fn generate_tx(ckb_sign_msg: &[u8], pubkey: &[u8], sign: Option<&[u8]>) -> Vec<u8> {
