@@ -1214,6 +1214,7 @@ impl Auth for LitecoinAuth {
             daemon
                 .get_client_command()
                 .args(vec!["createwallet", wallet_name])
+                .stdout(Stdio::null())
                 .status()
                 .unwrap()
                 .success(),
@@ -1231,6 +1232,7 @@ impl Auth for LitecoinAuth {
                     test_private_key_label,
                     "false"
                 ])
+                .stdout(Stdio::null())
                 .status()
                 .unwrap()
                 .success(),
@@ -1245,6 +1247,7 @@ impl Auth for LitecoinAuth {
             daemon
                 .get_client_command()
                 .args(vec![rpc_wallet_argument, "dumpwallet", wallet_dump])
+                .stdout(Stdio::null())
                 .status()
                 .unwrap()
                 .success(),
@@ -1344,6 +1347,8 @@ impl LitecoinDaemon {
             Command::new(executable)
                 .args(&common_arguments)
                 .arg("-whitelist=1.1.1.1/32")
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
                 .spawn()
                 .expect("spawn subprocess"),
         );
@@ -1373,7 +1378,7 @@ impl LitecoinDaemon {
 
     fn get_client_command(&self) -> Command {
         let mut command = Command::new(&self.client_executable);
-        command.args(&self.common_arguments);
+        command.args(&self.common_arguments).stderr(Stdio::null());
         command
     }
 }
