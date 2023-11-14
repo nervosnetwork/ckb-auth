@@ -60,9 +60,19 @@ impl Loader {
         Loader(base_path)
     }
 
-    pub fn load_binary(&self, name: &str) -> Bytes {
+    fn load_binary(&self, name: &str) -> Bytes {
         let mut path = self.0.clone();
         path.push(name);
         fs::read(path).expect("binary").into()
+    }
+
+    pub fn load_demo(&self) -> Bytes {
+        self.load_binary("auth-rust-demo")
+    }
+    pub fn load_auth(&self) -> Bytes {
+        self.load_binary("../../../../build/auth")
+    }
+    pub fn load_secp256k1_data(&self) -> Bytes {
+        self.load_binary("../../../../build/secp256k1_data_20210801")
     }
 }
