@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 ckb-testtool = "0.10"
+
+auth_c_tests = { path = "../../../tests/auth-c-tests" }
+ckb-auth-types = { path = "../../../ckb-auth-types" }

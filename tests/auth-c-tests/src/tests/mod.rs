@@ -87,6 +87,7 @@ fn unit_test_multiple_group(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
             (gen_args(&config), 1),
             (gen_args(&config), 1),
         ],
+        &config,
         &mut rng,
     );
 

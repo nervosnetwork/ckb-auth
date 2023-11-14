@@ -388,9 +388,18 @@ fn append_cell_deps<R: Rng>(
 
 fn append_cells_deps<R: Rng>(
     dummy: &mut DummyDataLoader,
+    config: &TestConfig,
     rng: &mut R,
 ) -> (Capacity, TransactionBuilder) {
-    let sighash_all_out_point = append_cell_deps(dummy, rng, &AUTH_DEMO);
+    let sighash_all_out_point = append_cell_deps(
+        dummy,
+        rng,
+        if config.auth_bin.is_some() {
+            config.auth_bin.as_ref().unwrap()
+        } else {
+            &AUTH_DEMO
+        },
+    );
     let sighash_dl_out_point = append_cell_deps(dummy, rng, &auth_program::get_auth_program());
     let always_success_out_point = append_cell_deps(dummy, rng, &ALWAYS_SUCCESS);
     let secp256k1_data_out_point = append_cell_deps(dummy, rng, &SECP256K1_DATA_BIN);
@@ -444,6 +453,7 @@ pub fn gen_tx_with_pub_key_hash(
     gen_tx_with_grouped_args(
         dummy,
         vec![(lock_args, config.sign_size as usize)],
+        config,
         &mut rng,
     )
 }
@@ -455,6 +465,7 @@ pub fn gen_tx(dummy: &mut DummyDataLoader, config: &TestConfig) -> TransactionVi
     gen_tx_with_grouped_args(
         dummy,
         vec![(lock_args, config.sign_size as usize)],
+        config,
         &mut rng,
     )
 }
@@ -462,10 +473,16 @@ pub fn gen_tx(dummy: &mut DummyDataLoader, config: &TestConfig) -> TransactionVi
 pub fn gen_tx_with_grouped_args<R: Rng>(
     dummy: &mut DummyDataLoader,
     grouped_args: Vec<(Bytes, usize)>,
+    config: &TestConfig,
     rng: &mut R,
 ) -> TransactionView {
-    let (dummy_capacity, mut tx_builder) = append_cells_deps(dummy, rng);
-    let sighash_all_cell_data_hash = CellOutput::calc_data_hash(&AUTH_DEMO);
+    let (dummy_capacity, mut tx_builder) = append_cells_deps(dummy, config, rng);
+
+    let sighash_all_cell_data_hash = CellOutput::calc_data_hash(if config.auth_bin.is_some() {
+        config.auth_bin.as_ref().unwrap()
+    } else {
+        &AUTH_DEMO
+    });
 
     for (args, inputs_size) in grouped_args {
         // setup dummy input unlock script
@@ -528,6 +545,9 @@ pub struct TestConfig {
     pub incorrect_msg: bool,
     pub incorrect_sign: bool,
     pub incorrect_sign_size: TestConfigIncorrectSing,
+
+    pub auth_bin: Option<Bytes>,
+    pub script_hash_type: Option<u8>,
 }
 
 impl TestConfig {
@@ -545,6 +565,8 @@ impl TestConfig {
             incorrect_msg: false,
             incorrect_sign: false,
             incorrect_sign_size: TestConfigIncorrectSing::None,
+            auth_bin: None,
+            script_hash_type: None,
         }
     }
 }
@@ -567,9 +589,14 @@ pub fn do_gen_args(config: &TestConfig, pub_key_hash: Option<Vec<u8>>) -> Bytes 
         pubkey_hash: [0; 20],
     };
 
+    let hash_type: u8 = match &config.script_hash_type {
+        Some(t) => t.clone(),
+        None => ScriptHashType::Data2.into(),
+    };
+
     let mut entry_type = EntryType {
         code_hash: [0; 32],
-        hash_type: ScriptHashType::Data2.into(),
+        hash_type,
         entry_category: config.entry_category_type.clone() as u8,
     };
 
@@ -1617,8 +1644,8 @@ impl Auth for SolanaAuth {
         let _keypair_json = solana_sdk::signer::keypair::write_keypair(&self.key_pair, child_stdin)
             .expect("Must write keypair");
         // Close stdin to finish and avoid indefinite blocking
-        #[allow(dropping_references)]
-        drop(child_stdin);
+        // #[allow(dropping_references)]
+        // drop(child_stdin);
 
         let output = child.wait_with_output().expect("Wait for output");
         assert!(output.status.success());
@@ -2000,11 +2027,17 @@ pub fn gen_tx_scripts_verifier(
     tx: TransactionView,
     data_loader: DummyDataLoader,
 ) -> TransactionScriptsVerifier<DummyDataLoader> {
+    use ckb_types::core::hardfork::HardForks;
+
     let resolved_tx = build_resolved_tx(&data_loader, &tx);
+    let consensus = ConsensusBuilder::default()
+        .hardfork_switch(HardForks::new_dev())
+        .build();
+
     let mut verifier = TransactionScriptsVerifier::new(
         Arc::new(resolved_tx),
         data_loader.clone(),
-        Arc::new(ConsensusBuilder::default().build()),
+        Arc::new(consensus),
         Arc::new(TxVerifyEnv::new_commit(
             &HeaderView::new_advanced_builder().build(),
         )),

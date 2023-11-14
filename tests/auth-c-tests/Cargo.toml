@@ -8,25 +8,20 @@ edition = "2018"
 
 [dependencies]
 ckb-auth-types = { path = "../../ckb-auth-types" }
-blake2b-rs = "0.1"
-ckb-vm = "0.24.0"
-ckb-crypto = "0.111.0-rc2"
-ckb-error = "0.111.0-rc2"
-ckb-hash = "0.111.0-rc2"
-ckb-script = "0.111.0-rc2"
-ckb-traits = "0.111.0-rc2"
-ckb-types = "0.111.0-rc2"
-ckb-chain-spec = "0.111.0-rc2"
-once_cell = "1.18.0"
+ckb-crypto = "0.111.0"
+ckb-error = "0.111.0"
+ckb-hash = "0.111.0"
+ckb-script = "0.111.0"
+ckb-traits = "0.111.0"
+ckb-types = "0.111.0"
+ckb-chain-spec = "0.111.0"
 ref_thread_local = "0.1.1"
 rand = "0.6.5"
-sparse-merkle-tree = { git = "https://github.com/nervosnetwork/sparse-merkle-tree.git", rev = "2dce546"}
 
 bitcoin = "0.30.0"
 base64 = "0.21.0"
 monero = { version = "0.18.2", features = ["serde"] }
 hex-literal = "0.4.1"
-tiny-keccak = "2.0.2"
 base58-monero = "1.0.0"
 log = { version = "0.4.14", features = ["std"] }
 bincode = "1.3.3"
