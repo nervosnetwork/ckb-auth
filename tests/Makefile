@@ -5,6 +5,8 @@ all: \
 	build-examples \
 	c-tests \
 	clean-c-tests \
+	rust-demo-tests \
+	clean-rust-demo-tests \
 	spawn-tests \
 	clean-spawn-tests
 
@@ -19,28 +21,32 @@ all_tests:
 	c-tests \
 	spawn-tests
 
-build-examples:
-	cd .. && make -f examples/auth-c-demo/Makefile all-via-docker
-	export PATH=$(shell pwd)/bin/:$(PATH) && \
+build-rust-example:
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
 		cd ../examples/auth-rust-demo && \
 		capsule build && \
-		mv build/debug/auth-rust-demo ../../build
+		cp build/debug/auth-rust-demo ../../build
 
-build-examples-with-clang:
+build-examples: build-rust-example
+	cd .. && make -f examples/auth-c-demo/Makefile all-via-docker
+
+build-examples-with-clang: build-rust-example
 	cd .. && make -f examples/auth-c-demo/Makefile.clang all
-	export PATH=$(shell pwd)/bin/:$(PATH) && \
-		cd ../examples/auth-rust-demo && \
-		capsule build && \
-		mv build/debug/auth-rust-demo ../../build
 
 c-tests:
-	export PATH=$(shell pwd)/bin/:$(PATH) && cd auth-c-tests && cargo test
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd auth-c-tests && cargo test
 
 clean-c-tests:
 	rm -rf auth-c-tests/target
 
+rust-demo-tests:
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd ../examples/auth-rust-demo/ && capsule test
+
+clean-rust-demo-tests:
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd ../examples/auth-rust-demo/ && capsule clean
+
 spawn-tests:
-	export PATH=`pwd`/bin/:$(PATH) && cd auth-spawn-tests && make all
+	export PATH=`pwd`/bin/:"$(PATH)" && cd auth-spawn-tests && make all
 
 clean-spawn-tests:
 	rm -rf auth-spawn-tests/target
@@ -63,7 +69,7 @@ install-ckb-debugger:
 ifeq ($(shell uname),Darwin)
 	cargo install --git https://github.com/nervosnetwork/ckb-standalone-debugger ckb-debugger --tag v0.111.0 --root ./
 else ifeq ($(shell uname),Linux)
-	wget -nv 'https://github.com/XuJiandong/ckb-standalone-debugger/releases/download/ckb2023-0621/ckb-debugger-linux-x64.tar.gz'
+	wget -nv 'https://github.com/nervosnetwork/ckb-standalone-debugger/releases/download/v0.111.0/ckb-debugger-linux-x64.tar.gz'
 	tar zxvf ckb-debugger-linux-x64.tar.gz
 	mv ckb-debugger bin/ckb-debugger
 	rm -rf LICENSE ckb-debugger-linux-x64.tar.gz
@@ -84,7 +90,6 @@ endif
 
 install-cross:
 	cargo install cross --git https://github.com/cross-rs/cross --root ./
-
 
 litecoin_tools_url=
 monero_tools_url=
