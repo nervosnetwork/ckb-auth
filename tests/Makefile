@@ -76,11 +76,11 @@ else ifeq ($(shell uname),Linux)
 endif
 
 install-moleculec:
-	cargo install moleculec --git https://github.com/nervosnetwork/molecule.git --rev 1306c29c529ab375e0368ffeb691bd8c7bbf0403 --root ./
+	cargo install moleculec --version 0.7.3 --root ./
 
 install-capsule:
 ifeq ($(shell uname),Darwin)
-	cargo install ckb-capsule --git https://github.com/nervosnetwork/capsule.git --tag v0.10.2 --root ./
+	cargo install ckb-capsule --version "0.10.2" --root ./
 else ifeq ($(shell uname), Linux)
 	wget -nv https://github.com/nervosnetwork/capsule/releases/download/v0.10.2/capsule_v0.10.2_x86_64-linux.tar.gz
 	tar xzvf capsule*.tar.gz
