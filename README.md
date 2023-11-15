@@ -1,8 +1,10 @@
 # ckb-auth
 A consolidated library featuring numerous blockchains authentication techniques
-on CKB-VM. More details in [auth.md](./docs/auth.md). We also write a [simple
-script](./examples/auth-c-demo/auth_demo.c) to demonstrate how to use this
-library.
+on CKB-VM. More details in [auth.md](./docs/auth.md). 
+We also write two simple script to demonstrate how to use this library:
+* [c demo](./examples/auth-c-demo/auth_demo.c)
+* [rust demo](./examples/auth-rust-demo/contracts/auth-rust-demo/src/entry.rs)
+
 
 ## Motivation
 The [CKB-VM](https://github.com/nervosnetwork/ckb-vm) in CKB has provided a
