@@ -107,13 +107,8 @@ fn gen_tx(ctx: &mut Context, grouped_args: Vec<(Bytes, usize)>) -> TransactionVi
         // setup dummy input unlock script
         for _ in 0..inputs_size {
             let script = ctx
-                .build_script_with_hash_type(
-                    &auth_demo_outpoint,
-                    ScriptHashType::Data2,
-                    args.clone(),
-                )
+                .build_script(&auth_demo_outpoint, args.clone())
                 .expect("generate lock script");
-
             let previous_output_cell = CellOutput::new_builder()
                 .capacity(dummy_capacity.pack())
                 .lock(script)
