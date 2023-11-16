@@ -668,7 +668,7 @@ fn ckbmultisig_verify_sing_size_failed() {}
 
 #[test]
 fn schnorr_verify() {
-    unit_test_common(AuthAlgorithmIdType::SchnorrOrTaproot);
+    unit_test_common(AuthAlgorithmIdType::Schnorr);
 }
 
 #[test]
