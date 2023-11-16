@@ -2,7 +2,7 @@ extern crate monero as monero_rs;
 
 use crate::{auth_script::run_auth_exec, utils::decode_string, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use ckb_auth_types::AuthAlgorithmIdType;
+use ckb_auth_rs::AuthAlgorithmIdType;
 
 use ckb_types::bytes::{BufMut, BytesMut};
 use clap::{arg, ArgMatches, Command};

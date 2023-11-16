@@ -1,6 +1,6 @@
 use crate::{auth_script::run_auth_exec, utils::calculate_ripemd160, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use ckb_auth_types::AuthAlgorithmIdType;
+use ckb_auth_rs::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
 use hex::decode;
 use sha2::{Digest, Sha256};

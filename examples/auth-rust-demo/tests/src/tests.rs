@@ -1,5 +1,5 @@
 use super::*;
-use ckb_auth_types::{AuthAlgorithmIdType, CkbAuthType, EntryCategoryType};
+use ckb_auth_rs::{AuthAlgorithmIdType, CkbAuthType, EntryCategoryType};
 use ckb_testtool::{
     ckb_crypto::secp::{Generator, Privkey},
     ckb_hash::{blake2b_256, new_blake2b},

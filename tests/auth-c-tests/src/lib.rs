@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use std::{collections::HashMap, convert::TryInto, mem::size_of, process::Stdio, result, vec};
 
-use ckb_auth_types::{AuthAlgorithmIdType, CkbAuthType, EntryCategoryType};
+use ckb_auth_rs::{AuthAlgorithmIdType, CkbAuthType, EntryCategoryType};
 use lazy_static::lazy_static;
 use std::{
     process::{Child, Command},

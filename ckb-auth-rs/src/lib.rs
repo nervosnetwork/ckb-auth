@@ -1,46 +1,76 @@
 #![no_std]
 extern crate alloc;
+use core::mem::transmute;
 
-use alloc::ffi::NulError;
-use ckb_std::syscalls::SysError;
-use log::info;
-
+#[cfg(target_arch = "riscv64")]
 pub mod ckb_auth;
-// pub mod error;
 
-pub use ckb_auth_types::{AuthAlgorithmIdType, CkbAuthType, CkbAuthTypesError, EntryCategoryType};
+#[derive(Clone)]
+pub enum AuthAlgorithmIdType {
+    Ckb = 0,
+    Ethereum = 1,
+    Eos = 2,
+    Tron = 3,
+    Bitcoin = 4,
+    Dogecoin = 5,
+    CkbMultisig = 6,
+    SchnorrOrTaproot = 7,
+    Rsa = 8,
+    Iso97962 = 9,
+    Litecoin = 10,
+    Cardano = 11,
+    Monero = 12,
+    Solana = 13,
+    Ripple = 14,
+    Secp256r1 = 15,
+    OwnerLock = 0xFC,
+}
 
-#[derive(Debug)]
-pub enum CkbAuthError {
+pub enum CkbAuthTypesError {
     UnknowAlgorithmID,
-    DynamicLinkingUninit,
-    LoadDLError,
-    LoadDLFuncError,
-    RunDLError,
-    ExecError(SysError),
-    SignatureMissing,
     EncodeArgs,
 }
 
-impl From<SysError> for CkbAuthError {
-    fn from(err: SysError) -> Self {
-        info!("Exec error: {:?}", err);
-        Self::ExecError(err)
+impl Into<u8> for AuthAlgorithmIdType {
+    fn into(self) -> u8 {
+        self as u8
     }
 }
 
-impl From<NulError> for CkbAuthError {
-    fn from(err: NulError) -> Self {
-        info!("Exec encode args failed: {:?}", err);
-        Self::EncodeArgs
-    }
-}
-
-impl From<CkbAuthTypesError> for CkbAuthError {
-    fn from(err: CkbAuthTypesError) -> Self {
-        match err {
-            CkbAuthTypesError::UnknowAlgorithmID => Self::UnknowAlgorithmID,
-            CkbAuthTypesError::EncodeArgs => Self::EncodeArgs,
+impl TryFrom<u8> for AuthAlgorithmIdType {
+    type Error = CkbAuthTypesError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        if (value >= AuthAlgorithmIdType::Ckb.into()
+            && value <= AuthAlgorithmIdType::Iso97962.into())
+            || value == AuthAlgorithmIdType::OwnerLock.into()
+        {
+            Ok(unsafe { transmute(value) })
+        } else {
+            Err(CkbAuthTypesError::UnknowAlgorithmID)
         }
     }
+}
+
+#[derive(Clone)]
+pub enum EntryCategoryType {
+    // Exec = 0,
+    DynamicLinking = 1,
+    Spawn = 2,
+}
+
+impl TryFrom<u8> for EntryCategoryType {
+    type Error = CkbAuthTypesError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            // 0 => Ok(Self::Exec),
+            1 => Ok(Self::DynamicLinking),
+            2 => Ok(Self::Spawn),
+            _ => Err(CkbAuthTypesError::EncodeArgs),
+        }
+    }
+}
+
+pub struct CkbAuthType {
+    pub algorithm_id: AuthAlgorithmIdType,
+    pub pubkey_hash: [u8; 20],
 }

@@ -1,7 +1,7 @@
 use auth_spawn_rust::{
     generate_sighash_all, get_auth_code_hash, get_auth_hash_type, read_tx_template, update_witness,
 };
-use ckb_auth_types::EntryCategoryType;
+use ckb_auth_rs::EntryCategoryType;
 use ckb_mock_tx_types::ReprMockTransaction;
 use ckb_types::bytes::Bytes;
 use hex::decode;

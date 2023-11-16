@@ -10,7 +10,7 @@ pub mod blockchain {
 }
 use anyhow;
 use anyhow::Context;
-use ckb_auth_types::EntryCategoryType;
+use ckb_auth_rs::EntryCategoryType;
 use ckb_hash::new_blake2b;
 use ckb_types::core::ScriptHashType;
 use ckb_types::packed;

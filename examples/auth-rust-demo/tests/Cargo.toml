@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 ckb-testtool = "0.10"
-ckb-auth-types = { path = "../../../ckb-auth-types" }
+ckb-auth-rs = { path = "../../../ckb-auth-rs" }
 
 rand = "0.6.5"
