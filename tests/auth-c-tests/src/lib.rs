@@ -781,7 +781,7 @@ pub fn auth_builder(t: AuthAlgorithmIdType, official: bool) -> result::Result<Bo
             return Ok(DogecoinAuth::new());
         }
         AuthAlgorithmIdType::CkbMultisig => {}
-        AuthAlgorithmIdType::SchnorrOrTaproot => {
+        AuthAlgorithmIdType::Schnorr => {
             return Ok(SchnorrAuth::new());
         }
         AuthAlgorithmIdType::Rsa => {
@@ -1980,7 +1980,7 @@ impl Auth for SchnorrAuth {
         Vec::from(&ckb_hash::blake2b_256(xonly)[..20])
     }
     fn get_algorithm_type(&self) -> u8 {
-        AuthAlgorithmIdType::SchnorrOrTaproot as u8
+        AuthAlgorithmIdType::Schnorr as u8
     }
     fn get_sign_size(&self) -> usize {
         32 + 64

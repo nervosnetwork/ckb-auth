@@ -14,7 +14,7 @@ pub enum AuthAlgorithmIdType {
     Bitcoin = 4,
     Dogecoin = 5,
     CkbMultisig = 6,
-    SchnorrOrTaproot = 7,
+    Schnorr = 7,
     Rsa = 8,
     Iso97962 = 9,
     Litecoin = 10,
