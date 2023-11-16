@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Error};
 use ckb_auth_cli::{
     chain_command::{
-        BitcoinLockArgs, CardanoLockArgs, EosLockArgs, EthereumLockArgs, LitecoinLockArgs,
-        MoneroLockArgs, RippleLockArgs, SolanaLockArgs, TronLockArgs,
+        BitcoinLockArgs, CardanoLockArgs, DogecoinLockArgs, EosLockArgs, EthereumLockArgs,
+        LitecoinLockArgs, MoneroLockArgs, RippleLockArgs, SolanaLockArgs, TronLockArgs,
     },
     BlockChainArgs,
 };

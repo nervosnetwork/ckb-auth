@@ -1,5 +1,6 @@
 mod bitcoin;
 mod cardano;
+mod dogecoin;
 mod eos;
 mod ethereum;
 mod litecoin;
@@ -11,6 +12,7 @@ mod tron;
 pub use self::monero::{MoneroLock, MoneroLockArgs};
 pub use bitcoin::{BitcoinLock, BitcoinLockArgs};
 pub use cardano::{CardanoLock, CardanoLockArgs};
+pub use dogecoin::{DogecoinLock, DogecoinLockArgs};
 pub use eos::{EosLock, EosLockArgs};
 pub use ethereum::{EthereumLock, EthereumLockArgs};
 pub use litecoin::{LitecoinLock, LitecoinLockArgs};

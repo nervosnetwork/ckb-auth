@@ -1,8 +1,10 @@
-use super::{BlockChain, BlockChainArgs};
-use crate::utils::decode_string;
+use crate::{
+    auth_script::run_auth_exec,
+    utils::{calculate_sha256, decode_string},
+};
+use crate::{BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use ckb_auth_rs::AlgorithmType;
-use ckb_auth_rs::{calculate_ripemd160, calculate_sha256};
+use ckb_auth_rs::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
 
 pub struct DogecoinLockArgs {}
@@ -83,8 +85,8 @@ impl BlockChain for DogecoinLock {
 
         let pubkey_hash = &address[1..21];
 
-        super::auth_script::run_auth_exec(
-            AlgorithmType::Dogecoin,
+        run_auth_exec(
+            AuthAlgorithmIdType::Dogecoin,
             pubkey_hash,
             &message,
             &signature,
