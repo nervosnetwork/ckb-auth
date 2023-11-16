@@ -1,8 +1,10 @@
 # ckb-auth
 A consolidated library featuring numerous blockchains authentication techniques
-on CKB-VM. More details in [auth.md](./docs/auth.md). We also write a [simple
-script](./examples/auth-demo/auth_demo.c) to demonstrate how to use this
-library.
+on CKB-VM. More details in [auth.md](./docs/auth.md). 
+We also write two simple script to demonstrate how to use this library:
+* [c demo](./examples/auth-c-demo/auth_demo.c)
+* [rust demo](./examples/auth-rust-demo/contracts/auth-rust-demo/src/entry.rs)
+
 
 ## Motivation
 The [CKB-VM](https://github.com/nervosnetwork/ckb-vm) in CKB has provided a
@@ -44,8 +46,17 @@ For more details, please check out [CI script](./.github/workflows/rust.yml).
 
 ## Test
 
+All test case commands are located in `tests/Makefile`.
+
+### Installing Dependencies
+
+```shell
+make install_all
+```
+
+### Running All Tests
 ```bash
-cd tests/auth_rust && bash run.sh
+cd tests && make all_tests
 ```
 
 ## Test with Spawn (activated after hardfork 2023)
@@ -58,3 +69,39 @@ Then run:
 ```bash
 cd tests/auth_spawn_rust && make all
 ```
+
+## Directory Structure
+
+```
+├── build
+├── c
+├── ckb-auth-rs
+├── ckb-auth-types
+├── deps
+├── docs
+├── examples
+│   ├── auth-c-demo
+│   └── auth-rust-demo
+├── tests
+│   ├── Makefile
+│   ├── auth-c-tests
+│   └── auth-spawn-tests
+├─ tools
+│   ├── ckb-auth-cli
+│   ├── rippled
+│   └── tron
+└─ Makefile
+```
+
+| Directory         | Description                               |
+| ----------------- | ----------------------------------------- |
+| build             | Build output                              |
+| c                 | ckb-auth code, written in C language      |
+| ckb-auth-rs       | Rust interface of ckb-auth                |
+| ckb-auth-types    | Public code referenced by contracts and test cases |
+| deps              | Dependencies of ckb-auth using C language |
+| docs              | Detailed introduction to each chain in ckb-auth |
+| examples          | All examples                              |
+| tests             | All test cases                            |
+| tools             | ckb-auth-cli and end-to-end testing tools |
+

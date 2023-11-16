@@ -92,7 +92,7 @@ fmt:
 
 clean:
 	rm -rf build/*.debug
-	rm -f build/auth build/auth_libecc build/auth_demo
+	rm -f build/auth build/auth_libecc build/auth_demo build/auth-rust-demo
 	rm -rf build/secp256k1_data_info_20210801.h build/dump_secp256k1_data_20210801
 	rm -rf build/ed25519 build/libed25519.a build/nanocbor build/libnanocbor.a
 	cd deps/secp256k1-20210801 && [ -f "Makefile" ] && make clean

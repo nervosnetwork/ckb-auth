@@ -13,11 +13,11 @@ git submodule update --init
 make all-via-docker
 ```
 
-If you need to test or use `ckb-auth-cli`, you also need to compile the `auth-demo`:
+If you need to test or use `ckb-auth-cli`, you also need to compile the `auth-c-demo`:
 
 ```
 capsule build
-make -f examples/auth-demo/Makefile all-via-docker
+make -f examples/auth-c-demo/Makefile all-via-docker
 ```
 
 For detailed instructions, please refer to the [README.md](../README.md) or [CI](../.github/workflows/rust.yml).

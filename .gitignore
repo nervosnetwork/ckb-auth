@@ -15,3 +15,7 @@ Cargo.lock
 
 build/*
 
+
+tests/bin
+tests/.crates.toml
+tests/.crates2.json

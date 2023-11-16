@@ -66,7 +66,7 @@ The transaction hash of the Input is passed into ```generate_sighash_all``` func
 
 
 ## Details of Cardano
-The previous section provided a simple verification of Cardano-related signatures. However, the `tests/cardano_lock` directory provides comprehensive tests. By running [`make all`](../tests/cardano_lock/Makefile), you can execute the tests, which will build a complete CKB transaction and use the auth-demo contract for verification. The entire process is secure.
+The previous section provided a simple verification of Cardano-related signatures. However, the `tests/cardano_lock` directory provides comprehensive tests. By running [`make all`](../tests/cardano_lock/Makefile), you can execute the tests, which will build a complete CKB transaction and use the auth-c-demo contract for verification. The entire process is secure.
 
 ### Some considerations regarding cardano-cli
 Here, it is mentioned that the files outputted by `cardano-cli` are in JSON format, as shown below:

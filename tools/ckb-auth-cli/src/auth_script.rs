@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Error};
-use ckb_auth_rs::AlgorithmType;
+use ckb_auth_rs::AuthAlgorithmIdType;
 use ckb_vm::cost_model::estimate_cycles;
 use ckb_vm::registers::{A0, A1, A2, A3, A4, A5, A7};
 use ckb_vm::{Bytes, Memory, Register, SupportMachine, Syscalls};
@@ -30,9 +30,7 @@ impl<Mac: SupportMachine> Syscalls<Mac> for DebugSyscall {
             2081 => self.ecall_load_cell_by_field(machine),
             2092 => self.ecall_load_cell_data(machine),
             2177 => self.ecall_debug(machine),
-            _ => {
-                Ok(false)
-            }
+            _ => Ok(false),
         }
     }
 }
@@ -120,7 +118,7 @@ impl DebugSyscall {
 }
 
 pub fn run_auth_exec(
-    algorithm_id: AlgorithmType,
+    algorithm_id: AuthAlgorithmIdType,
     pubkey_hash: &[u8],
     message: &[u8],
     sign: &[u8],
