@@ -14,8 +14,8 @@ use crate::error::Error;
 
 use crate::utils::generate_sighash_all::generate_sighash_all;
 use ckb_auth_rs::{
-    ckb_auth::{ckb_auth, CkbAuthError, CkbEntryType},
-    AuthAlgorithmIdType, CkbAuthType, EntryCategoryType,
+    ckb_auth::{ckb_auth, CkbEntryType},
+    AuthAlgorithmIdType, CkbAuthError, CkbAuthType, EntryCategoryType,
 };
 use ckb_std::{
     ckb_constants::Source,

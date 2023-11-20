@@ -5,6 +5,16 @@ use core::mem::transmute;
 #[cfg(target_arch = "riscv64")]
 pub mod ckb_auth;
 
+#[cfg(target_arch = "riscv64")]
+use alloc::ffi::NulError;
+#[cfg(target_arch = "riscv64")]
+use log::info;
+
+#[cfg(target_arch = "riscv64")]
+use ckb_std::error::SysError;
+#[cfg(not(target_arch = "riscv64"))]
+type SysError = u64;
+
 #[derive(Clone)]
 pub enum AuthAlgorithmIdType {
     Ckb = 0,
@@ -26,11 +36,6 @@ pub enum AuthAlgorithmIdType {
     OwnerLock = 0xFC,
 }
 
-pub enum CkbAuthTypesError {
-    UnknowAlgorithmID,
-    EncodeArgs,
-}
-
 impl Into<u8> for AuthAlgorithmIdType {
     fn into(self) -> u8 {
         self as u8
@@ -38,7 +43,7 @@ impl Into<u8> for AuthAlgorithmIdType {
 }
 
 impl TryFrom<u8> for AuthAlgorithmIdType {
-    type Error = CkbAuthTypesError;
+    type Error = CkbAuthError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if (value >= AuthAlgorithmIdType::Ckb.into()
             && value <= AuthAlgorithmIdType::Iso97962.into())
@@ -46,8 +51,36 @@ impl TryFrom<u8> for AuthAlgorithmIdType {
         {
             Ok(unsafe { transmute(value) })
         } else {
-            Err(CkbAuthTypesError::UnknowAlgorithmID)
+            Err(CkbAuthError::UnknowAlgorithmID)
         }
+    }
+}
+
+#[derive(Debug)]
+pub enum CkbAuthError {
+    UnknowAlgorithmID,
+    DynamicLinkingUninit,
+    LoadDLError,
+    LoadDLFuncError,
+    RunDLError,
+    ExecError(SysError),
+    SignatureMissing,
+    EncodeArgs,
+}
+
+#[cfg(target_arch = "riscv64")]
+impl From<SysError> for CkbAuthError {
+    fn from(err: SysError) -> Self {
+        info!("Exec error: {:?}", err);
+        Self::ExecError(err)
+    }
+}
+
+#[cfg(target_arch = "riscv64")]
+impl From<NulError> for CkbAuthError {
+    fn from(err: NulError) -> Self {
+        info!("Exec encode args failed: {:?}", err);
+        Self::EncodeArgs
     }
 }
 
@@ -60,14 +93,14 @@ pub enum EntryCategoryType {
 }
 
 impl TryFrom<u8> for EntryCategoryType {
-    type Error = CkbAuthTypesError;
+    type Error = CkbAuthError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             // 0 => Ok(Self::Exec),
             1 => Ok(Self::DynamicLinking),
             #[cfg(feature = "ckb2023")]
             2 => Ok(Self::Spawn),
-            _ => Err(CkbAuthTypesError::EncodeArgs),
+            _ => Err(CkbAuthError::EncodeArgs),
         }
     }
 }

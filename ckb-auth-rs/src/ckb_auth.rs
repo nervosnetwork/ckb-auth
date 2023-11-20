@@ -1,56 +1,19 @@
 extern crate alloc;
 
-use crate::{CkbAuthType, CkbAuthTypesError, EntryCategoryType};
+use crate::{CkbAuthError, CkbAuthType, EntryCategoryType};
 use alloc::collections::BTreeMap;
 use alloc::ffi::CString;
-use alloc::ffi::NulError;
 use alloc::format;
 use alloc::vec::Vec;
 use ckb_std::{
     ckb_types::core::ScriptHashType,
     dynamic_loading_c_impl::{CKBDLContext, Library, Symbol},
-    syscalls::SysError,
 };
 #[cfg(feature = "ckb2023")]
 use ckb_std::high_level::spawn_cell;
 use core::mem::size_of_val;
 use hex::encode;
 use log::info;
-
-#[derive(Debug)]
-pub enum CkbAuthError {
-    UnknowAlgorithmID,
-    DynamicLinkingUninit,
-    LoadDLError,
-    LoadDLFuncError,
-    RunDLError,
-    ExecError(SysError),
-    SignatureMissing,
-    EncodeArgs,
-}
-
-impl From<SysError> for CkbAuthError {
-    fn from(err: SysError) -> Self {
-        info!("Exec error: {:?}", err);
-        Self::ExecError(err)
-    }
-}
-
-impl From<NulError> for CkbAuthError {
-    fn from(err: NulError) -> Self {
-        info!("Exec encode args failed: {:?}", err);
-        Self::EncodeArgs
-    }
-}
-
-impl From<CkbAuthTypesError> for CkbAuthError {
-    fn from(err: CkbAuthTypesError) -> Self {
-        match err {
-            CkbAuthTypesError::UnknowAlgorithmID => Self::UnknowAlgorithmID,
-            CkbAuthTypesError::EncodeArgs => Self::EncodeArgs,
-        }
-    }
-}
 
 pub struct CkbEntryType {
     pub code_hash: [u8; 32],

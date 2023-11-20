@@ -1,4 +1,4 @@
-use ckb_auth_rs::ckb_auth::CkbAuthError;
+use ckb_auth_rs::CkbAuthError;
 use ckb_std::error::SysError;
 
 /// Error
