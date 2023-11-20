@@ -6,6 +6,12 @@ use core::mem::transmute;
 pub mod ckb_auth;
 
 #[cfg(target_arch = "riscv64")]
+mod generate_sighash_all;
+
+#[cfg(target_arch = "riscv64")]
+pub use crate::generate_sighash_all::generate_sighash_all;
+
+#[cfg(target_arch = "riscv64")]
 use alloc::ffi::NulError;
 #[cfg(target_arch = "riscv64")]
 use log::info;
@@ -66,6 +72,7 @@ pub enum CkbAuthError {
     ExecError(SysError),
     SignatureMissing,
     EncodeArgs,
+    GenerateSigHash,
 }
 
 #[cfg(target_arch = "riscv64")]
