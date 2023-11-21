@@ -28,7 +28,7 @@
     } while (0)
 
 #define CKB_AUTH_LEN 21
-#define BLAKE160_SIZE 20
+#define AUTH160_SIZE 20
 #define BLAKE2B_BLOCK_SIZE 32
 
 #define OFFSETOF(TYPE, ELEMENT) ((size_t) & (((TYPE *)0)->ELEMENT))
@@ -295,7 +295,7 @@ static int ckb_auth_validate_with_func(int argc, char *argv[], ckb_auth_validate
 
     if (algorithm_id_len != 2 || signature_len % 2 != 0 ||
         message_len != BLAKE2B_BLOCK_SIZE * 2 ||
-        pubkey_hash_len != BLAKE160_SIZE * 2) {
+        pubkey_hash_len != AUTH160_SIZE * 2) {
         return ERROR_SPAWN_INVALID_LENGTH;
     }
 
@@ -307,7 +307,7 @@ static int ckb_auth_validate_with_func(int argc, char *argv[], ckb_auth_validate
     uint8_t algorithm_id = 0;
     uint8_t signature[signature_len / 2];
     uint8_t message[BLAKE2B_BLOCK_SIZE];
-    uint8_t pubkey_hash[BLAKE160_SIZE];
+    uint8_t pubkey_hash[AUTH160_SIZE];
 
     // auth algorithm id
     CHECK2(
@@ -328,7 +328,7 @@ static int ckb_auth_validate_with_func(int argc, char *argv[], ckb_auth_validate
     // public key hash
     CHECK2(!ckb_hex2bin(ARGV_PUBKEY_HASH, pubkey_hash, pubkey_hash_len,
                         &pubkey_hash_len) &&
-               pubkey_hash_len == BLAKE160_SIZE,
+               pubkey_hash_len == AUTH160_SIZE,
            ERROR_SPAWN_INVALID_PUBKEY);
 
     err = validate_func(algorithm_id, signature, signature_len, message,
