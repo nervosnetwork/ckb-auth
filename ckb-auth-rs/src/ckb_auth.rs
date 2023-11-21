@@ -9,9 +9,10 @@ use alloc::vec::Vec;
 use ckb_std::{
     ckb_types::core::ScriptHashType,
     dynamic_loading_c_impl::{CKBDLContext, Library, Symbol},
-    high_level::spawn_cell,
     syscalls::SysError,
 };
+#[cfg(feature = "ckb2023")]
+use ckb_std::high_level::spawn_cell;
 use core::mem::size_of_val;
 use hex::encode;
 use log::info;
@@ -66,10 +67,12 @@ pub fn ckb_auth(
     match entry.entry_category {
         // EntryCategoryType::Exec => ckb_auth_exec(entry, id, signature, message),
         EntryCategoryType::DynamicLinking => ckb_auth_dl(entry, id, signature, message),
+        #[cfg(feature = "ckb2023")]
         EntryCategoryType::Spawn => ckb_auth_spawn(entry, id, signature, message),
     }
 }
 
+#[cfg(feature = "ckb2023")]
 fn ckb_auth_spawn(
     entry: &CkbEntryType,
     id: &CkbAuthType,
