@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use crate::{CkbAuthError, CkbAuthType, EntryCategoryType};
+use crate::{CkbAuthError, CkbAuthType, CkbEntryType, EntryCategoryType};
 use alloc::collections::BTreeMap;
 use alloc::ffi::CString;
 use alloc::format;
@@ -14,12 +14,6 @@ use ckb_std::high_level::spawn_cell;
 use core::mem::size_of_val;
 use hex::encode;
 use log::info;
-
-pub struct CkbEntryType {
-    pub code_hash: [u8; 32],
-    pub hash_type: ScriptHashType,
-    pub entry_category: EntryCategoryType,
-}
 
 pub fn ckb_auth(
     entry: &CkbEntryType,

@@ -3,7 +3,10 @@ extern crate alloc;
 use core::mem::transmute;
 
 #[cfg(target_arch = "riscv64")]
-pub mod ckb_auth;
+mod ckb_auth;
+
+#[cfg(target_arch = "riscv64")]
+pub use ckb_auth::ckb_auth;
 
 #[cfg(target_arch = "riscv64")]
 mod generate_sighash_all;
@@ -17,7 +20,7 @@ use alloc::ffi::NulError;
 use log::info;
 
 #[cfg(target_arch = "riscv64")]
-use ckb_std::error::SysError;
+use ckb_std::{ckb_types::core::ScriptHashType, error::SysError};
 #[cfg(not(target_arch = "riscv64"))]
 type SysError = u64;
 
@@ -115,4 +118,10 @@ impl TryFrom<u8> for EntryCategoryType {
 pub struct CkbAuthType {
     pub algorithm_id: AuthAlgorithmIdType,
     pub pubkey_hash: [u8; 20],
+}
+
+pub struct CkbEntryType {
+    pub code_hash: [u8; 32],
+    pub hash_type: ScriptHashType,
+    pub entry_category: EntryCategoryType,
 }

@@ -13,8 +13,8 @@ use core::result::Result;
 use crate::error::Error;
 
 use ckb_auth_rs::{
-    ckb_auth::{ckb_auth, CkbEntryType},
-    generate_sighash_all, AuthAlgorithmIdType, CkbAuthError, CkbAuthType, EntryCategoryType,
+    ckb_auth, generate_sighash_all, AuthAlgorithmIdType, CkbAuthError, CkbAuthType, CkbEntryType,
+    EntryCategoryType,
 };
 use ckb_std::{
     ckb_constants::Source,
