@@ -259,7 +259,7 @@ int validate_signature_eth(void *prefilled_data, const uint8_t *sig,
                            uint8_t *output, size_t *output_len) {
     int ret = 0;
     if (*output_len < AUTH160_SIZE) {
-        return SECP256K1_PUBKEY_SIZE;
+        return ERROR_INVALID_ARG;
     }
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
     size_t out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
@@ -301,7 +301,7 @@ int validate_signature_eos(void *prefilled_data, const uint8_t *sig, size_t sig_
                            uint8_t *output, size_t *output_len) {
     int err = 0;
     if (*output_len < AUTH160_SIZE) {
-        return SECP256K1_PUBKEY_SIZE;
+        return ERROR_INVALID_ARG;
     }
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
     size_t out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
@@ -324,7 +324,7 @@ int validate_signature_btc(void *prefilled_data, const uint8_t *sig,
                            uint8_t *output, size_t *output_len) {
     int err = 0;
     if (*output_len < AUTH160_SIZE) {
-        return SECP256K1_PUBKEY_SIZE;
+        return ERROR_INVALID_ARG;
     }
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
     size_t out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
@@ -357,7 +357,7 @@ int validate_signature_schnorr(void *prefilled_data, const uint8_t *sig,
     int success = 0;
 
     if (*output_len < AUTH160_SIZE) {
-        return SECP256K1_PUBKEY_SIZE;
+        return ERROR_INVALID_ARG;
     }
     if (sig_len != SCHNORR_SIGNATURE_SIZE || msg_len != 32) {
         return ERROR_INVALID_ARG;
@@ -393,7 +393,7 @@ int validate_signature_cardano(void *prefilled_data, const uint8_t *sig,
     int err = 0;
 
     if (*output_len < AUTH160_SIZE) {
-        return SECP256K1_PUBKEY_SIZE;
+        return ERROR_INVALID_ARG;
     }
 
     CardanoSignatureData cardano_data;
@@ -427,7 +427,7 @@ int validate_signature_ripple(void *prefilled_data, const uint8_t *sig,
                               size_t *output_len) {
     int err = 0;
     if (*output_len < AUTH160_SIZE) {
-        return SECP256K1_PUBKEY_SIZE;
+        return ERROR_INVALID_ARG;
     }
 
     uint8_t out_sign_msg_buf[sig_len];
