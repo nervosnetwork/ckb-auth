@@ -56,7 +56,6 @@ dependencies = [
  "blake2b-rs",
  "ckb-std",
  "hex",
- "log",
 ]
 
 [[package]]

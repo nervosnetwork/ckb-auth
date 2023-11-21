@@ -13,7 +13,6 @@ use ckb_std::{
 use ckb_std::high_level::spawn_cell;
 use core::mem::size_of_val;
 use hex::encode;
-use log::info;
 
 pub fn ckb_auth(
     entry: &CkbEntryType,
@@ -108,7 +107,6 @@ impl CKBDLLoader {
         };
 
         if !has_lib {
-            info!("loading library");
             let size = size_of_val(&self.context);
             let lib = self
                 .context
@@ -163,9 +161,6 @@ fn ckb_auth_dl(
 
     match rc_code {
         0 => Ok(()),
-        _ => {
-            info!("run auth error({}) in dynamic linking", rc_code);
-            Err(CkbAuthError::RunDLError)
-        }
+        _ => Err(CkbAuthError::RunDLError),
     }
 }

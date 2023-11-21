@@ -17,12 +17,12 @@ pub use crate::generate_sighash_all::generate_sighash_all;
 #[cfg(target_arch = "riscv64")]
 use alloc::ffi::NulError;
 #[cfg(target_arch = "riscv64")]
-use log::info;
-
 #[cfg(target_arch = "riscv64")]
 use ckb_std::{ckb_types::core::ScriptHashType, error::SysError};
 #[cfg(not(target_arch = "riscv64"))]
 type SysError = u64;
+#[cfg(not(target_arch = "riscv64"))]
+type ScriptHashType = u8;
 
 #[derive(Clone)]
 pub enum AuthAlgorithmIdType {
@@ -81,15 +81,13 @@ pub enum CkbAuthError {
 #[cfg(target_arch = "riscv64")]
 impl From<SysError> for CkbAuthError {
     fn from(err: SysError) -> Self {
-        info!("Exec error: {:?}", err);
         Self::ExecError(err)
     }
 }
 
 #[cfg(target_arch = "riscv64")]
 impl From<NulError> for CkbAuthError {
-    fn from(err: NulError) -> Self {
-        info!("Exec encode args failed: {:?}", err);
+    fn from(_err: NulError) -> Self {
         Self::EncodeArgs
     }
 }

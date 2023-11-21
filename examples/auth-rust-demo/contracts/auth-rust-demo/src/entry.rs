@@ -1,5 +1,3 @@
-extern crate alloc;
-use log::info;
 // Import from `core` instead of from `std` since we are in no-std mode
 use core::result::Result;
 
@@ -25,7 +23,6 @@ use ckb_std::{
 // use ckb_std::debug;
 
 pub fn main() -> Result<(), Error> {
-    info!("auth-script-test entry");
     let mut pubkey_hash = [0u8; 20];
     let auth_id: u8;
     let entry_type: u8;
@@ -35,8 +32,6 @@ pub fn main() -> Result<(), Error> {
     // get message
     let message = generate_sighash_all().map_err(|_| Error::GeneratedMsgError)?;
     let signature = {
-        info!("run as standalone script");
-
         let script = load_script()?;
         let args: Bytes = script.args().unpack();
         if args.len() != 55 {
