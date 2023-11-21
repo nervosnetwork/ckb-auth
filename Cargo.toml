@@ -1,0 +1,3 @@
+[workspace]
+members = ["examples/auth-rust-demo", "ckb-auth-rs"]
+
