@@ -28,7 +28,7 @@ When using dogecoin-cli for the first time, the `getaddressesbyaccount` command 
 ]
 ```
 
-A Dogecoin address always begins with the letter `D`, followed by content encoded in Base58, which includes the `public key hash` and a `checksum`. [You can find the code to parse and check addresses here](../tools/ckb-auth-cli/src/dogecoin.rs#L54).
+A Dogecoin address always begins with the letter `D`, followed by content encoded in Base58, which includes the `public key hash` and a `checksum`. [You can find the code to parse and check addresses here](../tools/ckb-auth-cli/src/chain_command/dogecoin.rs#L52).
 
 ## Sign
 
