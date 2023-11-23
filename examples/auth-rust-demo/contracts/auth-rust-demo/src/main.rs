@@ -10,7 +10,6 @@
 // define modules
 mod entry;
 mod error;
-mod utils;
 
 #[cfg(test)]
 extern crate alloc;

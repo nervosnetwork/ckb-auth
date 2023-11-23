@@ -1,15 +1,13 @@
-use crate::error::Error;
-use crate::utils::new_blake2b;
-use blake2b_rs::Blake2b;
+use crate::CkbAuthError;
+use blake2b_rs::{Blake2b, Blake2bBuilder};
 use ckb_std::ckb_constants::{InputField, Source};
 use ckb_std::high_level::load_tx_hash;
-use ckb_std::syscalls::{load_cell, load_input_by_field, load_witness, SysError};
+use ckb_std::syscalls::{load_input_by_field, load_witness, SysError};
 
 pub const MAX_WITNESS_SIZE: usize = 32768;
 pub const ONE_BATCH_SIZE: usize = 32768;
 
-#[allow(dead_code)]
-pub fn generate_sighash_all() -> Result<[u8; 32], Error> {
+pub fn generate_sighash_all() -> Result<[u8; 32], CkbAuthError> {
     let mut temp = [0u8; MAX_WITNESS_SIZE];
 
     // Load witness of first input.
@@ -21,11 +19,11 @@ pub fn generate_sighash_all() -> Result<[u8; 32], Error> {
 
     // Load signature.
     if read_len < 20 {
-        return Err(Error::Encoding);
+        return Err(CkbAuthError::GenerateSigHash);
     }
     let lock_length = u32::from_le_bytes(temp[16..20].try_into().unwrap()) as usize;
     if read_len < 20 + lock_length {
-        return Err(Error::Encoding);
+        return Err(CkbAuthError::GenerateSigHash);
     }
     // Clear lock field to zero, then digest the first witness
     // lock_bytes_seg.ptr actually points to the memory in temp buffer.
@@ -103,7 +101,7 @@ fn load_and_hash_witness(
     Ok(())
 }
 
-fn calculate_inputs_len() -> Result<usize, Error> {
+fn calculate_inputs_len() -> Result<usize, CkbAuthError> {
     let mut temp = [0u8; 8];
     let mut i = 0;
     loop {
@@ -117,18 +115,9 @@ fn calculate_inputs_len() -> Result<usize, Error> {
     Ok(i)
 }
 
-#[allow(dead_code)]
-fn calculate_outputs_len() -> Result<usize, Error> {
-    let mut temp = [0u8; 8];
-    let mut i = 0;
-    loop {
-        let sysret = load_cell(&mut temp, 0, i, Source::Output);
-        match sysret {
-            Err(SysError::IndexOutOfBound) => break,
-            Err(SysError::LengthNotEnough(_)) => i += 1,
-            Err(x) => return Err(x.into()),
-            Ok(_) => i += 1,
-        }
-    }
-    Ok(i)
+pub const CKB_PERSONALIZATION: &[u8] = b"ckb-default-hash";
+pub fn new_blake2b() -> Blake2b {
+    Blake2bBuilder::new(32)
+        .personal(CKB_PERSONALIZATION)
+        .build()
 }

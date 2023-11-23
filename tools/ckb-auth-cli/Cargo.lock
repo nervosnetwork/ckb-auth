@@ -323,9 +323,9 @@ dependencies = [
 name = "ckb-auth-rs"
 version = "0.1.0"
 dependencies = [
+ "blake2b-rs",
  "ckb-std",
  "hex",
- "log",
 ]
 
 [[package]]
