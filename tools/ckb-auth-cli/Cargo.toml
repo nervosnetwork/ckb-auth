@@ -22,3 +22,4 @@ monero = { version = "0.18.2", features = ["serde"] }
 base58-monero = "1.0.0"
 mbedtls = "0.8.1"
 sha2 = "0.10.6"
+bitcoin = "0.30.0"

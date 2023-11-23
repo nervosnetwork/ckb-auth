@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Error};
 use ckb_auth_cli::{
     chain_command::{
-        BitcoinLockArgs, CardanoLockArgs, EosLockArgs, EthereumLockArgs, LitecoinLockArgs,
-        MoneroLockArgs, RippleLockArgs, SolanaLockArgs, TronLockArgs,
+        BitcoinLockArgs, CardanoLockArgs, DogecoinLockArgs, EosLockArgs, EthereumLockArgs,
+        LitecoinLockArgs, MoneroLockArgs, RippleLockArgs, SolanaLockArgs, TronLockArgs,
     },
     BlockChainArgs,
 };
@@ -62,6 +62,7 @@ fn main() -> Result<(), Error> {
         Box::new(EthereumLockArgs {}) as Box<dyn BlockChainArgs>,
         Box::new(EosLockArgs {}) as Box<dyn BlockChainArgs>,
         Box::new(TronLockArgs {}) as Box<dyn BlockChainArgs>,
+        Box::new(DogecoinLockArgs {}) as Box<dyn BlockChainArgs>,
     ];
 
     let matches = cli(block_chain_args.as_slice()).get_matches();
