@@ -17,7 +17,6 @@ pub use crate::generate_sighash_all::generate_sighash_all;
 #[cfg(target_arch = "riscv64")]
 use alloc::ffi::NulError;
 #[cfg(target_arch = "riscv64")]
-#[cfg(target_arch = "riscv64")]
 use ckb_std::{ckb_types::core::ScriptHashType, error::SysError};
 #[cfg(not(target_arch = "riscv64"))]
 type SysError = u64;
@@ -60,14 +59,14 @@ impl TryFrom<u8> for AuthAlgorithmIdType {
         {
             Ok(unsafe { transmute(value) })
         } else {
-            Err(CkbAuthError::UnknowAlgorithmID)
+            Err(CkbAuthError::UnknownAlgorithmID)
         }
     }
 }
 
 #[derive(Debug)]
 pub enum CkbAuthError {
-    UnknowAlgorithmID,
+    UnknownAlgorithmID,
     DynamicLinkingUninit,
     LoadDLError,
     LoadDLFuncError,

@@ -5,12 +5,12 @@ use alloc::collections::BTreeMap;
 use alloc::ffi::CString;
 use alloc::format;
 use alloc::vec::Vec;
+#[cfg(feature = "ckb2023")]
+use ckb_std::high_level::spawn_cell;
 use ckb_std::{
     ckb_types::core::ScriptHashType,
     dynamic_loading_c_impl::{CKBDLContext, Library, Symbol},
 };
-#[cfg(feature = "ckb2023")]
-use ckb_std::high_level::spawn_cell;
 use core::mem::size_of_val;
 use hex::encode;
 

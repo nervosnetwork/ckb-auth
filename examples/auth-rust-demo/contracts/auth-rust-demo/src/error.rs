@@ -39,7 +39,7 @@ impl From<CkbAuthError> for Error {
     fn from(value: CkbAuthError) -> Self {
         use CkbAuthError::*;
         match value {
-            UnknowAlgorithmID => Self::Encoding,
+            UnknownAlgorithmID => Self::Encoding,
             LoadDLError => Self::LoadDLError,
             LoadDLFuncError => Self::LoadDLError,
             RunDLError => Self::RunAuthError,
