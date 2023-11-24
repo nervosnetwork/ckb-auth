@@ -43,9 +43,6 @@ pub const RNG_SEED: u64 = 42;
 pub const SOLANA_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE: usize = 510;
 pub const SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE: usize =
     SOLANA_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE + 2;
-pub const TONCOIN_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE: usize = 510;
-pub const TONCOIN_MAXIMUM_WRAPPED_SIGNATURE_SIZE: usize =
-    TONCOIN_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE + 2;
 
 lazy_static! {
     pub static ref ORIGINAL_AUTH_PROGRAM: Bytes =
@@ -809,7 +806,6 @@ pub fn auth_builder(t: AuthAlgorithmIdType, official: bool) -> result::Result<Bo
         AuthAlgorithmIdType::Secp256r1 => {
             return Ok(Secp256r1Auth::new());
         }
-        AuthAlgorithmIdType::Toncoin => return Ok(ToncoinAuth::new()),
         AuthAlgorithmIdType::OwnerLock => {
             return Ok(OwnerLockAuth::new());
         }
@@ -1882,41 +1878,6 @@ impl Auth for Secp256r1Auth {
     }
     fn get_sign_size(&self) -> usize {
         128
-    }
-}
-
-pub struct ToncoinSignature {
-    pub len: u16,
-    pub signature: Vec<u8>,
-}
-
-#[derive(Clone, Default)]
-pub struct ToncoinAuth {}
-
-impl ToncoinAuth {
-    pub fn new() -> Box<ToncoinAuth> {
-        Default::default()
-    }
-}
-impl Auth for ToncoinAuth {
-    fn get_pub_key_hash(&self) -> Vec<u8> {
-        [0; 20].to_vec()
-    }
-    fn get_algorithm_type(&self) -> u8 {
-        AuthAlgorithmIdType::Toncoin as u8
-    }
-    fn convert_message(&self, message: &[u8; 32]) -> H256 {
-        H256::from(message.clone())
-    }
-    fn sign(&self, _msg: &H256) -> Bytes {
-        vec![].into()
-    }
-    // The "signature" passed to ckb-auth actually contains the message signed by solana,
-    // which in turn contains all the accounts involved and is thus dynamically sized.
-    // We set a maximum length for the message here. The "signature" will be a u16 represents
-    // the signature plus the actual signature. The bytes after the signature will not be used.
-    fn get_sign_size(&self) -> usize {
-        TONCOIN_MAXIMUM_WRAPPED_SIGNATURE_SIZE
     }
 }
 
