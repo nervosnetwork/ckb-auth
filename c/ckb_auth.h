@@ -72,7 +72,7 @@ typedef struct CkbAuthType {
 } CkbAuthType;
 
 enum EntryCategoryType {
-    // EntryCategoryExec = 0,
+    EntryCategoryExec = 0,
     EntryCategoryDynamicLinking = 1,
     EntryCategorySpawn = 2,
 };
@@ -137,7 +137,8 @@ int ckb_auth(CkbEntryType *entry, CkbAuthType *id, const uint8_t *signature,
         }
         return func(id->algorithm_id, signature, signature_size, message32, 32,
                     id->content, 20);
-    } else if (entry->entry_category == EntryCategorySpawn) {
+    } else if (entry->entry_category == EntryCategoryExec ||
+               entry->entry_category == EntryCategorySpawn) {
         char algorithm_id_str[2 + 1];
         if (signature_size > 1024 * 8) {
             return CKB_INVALID_DATA;
@@ -172,11 +173,16 @@ int ckb_auth(CkbEntryType *entry, CkbAuthType *id, const uint8_t *signature,
 
         int8_t exit_code = 0;
 
-        spawn_args_t spawn_args = {0};
-        spawn_args.memory_limit = 8;
-        spawn_args.exit_code = &exit_code;
-        err = ckb_spawn_cell(entry->code_hash, entry->hash_type, 0, 0, 4, argv,
-                             &spawn_args);
+        if (entry->entry_category == EntryCategoryExec) {
+            err = ckb_exec_cell(entry->code_hash, entry->hash_type, 0, 0, 4,
+                                argv);
+        } else {
+            spawn_args_t spawn_args = {0};
+            spawn_args.memory_limit = 8;
+            spawn_args.exit_code = &exit_code;
+            err = ckb_spawn_cell(entry->code_hash, entry->hash_type, 0, 0, 4,
+                                 argv, &spawn_args);
+        }
         if (err != 0) return err;
         return exit_code;
     } else {

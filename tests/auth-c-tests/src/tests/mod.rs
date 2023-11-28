@@ -173,18 +173,27 @@ fn unit_test_common_with_runtype(
 }
 
 fn unit_test_common_all_runtype(auth: &Box<dyn Auth>) {
+    unit_test_common_with_auth(auth, EntryCategoryType::Exec);
     unit_test_common_with_auth(auth, EntryCategoryType::DynamicLinking);
     unit_test_common_with_auth(auth, EntryCategoryType::Spawn);
 }
 
 fn unit_test_common(algorithm_type: AuthAlgorithmIdType) {
-    for t in [EntryCategoryType::DynamicLinking, EntryCategoryType::Spawn] {
+    for t in [
+        EntryCategoryType::Exec,
+        EntryCategoryType::DynamicLinking,
+        EntryCategoryType::Spawn,
+    ] {
         unit_test_common_with_runtype(algorithm_type.clone(), t, false);
     }
 }
 
 fn unit_test_common_official(algorithm_type: AuthAlgorithmIdType) {
-    for t in [EntryCategoryType::DynamicLinking, EntryCategoryType::Spawn] {
+    for t in [
+        EntryCategoryType::Exec,
+        EntryCategoryType::DynamicLinking,
+        EntryCategoryType::Spawn,
+    ] {
         unit_test_common_with_runtype(algorithm_type.clone(), t, true);
     }
 }
@@ -659,6 +668,7 @@ fn unit_test_ckbmultisig(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
 #[test]
 fn ckbmultisig_verify() {
     let auth: Box<dyn Auth> = CkbMultisigAuth::new(2, 2, 1);
+    unit_test_ckbmultisig(&auth, EntryCategoryType::Exec);
     unit_test_ckbmultisig(&auth, EntryCategoryType::DynamicLinking);
     unit_test_ckbmultisig(&auth, EntryCategoryType::Spawn);
 }
@@ -688,6 +698,14 @@ fn abnormal_algorithm_type() {
     }
 
     let auth: Box<dyn Auth> = Box::new(AbnormalAuth {});
+    {
+        let config = TestConfig::new(&auth, EntryCategoryType::Exec, 1);
+        assert_result_error(
+            verify_unit(&config),
+            "sign size(smaller)",
+            &[AuthErrorCodeType::NotImplemented as i32],
+        );
+    }
     {
         let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
         assert_result_error(
