@@ -93,7 +93,7 @@ impl From<NulError> for CkbAuthError {
 
 #[derive(Clone)]
 pub enum EntryCategoryType {
-    // Exec = 0,
+    Exec = 0,
     DynamicLinking = 1,
     #[cfg(feature = "ckb2023")]
     Spawn = 2,
@@ -103,7 +103,7 @@ impl TryFrom<u8> for EntryCategoryType {
     type Error = CkbAuthError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            // 0 => Ok(Self::Exec),
+            0 => Ok(Self::Exec),
             1 => Ok(Self::DynamicLinking),
             #[cfg(feature = "ckb2023")]
             2 => Ok(Self::Spawn),

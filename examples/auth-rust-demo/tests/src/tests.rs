@@ -193,6 +193,23 @@ fn sign_tx(tx: TransactionView, auth: &CKbAuth) -> TransactionView {
 const CKB_SIGN_GROUP_SIZE: usize = 1;
 
 #[test]
+fn test_exec() {
+    let auth = CKbAuth::new();
+
+    let mut ctx = Context::default();
+    let tx = gen_tx(
+        &mut ctx,
+        vec![(
+            auth.get_auth_args(&EntryCategoryType::Exec),
+            CKB_SIGN_GROUP_SIZE,
+        )],
+    );
+    let tx = sign_tx(tx, &auth);
+
+    ctx.verify_tx(&tx, MAX_CYCLES).expect("pass verification");
+}
+
+#[test]
 fn test_dll() {
     let auth = CKbAuth::new();
     let mut ctx = Context::default();
