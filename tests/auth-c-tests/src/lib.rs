@@ -49,7 +49,7 @@ lazy_static! {
         Bytes::from(&include_bytes!("../../../build/auth")[..]);
     pub static ref LIBECC_AUTH_PROGRAM: Bytes =
         Bytes::from(&include_bytes!("../../../build/auth_libecc")[..]);
-    pub static ref AUTH_DEMO: Bytes = Bytes::from(&include_bytes!("../../../build/auth_demo")[..]);
+    pub static ref AUTH_C_LOCK: Bytes = Bytes::from(&include_bytes!("../../../build/auth_c_lock")[..]);
     pub static ref SECP256K1_DATA_BIN: Bytes =
         Bytes::from(&include_bytes!("../../../build/secp256k1_data_20210801")[..]);
     pub static ref ALWAYS_SUCCESS: Bytes =
@@ -397,7 +397,7 @@ fn append_cells_deps<R: Rng>(
         if config.auth_bin.is_some() {
             config.auth_bin.as_ref().unwrap()
         } else {
-            &AUTH_DEMO
+            &AUTH_C_LOCK
         },
     );
     let sighash_dl_out_point = append_cell_deps(dummy, rng, &auth_program::get_auth_program());
@@ -481,7 +481,7 @@ pub fn gen_tx_with_grouped_args<R: Rng>(
     let sighash_all_cell_data_hash = CellOutput::calc_data_hash(if config.auth_bin.is_some() {
         config.auth_bin.as_ref().unwrap()
     } else {
-        &AUTH_DEMO
+        &AUTH_C_LOCK
     });
 
     for (args, inputs_size) in grouped_args {

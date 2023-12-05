@@ -19,15 +19,15 @@ AUTH_CFLAGS=$(subst ckb-c-std-lib,ckb-c-stdlib-2023,$(CFLAGS)) -Wno-dangling-poi
 # docker pull nervos/ckb-riscv-gnu-toolchain:gnu-jammy-20230214
 BUILDER_DOCKER := nervos/ckb-riscv-gnu-toolchain@sha256:d3f649ef8079395eb25a21ceaeb15674f47eaa2d8cc23adc8bcdae3d5abce6ec
 
-all: build/auth_demo
+all: build/auth_c_lock
 
 all-via-docker:
-	docker run --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make -f examples/auth-c-demo/Makefile all"
+	docker run --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make -f tests/auth-c-lock/Makefile all"
 
-build/auth_demo: examples/auth-c-demo/auth_demo.c c/ckb_auth.h
+build/auth_c_lock: tests/auth-c-lock/auth_c_lock.c c/ckb_auth.h
 	$(CC) $(AUTH_CFLAGS) $(LDFLAGS) -o $@ $^
 	$(OBJCOPY) --only-keep-debug $@ $@.debug
 	$(OBJCOPY) --strip-debug --strip-all $@
 
 clean:
-	rm -rf build/auth_demo
+	rm -rf build/auth_c_lock

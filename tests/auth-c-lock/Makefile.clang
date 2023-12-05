@@ -20,12 +20,12 @@ CFLAGS := $(LLVM_CFLAGS) $(GCC_CFLAGS) \
 LDFLAGS := -Wl,-static -Wl,--gc-sections
 AUTH_CFLAGS=$(subst ckb-c-std-lib,ckb-c-stdlib-2023,$(CFLAGS)) -Wno-array-bounds
 
-all: build/auth_demo
+all: build/auth_c_lock
 
-build/auth_demo: examples/auth-c-demo/auth_demo.c c/ckb_auth.h
-	$(CC) $(AUTH_CFLAGS) $(LDFLAGS) -o $@ examples/auth-c-demo/auth_demo.c
+build/auth_c_lock: tests/auth-c-lock/auth_c_lock.c c/ckb_auth.h
+	$(CC) $(AUTH_CFLAGS) $(LDFLAGS) -o $@ tests/auth-c-lock/auth_c_lock.c
 	$(OBJCOPY) --only-keep-debug $@ $@.debug
 	$(OBJCOPY) --strip-debug --strip-all $@
 
 clean:
-	rm -rf build/auth_demo
+	rm -rf build/auth_c_lock

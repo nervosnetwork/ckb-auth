@@ -2,7 +2,7 @@
 A consolidated library featuring numerous blockchains authentication techniques
 on CKB-VM. More details in [auth.md](./docs/auth.md). 
 We also write two simple script to demonstrate how to use this library:
-* [c demo](./examples/auth-c-demo/auth_demo.c)
+* [c demo](./tests/auth-c-lock/auth_c_lock.c)
 * [rust demo](./examples/auth-rust-demo/contracts/auth-rust-demo/src/entry.rs)
 
 

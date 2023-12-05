@@ -2,7 +2,7 @@
 
 # This may cause insufficient storage space, so add clean
 all: \
-	build-examples \
+	build-auth-lock \
 	c-tests \
 	clean-c-tests \
 	rust-demo-tests \
@@ -11,7 +11,7 @@ all: \
 	clean-spawn-tests
 
 all-with-clang: \
-	build-examples-with-clang \
+	build-auth-lock-with-clang \
 	c-tests \
 	clean-c-tests \
 	spawn-tests \
@@ -21,17 +21,17 @@ all_tests:
 	c-tests \
 	spawn-tests
 
-build-rust-example:
+build-auth-rust-lock:
 	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
-		cd ../examples/auth-rust-demo && \
+		cd auth-rust-lock && \
 		capsule build && \
 		cp build/debug/auth-rust-demo ../../build
 
-build-examples: build-rust-example
-	cd .. && make -f examples/auth-c-demo/Makefile all-via-docker
+build-auth-lock: build-auth-rust-lock
+	cd .. && make -f tests/auth-c-lock/Makefile all-via-docker
 
-build-examples-with-clang: build-rust-example
-	cd .. && make -f examples/auth-c-demo/Makefile.clang all
+build-auth-lock-with-clang: build-auth-rust-lock
+	cd .. && make -f tests/auth-c-lock/Makefile.clang all
 
 c-tests:
 	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd auth-c-tests && cargo test
@@ -40,10 +40,10 @@ clean-c-tests:
 	rm -rf auth-c-tests/target
 
 rust-demo-tests:
-	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd ../examples/auth-rust-demo/ && capsule test
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd auth-rust-lock/ && capsule test
 
 clean-rust-demo-tests:
-	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd ../examples/auth-rust-demo/ && capsule clean
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd auth-rust-lock/ && capsule clean
 
 spawn-tests:
 	export PATH=`pwd`/bin/:"$(PATH)" && cd auth-spawn-tests && make all
@@ -142,3 +142,8 @@ install-cardano-tools:
 
 bin:
 	mkdir -p bin
+
+clean: \
+	clean-c-tests \
+	clean-rust-demo-tests \
+	clean-spawn-tests
