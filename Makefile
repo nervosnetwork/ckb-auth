@@ -34,7 +34,7 @@ all:  build/secp256k1_data_info_20210801.h $(SECP256K1_SRC_20210801) deps/mbedtl
 
 all-via-docker: ${PROTOCOL_HEADER}
 	mkdir -p build
-	docker run --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make all"
+	docker run --platform linux/amd64 --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make all"
 
 build/always_success: c/always_success.c
 	$(CC) $(AUTH_CFLAGS) $(LDFLAGS) -o $@ $<

@@ -22,7 +22,7 @@ BUILDER_DOCKER := nervos/ckb-riscv-gnu-toolchain@sha256:d3f649ef8079395eb25a21ce
 all: build/auth_c_lock
 
 all-via-docker:
-	docker run --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make -f tests/auth-c-lock/Makefile all"
+	docker run --platform linux/amd64 --rm -v `pwd`:/code ${BUILDER_DOCKER} bash -c "cd /code && make -f tests/auth-c-lock/Makefile all"
 
 build/auth_c_lock: tests/auth-c-lock/auth_c_lock.c c/ckb_auth.h
 	$(CC) $(AUTH_CFLAGS) $(LDFLAGS) -o $@ $^
