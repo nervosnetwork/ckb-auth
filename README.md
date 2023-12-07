@@ -1,9 +1,8 @@
 # ckb-auth
 A consolidated library featuring numerous blockchains authentication techniques
 on CKB-VM. More details in [auth.md](./docs/auth.md). 
-We also write two simple script to demonstrate how to use this library:
-* [c demo](./examples/auth-c-demo/auth_demo.c)
-* [rust demo](./examples/auth-rust-demo/contracts/auth-rust-demo/src/entry.rs)
+We also write a repository to demonstrate how to use this library:
+[ckb-auth-example](https://github.com/nervosnetwork/ckb-auth-examples).
 
 
 ## Motivation
@@ -79,13 +78,13 @@ cd tests/auth_spawn_rust && make all
 ├── ckb-auth-types
 ├── deps
 ├── docs
-├── examples
-│   ├── auth-c-demo
-│   └── auth-rust-demo
 ├── tests
 │   ├── Makefile
+|   ├── auth-c-lock
+|   ├── auth-rust-lock
 │   ├── auth-c-tests
-│   └── auth-spawn-tests
+│   ├── auth-spawn-tests
+│   └── bin
 ├─ tools
 │   ├── ckb-auth-cli
 │   ├── rippled
@@ -101,7 +100,6 @@ cd tests/auth_spawn_rust && make all
 | ckb-auth-types    | Public code referenced by contracts and test cases |
 | deps              | Dependencies of ckb-auth using C language |
 | docs              | Detailed introduction to each chain in ckb-auth |
-| examples          | All examples                              |
 | tests             | All test cases                            |
 | tools             | ckb-auth-cli and end-to-end testing tools |
 

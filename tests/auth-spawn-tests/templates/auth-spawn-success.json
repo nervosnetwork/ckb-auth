@@ -25,7 +25,7 @@
             },
             "type": "{{ def_type auth-script-test }}"
           },
-          "data": "0x{{ data ../../../build/auth_demo }}"
+          "data": "0x{{ data ../../../build/auth_c_lock }}"
         },
         {
           "output": {
