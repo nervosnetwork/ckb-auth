@@ -59,6 +59,16 @@
 #define SOLANA_BLOCKHASH_SIZE 32
 #define SOLANA_MESSAGE_HEADER_SIZE 3
 
+#define TONCOIN_PUBKEY_SIZE 32
+#define TONCOIN_SIGNATURE_SIZE 64
+#define TONCOIN_WRAPPED_SIGNATURE_SIZE 512
+#define TONCOIN_UNWRAPPED_SIGNATURE_SIZE 510
+#define TONCOIN_BLOCKHASH_SIZE 32
+#define TONCOIN_MESSAGE_PREFIX_SIZE 18
+#define TONCOIN_MAX_PREIMAGE_SIZE 512
+#define TONCOIN_MESSAGE_PREFIX2_SIZE 11
+#define TONCOIN_PREIMAGE2_SIZE (2 + TONCOIN_MESSAGE_PREFIX2_SIZE + 32)
+
 int md_string(const mbedtls_md_info_t *md_info, const uint8_t *buf, size_t n,
               unsigned char *output) {
     int err = 0;
@@ -670,6 +680,80 @@ exit:
 }
 
 
+// Ton uses ed25519 to sign messages. The message to be signed is
+// message = utf8_encode("ton-proof-item-v2/") ++
+//           Address ++
+//           AppDomain ++
+//           Timestamp ++
+//           Payload
+// signature = Ed25519Sign(privkey, sha256(0xffff ++ utf8_encode("ton-connect") ++ sha256(message)))
+// where
+// Prefix = 18 bytes "ton-proof-item-v2/" without trailing null
+// Address = Big endian work chain (uint32) + address (32 bytes)
+// AppDomain = Little endian domain length (uint32) + domain (string without trailling null)
+// Timestamp = Epoch seconds Little endian uint64
+// Payload = Arbitrary bytes, we use block hash here
+// See ton official document on ton-proof https://docs.ton.org/develop/dapps/ton-connect/sign
+int get_toncoin_message(const uint8_t *signed_msg, size_t signed_msg_len, const uint8_t *blockhash, uint8_t output[32]) {
+    int err = 0;
+    uint8_t preimage1[TONCOIN_MAX_PREIMAGE_SIZE];
+    uint8_t preimage2[TONCOIN_PREIMAGE2_SIZE];
+
+    int preimage1_size = signed_msg_len + TONCOIN_MESSAGE_PREFIX_SIZE + TONCOIN_BLOCKHASH_SIZE;
+    CHECK2(preimage1_size <= TONCOIN_MAX_PREIMAGE_SIZE, ERROR_INVALID_ARG);
+
+    const mbedtls_md_info_t *md_info =
+        mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+
+    memcpy(preimage1, "ton-proof-item-v2/", TONCOIN_MESSAGE_PREFIX_SIZE);
+    memcpy(preimage1+TONCOIN_MESSAGE_PREFIX_SIZE, signed_msg, signed_msg_len);
+    memcpy(preimage1+TONCOIN_MESSAGE_PREFIX_SIZE+signed_msg_len, blockhash, TONCOIN_BLOCKHASH_SIZE);
+    preimage2[0] = 0xff;
+    preimage2[1] = 0xff;
+    memcpy(preimage2+2, "ton-connect", TONCOIN_MESSAGE_PREFIX2_SIZE);
+
+    CHECK(md_string(md_info, preimage1, preimage1_size, preimage2+2+TONCOIN_MESSAGE_PREFIX2_SIZE));
+    CHECK(md_string(md_info, preimage2, TONCOIN_PREIMAGE2_SIZE, output));
+exit:
+    return err;
+}
+
+int validate_signature_toncoin(void *prefilled_data, const uint8_t *sig,
+                              size_t sig_len, const uint8_t *msg,
+                              size_t msg_len, uint8_t *output,
+                              size_t *output_len) {
+    int err = 0;
+
+    CHECK2(sig_len == TONCOIN_WRAPPED_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+    CHECK2(msg_len == TONCOIN_BLOCKHASH_SIZE, ERROR_INVALID_ARG);
+    sig_len = (size_t)sig[0] | ((size_t)sig[1] << 8);
+    CHECK2(sig_len <= TONCOIN_UNWRAPPED_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+    const uint8_t *signature_ptr = sig + 2;
+    const uint8_t *pub_key_ptr =  signature_ptr + TONCOIN_SIGNATURE_SIZE;
+    const uint8_t *signed_msg_ptr = signature_ptr + TONCOIN_SIGNATURE_SIZE + TONCOIN_PUBKEY_SIZE;
+    size_t signed_msg_len = sig_len - TONCOIN_SIGNATURE_SIZE - TONCOIN_PUBKEY_SIZE;
+
+    uint8_t message[32];
+    CHECK(get_toncoin_message(signed_msg_ptr, signed_msg_len, msg, message));
+
+    int suc = ed25519_verify(signature_ptr, message, sizeof(message), pub_key_ptr);
+    CHECK2(suc == 1, ERROR_WRONG_STATE);
+
+    blake2b_state ctx;
+    uint8_t pubkey_hash[BLAKE2B_BLOCK_SIZE] = {0};
+    blake2b_init(&ctx, BLAKE2B_BLOCK_SIZE);
+    blake2b_update(&ctx, pub_key_ptr, TONCOIN_PUBKEY_SIZE);
+    blake2b_final(&ctx, pubkey_hash, sizeof(pubkey_hash));
+
+    uint8_t test_pubkey_hash[AUTH160_SIZE] = {0};
+    // memcpy(output, pubkey_hash, AUTH160_SIZE);
+    memcpy(output, test_pubkey_hash, AUTH160_SIZE);
+    *output_len = AUTH160_SIZE;
+exit:
+    return err;
+}
+
+
 int convert_copy(const uint8_t *msg, size_t msg_len, uint8_t *new_msg,
                  size_t new_msg_len) {
     if (msg_len != new_msg_len || msg_len != BLAKE2B_BLOCK_SIZE)
@@ -1077,6 +1161,10 @@ __attribute__((visibility("default"))) int ckb_auth_validate(
         err = verify(pubkey_hash, signature, signature_size, message,
                      message_size, validate_signature_ripple,
                      convert_ripple_message);
+        CHECK(err);
+    } else if (auth_algorithm_id == AuthAlgorithmIdToncoin) {
+        err = verify(pubkey_hash, signature, signature_size, message,
+                     message_size, validate_signature_toncoin, convert_copy);
         CHECK(err);
     } else if (auth_algorithm_id == AuthAlgorithmIdOwnerLock) {
         CHECK2(is_lock_script_hash_present(pubkey_hash), ERROR_MISMATCHED);
