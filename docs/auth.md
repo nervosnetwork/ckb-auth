@@ -139,7 +139,7 @@ Key parameters:
 - pubkey hash: blake160 of (mode || spend key || view key)
 
 #### Solana(algorithm_id=13)
-The witness of a valid toncoin transaction should be a sequence of the following data.
+The witness of a valid solana transaction should be a sequence of the following data.
 The whole length of the witness must be exactly 512. If there are any space left, pad it with zero.
 
 - size of the following data combined (little-endian `uint16_t`)
