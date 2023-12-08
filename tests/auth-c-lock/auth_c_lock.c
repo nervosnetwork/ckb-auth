@@ -221,6 +221,13 @@ int main() {
       break;
   }
 
-  return ckb_auth(&entry, &auth, lock_bytes_seg.ptr, lock_bytes_seg.size,
-                  msg32);
+  ret = ckb_auth(&entry, &auth, lock_bytes_seg.ptr, lock_bytes_seg.size, msg32);
+  if (ret) {
+      return ret;
+  }
+  ret = ckb_auth(&entry, &auth, lock_bytes_seg.ptr, lock_bytes_seg.size, msg32);
+  if (ret) {
+      return ret;
+  }
+  return 0;
 }

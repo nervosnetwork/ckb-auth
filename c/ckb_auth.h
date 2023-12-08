@@ -120,19 +120,24 @@ typedef int (*ckb_auth_validate_t)(uint8_t auth_algorithm_id,
                                    uint32_t pubkey_hash_size);
 
 static uint8_t g_code_buff[300 * 1024] __attribute__((aligned(RISCV_PGSIZE)));
+static void* g_code_handle;
 
 int ckb_auth(CkbEntryType *entry, CkbAuthType *id, const uint8_t *signature,
              uint32_t signature_size, const uint8_t *message32) {
     int err = 0;
     if (entry->entry_category == EntryCategoryDynamicLinking) {
-        void *handle = NULL;
         size_t consumed_size = 0;
-        err = ckb_dlopen2(entry->code_hash, entry->hash_type, g_code_buff,
-                          sizeof(g_code_buff), &handle, &consumed_size);
-        if (err != 0) return err;
+
+        if (!g_code_handle) {
+            err = ckb_dlopen2(entry->code_hash, entry->hash_type, g_code_buff,
+                              sizeof(g_code_buff), &g_code_handle, &consumed_size);
+            if (err != 0) {
+                return err;
+            }
+        }
 
         ckb_auth_validate_t func =
-            (ckb_auth_validate_t)ckb_dlsym(handle, "ckb_auth_validate");
+            (ckb_auth_validate_t)ckb_dlsym(g_code_handle, "ckb_auth_validate");
         if (func == 0) {
             return CKB_INVALID_DATA;
         }
