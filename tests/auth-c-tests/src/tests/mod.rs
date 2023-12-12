@@ -22,7 +22,7 @@ use crate::{
     gen_args, gen_tx, gen_tx_scripts_verifier, gen_tx_with_grouped_args, sign_tx, Auth,
     AuthAlgorithmIdType, AuthErrorCodeType, BitcoinAuth, BitcoinSignVType, CKbAuth,
     CkbMultisigAuth, DogecoinAuth, DummyDataLoader, EosAuth, EthereumAuth, LitecoinAuth,
-    SchnorrAuth, TestConfig, TronAuth, MAX_CYCLES,
+    SchnorrAuth, TestConfig, TestConfigAuthLockType, TronAuth, MAX_CYCLES,
 };
 
 fn verify_unit(config: &TestConfig) -> Result<u64, ckb_error::Error> {
@@ -64,7 +64,9 @@ fn assert_result_error(res: Result<u64, ckb_error::Error>, des: &str, err_codes:
 }
 
 fn unit_test_success(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
-    let config = TestConfig::new(auth, run_type, 1);
+    let mut config = TestConfig::new(auth, run_type, 1);
+    assert_result_ok(verify_unit(&config), "");
+    config.auth_lock_type = TestConfigAuthLockType::Rust;
     assert_result_ok(verify_unit(&config), "");
 }
 

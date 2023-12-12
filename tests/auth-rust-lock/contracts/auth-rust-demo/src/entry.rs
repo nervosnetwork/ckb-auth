@@ -44,6 +44,7 @@ pub fn main() -> Result<(), Error> {
             0 => ScriptHashType::Data,
             1 => ScriptHashType::Type,
             2 => ScriptHashType::Data1,
+            4 => ScriptHashType::Data1, // TODO ckb-std 0.14.3 does not support Data2 yet
             _ => {
                 return Err(Error::ArgsError);
             }
@@ -52,6 +53,13 @@ pub fn main() -> Result<(), Error> {
 
         let witness_args =
             load_witness_args(0, Source::GroupInput).map_err(|_| Error::WitnessError)?;
+
+        ckb_std::debug!(
+            "-- ckb-auth, entry_category({}), hash_type({}) ",
+            entry_type,
+            args[53]
+        );
+
         witness_args
             .lock()
             .to_opt()
@@ -73,7 +81,7 @@ pub fn main() -> Result<(), Error> {
     };
 
     ckb_auth(&entry, &id, &signature, &message)?;
-    ckb_auth(&entry, &id, &signature, &message)?;
+    // ckb_auth(&entry, &id, &signature, &message)?;
 
     Ok(())
 }

@@ -24,8 +24,8 @@ all_tests:
 build-auth-rust-lock:
 	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
 		cd auth-rust-lock && \
-		capsule build && \
-		cp build/debug/auth-rust-demo ../../build
+		capsule build --release && \
+		cp build/release/auth-rust-demo ../../build
 
 build-auth-lock: build-auth-rust-lock
 	cd .. && make -f tests/auth-c-lock/Makefile all-via-docker
