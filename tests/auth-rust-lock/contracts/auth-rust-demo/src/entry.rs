@@ -31,7 +31,7 @@ pub fn main() -> Result<(), Error> {
 
     // get message
     let message = generate_sighash_all().map_err(|_| Error::GeneratedMsgError)?;
-    let signature = {
+    let mut signature = {
         let script = load_script()?;
         let args: Bytes = script.args().unpack();
         if args.len() != 55 {
@@ -54,12 +54,6 @@ pub fn main() -> Result<(), Error> {
         let witness_args =
             load_witness_args(0, Source::GroupInput).map_err(|_| Error::WitnessError)?;
 
-        ckb_std::debug!(
-            "-- ckb-auth, entry_category({}), hash_type({}) ",
-            entry_type,
-            args[53]
-        );
-
         witness_args
             .lock()
             .to_opt()
@@ -71,6 +65,17 @@ pub fn main() -> Result<(), Error> {
         algorithm_id: AuthAlgorithmIdType::try_from(auth_id).map_err(|f| CkbAuthError::from(f))?,
         pubkey_hash: pubkey_hash,
     };
+
+    match id.algorithm_id {
+        AuthAlgorithmIdType::Ripple => {
+            let l = signature[signature.len() - 1] as usize;
+            if l >= signature.len() {
+                return Err(Error::ArgsError);
+            }
+            signature = Bytes::from(signature[..signature.len() - l].to_vec());
+        }
+        _ => {}
+    }
 
     let entry = CkbEntryType {
         code_hash,

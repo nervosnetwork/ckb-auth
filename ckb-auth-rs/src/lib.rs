@@ -54,7 +54,7 @@ impl TryFrom<u8> for AuthAlgorithmIdType {
     type Error = CkbAuthError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if (value >= AuthAlgorithmIdType::Ckb.into()
-            && value <= AuthAlgorithmIdType::Iso97962.into())
+            && value <= AuthAlgorithmIdType::Secp256r1.into())
             || value == AuthAlgorithmIdType::OwnerLock.into()
         {
             Ok(unsafe { transmute(value) })
