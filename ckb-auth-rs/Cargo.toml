@@ -8,9 +8,13 @@ edition = "2021"
 [features]
 default = []
 ckb2023 = ["ckb-std/ckb2023"]
+dynamic-library-memory = []
+dynamic-library-memory2 = []
+dynamic-library-memory3 = []
 
 [dependencies]
 ckb-std = "0.14.3"
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 
 [target.'cfg(target_arch = "riscv64")'.dependencies]
 hex = { version = "0.4.3", default-features = false, features = ["alloc"]}

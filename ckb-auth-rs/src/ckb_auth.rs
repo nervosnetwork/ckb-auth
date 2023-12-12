@@ -1,6 +1,7 @@
 extern crate alloc;
 
 use crate::{CkbAuthError, CkbAuthType, CkbEntryType, EntryCategoryType};
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::ffi::CString;
 use alloc::format;
@@ -12,7 +13,7 @@ use ckb_std::{
     ckb_types::core::ScriptHashType,
     dynamic_loading_c_impl::{CKBDLContext, Library, Symbol},
 };
-use core::mem::size_of_val;
+use core::mem::size_of;
 use hex::encode;
 
 pub fn ckb_auth(
@@ -74,7 +75,7 @@ fn ckb_auth_exec(
     Ok(())
 }
 
-type DLContext = CKBDLContext<[u8; 512 * 1024]>;
+type DLContext = CKBDLContext<[u8; 256 * 1024]>;
 type CkbAuthValidate = unsafe extern "C" fn(
     auth_algorithm_id: u8,
     signature: *const u8,
@@ -88,9 +89,13 @@ type CkbAuthValidate = unsafe extern "C" fn(
 const EXPORTED_FUNC_NAME: &str = "ckb_auth_validate";
 
 struct CKBDLLoader {
-    pub context: DLContext,
+    pub context: Box<DLContext>,
     pub context_used: usize,
     pub loaded_lib: BTreeMap<[u8; 33], Library>,
+}
+
+lazy_static::lazy_static! {
+    static ref G_DL_CONTEXT: DLContext = unsafe { DLContext::new() };
 }
 
 static mut G_CKB_DL_LOADER: Option<CKBDLLoader> = None;
@@ -109,7 +114,10 @@ impl CKBDLLoader {
 
     fn new() -> Self {
         Self {
-            context: unsafe { DLContext::new() },
+            context: unsafe {
+                let dl_ctx: &DLContext = &G_DL_CONTEXT;
+                Box::from_raw(dl_ctx as *const DLContext as *mut DLContext)
+            },
             context_used: 0,
             loaded_lib: BTreeMap::new(),
         }
@@ -130,7 +138,7 @@ impl CKBDLLoader {
         };
 
         if !has_lib {
-            let size = size_of_val(&self.context);
+            let size = size_of::<DLContext>();
             let lib = self
                 .context
                 .load_with_offset(code_hash, hash_type, self.context_used, size)
