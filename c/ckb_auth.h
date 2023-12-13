@@ -128,7 +128,7 @@ typedef int (*ckb_auth_validate_t)(uint8_t auth_algorithm_id,
 #endif  // CKB_AUTH_DL_MAX_COUNT
 
 static uint8_t g_dl_code_buffer[CKB_AUTH_DL_BUFF_SIZE]
-    __attribute__((aligned(RISCV_PGSIZE)));
+    __attribute__((aligned(RISCV_PGSIZE))) = {0};
 static void *g_code_handle;
 
 typedef struct {
