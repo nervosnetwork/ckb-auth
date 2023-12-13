@@ -23,7 +23,7 @@ pub fn ckb_auth(
     match entry.entry_category {
         EntryCategoryType::Exec => ckb_auth_exec(entry, id, signature, message),
         #[cfg(feature = "enable-dynamic-library")]
-        EntryCategoryType::DynamicLinking => ckb_auth_dl(entry, id, signature, message),
+        EntryCategoryType::DynamicLibrary => ckb_auth_dl(entry, id, signature, message),
         #[cfg(feature = "ckb2023")]
         EntryCategoryType::Spawn => ckb_auth_spawn(entry, id, signature, message),
     }

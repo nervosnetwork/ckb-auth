@@ -218,7 +218,7 @@ fn test_dll() {
     let tx = gen_tx(
         &mut ctx,
         vec![(
-            auth.get_auth_args(&EntryCategoryType::DynamicLinking),
+            auth.get_auth_args(&EntryCategoryType::DynamicLibrary),
             CKB_SIGN_GROUP_SIZE,
         )],
     );
