@@ -767,3 +767,12 @@ fn ethereum_recid() {
         &[AuthErrorCodeType::InvalidArg as i32],
     );
 }
+
+#[test]
+fn disable_dynamic_lib() {
+    let auth = auth_builder(AuthAlgorithmIdType::Ckb, false).unwrap();
+    let mut config = TestConfig::new(&auth, EntryCategoryType::Exec, 1);
+
+    config.auth_lock_type = TestConfigAuthLockType::CDisableDl;
+    assert_result_ok(verify_unit(&config), "");
+}

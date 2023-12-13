@@ -53,6 +53,8 @@ lazy_static! {
         Bytes::from(&include_bytes!("../../../build/auth_c_lock")[..]);
     pub static ref AUTH_RUST_LOCK: Bytes =
         Bytes::from(&include_bytes!("../../../build/auth-rust-demo")[..]);
+    pub static ref AUTH_C_LOCK_DISABLE_DL: Bytes =
+        Bytes::from(&include_bytes!("../../../build/auth_c_lock_disable_dl")[..]);
     pub static ref SECP256K1_DATA_BIN: Bytes =
         Bytes::from(&include_bytes!("../../../build/secp256k1_data_20210801")[..]);
     pub static ref ALWAYS_SUCCESS: Bytes =
@@ -400,6 +402,7 @@ fn append_cells_deps<R: Rng>(
         match &config.auth_lock_type {
             TestConfigAuthLockType::C => &AUTH_C_LOCK,
             TestConfigAuthLockType::Rust => &AUTH_RUST_LOCK,
+            TestConfigAuthLockType::CDisableDl => &AUTH_C_LOCK_DISABLE_DL,
             TestConfigAuthLockType::Rand(auth_bin) => auth_bin,
         },
     );
@@ -484,14 +487,11 @@ pub fn gen_tx_with_grouped_args<R: Rng>(
     let sighash_all_cell_data_hash = CellOutput::calc_data_hash(match &config.auth_lock_type {
         TestConfigAuthLockType::C => &AUTH_C_LOCK,
         TestConfigAuthLockType::Rust => &AUTH_RUST_LOCK,
+        TestConfigAuthLockType::CDisableDl => &AUTH_C_LOCK_DISABLE_DL,
         TestConfigAuthLockType::Rand(auth_bin) => auth_bin,
     });
 
-    let sighash_all_cell_hash_type = if config.auth_lock_type == TestConfigAuthLockType::Rust {
-        ScriptHashType::Data2
-    } else {
-        ScriptHashType::Data2
-    };
+    let sighash_all_cell_hash_type = ScriptHashType::Data2;
 
     for (args, inputs_size) in grouped_args {
         // setup dummy input unlock script
@@ -548,6 +548,7 @@ pub enum TestConfigIncorrectSing {
 pub enum TestConfigAuthLockType {
     C,
     Rust,
+    CDisableDl,
     Rand(Bytes),
 }
 
@@ -608,12 +609,7 @@ pub fn do_gen_args(config: &TestConfig, pub_key_hash: Option<Vec<u8>>) -> Bytes 
 
     let hash_type: u8 = match &config.script_hash_type {
         Some(t) => t.clone(),
-        None => if config.auth_lock_type == TestConfigAuthLockType::Rust {
-            ScriptHashType::Data2
-        } else {
-            ScriptHashType::Data2
-        }
-        .into(),
+        None => ScriptHashType::Data2.into(),
     };
 
     let mut entry_type = EntryType {
