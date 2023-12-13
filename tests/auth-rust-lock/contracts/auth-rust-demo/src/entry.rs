@@ -86,6 +86,8 @@ pub fn main() -> Result<(), Error> {
     };
 
     ckb_auth(&entry, &id, &signature, &message)?;
+    // ckb_auth can be invoked multiple times for different signatures. Here we
+    // use the same one to demo the usage.
     ckb_auth(&entry, &id, &signature, &message)?;
 
     Ok(())

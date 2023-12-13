@@ -7,6 +7,9 @@ use ckb_std::{
 };
 use core::mem::size_of;
 
+// By design, it is allowed to load multiple versions of ckb-auth into memory.
+// These different ckb-auth can provide different authentication methods with
+// the same interfaces. Extra memory is required for this scenario.
 #[cfg(feature = "dynamic-library-memory-200")]
 type DLContext = CKBDLContext<[u8; 200 * 1024]>;
 
