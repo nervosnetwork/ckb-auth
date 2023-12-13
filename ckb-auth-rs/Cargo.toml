@@ -11,6 +11,7 @@ ckb2023 = ["ckb-std/ckb2023"]
 
 enable-dynamic-library = ["lazy_static"]
 dynamic-library-memory-200 = ["enable-dynamic-library"]
+# enable these features when memory is not enough
 dynamic-library-memory-400 = ["enable-dynamic-library"]
 dynamic-library-memory-600 = ["enable-dynamic-library"]
 
