@@ -86,7 +86,7 @@ pub fn main() -> Result<(), Error> {
     };
 
     ckb_auth(&entry, &id, &signature, &message)?;
-    // ckb_auth(&entry, &id, &signature, &message)?;
+    ckb_auth(&entry, &id, &signature, &message)?;
 
     Ok(())
 }
