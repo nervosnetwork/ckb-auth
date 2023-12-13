@@ -210,6 +210,7 @@ fn test_exec() {
 }
 
 #[test]
+#[cfg(feature = "enable-dynamic-library")]
 fn test_dll() {
     let auth = CKbAuth::new();
     let mut ctx = Context::default();
@@ -227,6 +228,7 @@ fn test_dll() {
 }
 
 #[test]
+#[cfg(feature = "ckb2023")]
 fn test_spawn() {
     let auth = CKbAuth::new();
 

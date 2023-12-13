@@ -78,7 +78,7 @@ pub enum CkbAuthError {
     SignatureMissing,
     EncodeArgs,
     GenerateSigHash,
-    UnsupportEntryType
+    UnsupportEntryType,
 }
 
 #[cfg(target_arch = "riscv64")]
@@ -98,6 +98,7 @@ impl From<NulError> for CkbAuthError {
 #[derive(Clone)]
 pub enum EntryCategoryType {
     Exec = 0,
+    #[cfg(feature = "enable-dynamic-library")]
     DynamicLinking = 1,
     #[cfg(feature = "ckb2023")]
     Spawn = 2,
@@ -108,6 +109,7 @@ impl TryFrom<u8> for EntryCategoryType {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::Exec),
+            #[cfg(feature = "enable-dynamic-library")]
             1 => Ok(Self::DynamicLinking),
             #[cfg(feature = "ckb2023")]
             2 => Ok(Self::Spawn),

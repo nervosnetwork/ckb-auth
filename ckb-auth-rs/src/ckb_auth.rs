@@ -3,11 +3,13 @@ extern crate alloc;
 use crate::{CkbAuthError, CkbAuthType, CkbEntryType, EntryCategoryType};
 use alloc::ffi::CString;
 use alloc::format;
-use alloc::vec::Vec;
 use ckb_std::high_level::exec_cell;
+use hex::encode;
+
+#[cfg(feature = "ckb2023")]
+use alloc::vec::Vec;
 #[cfg(feature = "ckb2023")]
 use ckb_std::high_level::spawn_cell;
-use hex::encode;
 
 #[cfg(feature = "enable-dynamic-library")]
 use super::ckb_auth_dl::ckb_auth_dl;
@@ -24,8 +26,6 @@ pub fn ckb_auth(
         EntryCategoryType::DynamicLinking => ckb_auth_dl(entry, id, signature, message),
         #[cfg(feature = "ckb2023")]
         EntryCategoryType::Spawn => ckb_auth_spawn(entry, id, signature, message),
-        #[allow(unreachable_patterns)]
-        _ => Err(CkbAuthError::UnsupportEntryType),
     }
 }
 

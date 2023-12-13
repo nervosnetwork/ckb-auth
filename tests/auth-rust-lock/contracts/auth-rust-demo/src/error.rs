@@ -22,6 +22,10 @@ pub enum Error {
 impl From<SysError> for Error {
     fn from(err: SysError) -> Self {
         use SysError::*;
+
+        #[allow(unreachable_patterns)] // When --no-default-features
+        #[allow(unused_variables)]
+        #[allow(non_snake_case)]
         match err {
             IndexOutOfBound => Self::IndexOutOfBound,
             ItemMissing => Self::ItemMissing,
