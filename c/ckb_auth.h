@@ -119,6 +119,8 @@ typedef int (*ckb_auth_validate_t)(uint8_t auth_algorithm_id,
                                    uint32_t message_size, uint8_t *pubkey_hash,
                                    uint32_t pubkey_hash_size);
 
+#ifndef CKB_AUTH_DISABLE_DYNAMIC_LIB
+
 #ifndef CKB_AUTH_DL_BUFF_SIZE
 #define CKB_AUTH_DL_BUFF_SIZE 1024 * 200
 #endif  // CKB_AUTH_DL_MAX_COUNT
@@ -191,18 +193,25 @@ int get_dl_func_by_code_hash(const uint8_t *code_hash, uint8_t hash_type,
     return 0;
 }
 
+#endif  // CKB_AUTH_DISABLE_DYNAMIC_LIB
+
 int ckb_auth(CkbEntryType *entry, CkbAuthType *id, const uint8_t *signature,
              uint32_t signature_size, const uint8_t *message32) {
     int err = 0;
     if (entry->entry_category == EntryCategoryDynamicLibrary) {
+#ifdef CKB_AUTH_DISABLE_DYNAMIC_LIB
+        // Disable DynamicLibrary via macro can save memory
+        return ERROR_INVALID_ARG;
+#else   // CKB_AUTH_DISABLE_DYNAMIC_LIB
         ckb_auth_validate_t func = NULL;
         err =
             get_dl_func_by_code_hash(entry->code_hash, entry->hash_type, &func);
         if (err) {
             return err;
         }
-        return func(id->algorithm_id, signature, signature_size, message32, BLAKE2B_BLOCK_SIZE,
-                   id->content, AUTH160_SIZE);
+        return func(id->algorithm_id, signature, signature_size, message32,
+                    BLAKE2B_BLOCK_SIZE, id->content, AUTH160_SIZE);
+#endif  // CKB_AUTH_DISABLE_DYNAMIC_LIB
     } else if (entry->entry_category == EntryCategoryExec ||
                entry->entry_category == EntryCategorySpawn) {
         char algorithm_id_str[2 + 1];
