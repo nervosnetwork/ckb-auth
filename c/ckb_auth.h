@@ -119,30 +119,91 @@ typedef int (*ckb_auth_validate_t)(uint8_t auth_algorithm_id,
                                    uint32_t message_size, uint8_t *pubkey_hash,
                                    uint32_t pubkey_hash_size);
 
-static uint8_t g_code_buff[300 * 1024] __attribute__((aligned(RISCV_PGSIZE)));
-static void* g_code_handle;
+#ifndef CKB_AUTH_DL_BUFF_SIZE
+#define CKB_AUTH_DL_BUFF_SIZE 1024 * 200
+#endif  // CKB_AUTH_DL_MAX_COUNT
+
+#ifndef CKB_AUTH_DL_MAX_COUNT
+#define CKB_AUTH_DL_MAX_COUNT 8
+#endif  // CKB_AUTH_DL_MAX_COUNT
+
+static uint8_t g_dl_code_buffer[CKB_AUTH_DL_BUFF_SIZE]
+    __attribute__((aligned(RISCV_PGSIZE)));
+static void *g_code_handle;
+
+typedef struct {
+    uint8_t *code_ptr;
+    size_t code_ptr_size;
+
+    uint8_t code_hash[BLAKE2B_BLOCK_SIZE];
+    uint8_t hash_type;
+
+    void *handle;
+    ckb_auth_validate_t func;
+} CkbDLCache;
+static CkbDLCache g_dl_cache[CKB_AUTH_DL_MAX_COUNT];
+static size_t g_dl_cache_count = 0;
+
+int get_dl_func_by_code_hash(const uint8_t *code_hash, uint8_t hash_type,
+                             ckb_auth_validate_t *out_func) {
+    // Find from cache
+    for (size_t i = 0; i < g_dl_cache_count; i++) {
+        CkbDLCache *cache = &g_dl_cache[i];
+        if (memcmp(cache->code_hash, code_hash, BLAKE2B_BLOCK_SIZE) == 0 &&
+            hash_type == cache->hash_type) {
+            *out_func = cache->func;
+            return 0;
+        }
+    }
+
+    // get by cache
+    size_t buf_offset = 0;
+    if (g_dl_cache_count) {
+        CkbDLCache *cache = &g_dl_cache[g_dl_cache_count - 1];
+        buf_offset =
+            (size_t)(cache->code_ptr + cache->code_ptr_size - g_dl_code_buffer);
+        if (buf_offset % RISCV_PGSIZE != 0) {
+            buf_offset += RISCV_PGSIZE - buf_offset % RISCV_PGSIZE;
+        }
+    }
+
+    // load function by cell
+    CkbDLCache *cache = &g_dl_cache[g_dl_cache_count];
+    memset(cache, 0, sizeof(CkbDLCache));
+    cache->code_ptr = g_dl_code_buffer + buf_offset;
+
+    int err = ckb_dlopen2(code_hash, hash_type, cache->code_ptr,
+                          sizeof(g_dl_code_buffer) - buf_offset, &cache->handle,
+                          &cache->code_ptr_size);
+    if (err != 0) {
+        return err;
+    }
+    cache->func =
+        (ckb_auth_validate_t)ckb_dlsym(cache->handle, "ckb_auth_validate");
+    if (cache->func == 0) {
+        return CKB_INVALID_DATA;
+    }
+
+    *out_func = cache->func;
+    memcpy(cache->code_hash, code_hash, BLAKE2B_BLOCK_SIZE);
+    cache->hash_type = hash_type;
+
+    g_dl_cache_count += 1;
+    return 0;
+}
 
 int ckb_auth(CkbEntryType *entry, CkbAuthType *id, const uint8_t *signature,
              uint32_t signature_size, const uint8_t *message32) {
     int err = 0;
     if (entry->entry_category == EntryCategoryDynamicLinking) {
-        size_t consumed_size = 0;
-
-        if (!g_code_handle) {
-            err = ckb_dlopen2(entry->code_hash, entry->hash_type, g_code_buff,
-                              sizeof(g_code_buff), &g_code_handle, &consumed_size);
-            if (err != 0) {
-                return err;
-            }
-        }
-
-        ckb_auth_validate_t func =
-            (ckb_auth_validate_t)ckb_dlsym(g_code_handle, "ckb_auth_validate");
-        if (func == 0) {
-            return CKB_INVALID_DATA;
+        ckb_auth_validate_t func = NULL;
+        err =
+            get_dl_func_by_code_hash(entry->code_hash, entry->hash_type, &func);
+        if (err) {
+            return err;
         }
         return func(id->algorithm_id, signature, signature_size, message32, 32,
-                    id->content, 20);
+                   id->content, 20);
     } else if (entry->entry_category == EntryCategoryExec ||
                entry->entry_category == EntryCategorySpawn) {
         char algorithm_id_str[2 + 1];
