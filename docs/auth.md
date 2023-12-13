@@ -20,9 +20,8 @@ For detailed instructions, please refer to the [README.md](../README.md) or [CI]
 ```C
 typedef struct CkbAuthType {
   uint8_t algorithm_id;
-  uint8_t content[20];
+  uint8_t content[AUTH160_SIZE];  // #define AUTH160_SIZE 20
 } CkbAuthType;
-
 ```
 
 It is a data structure with 21 bytes. The content can be hash (blake160 or some
@@ -167,11 +166,11 @@ It is based on the following idea:
 
 First we define the "EntryType":
 ```C
-typedef struct EntryType {
-    uint8_t code_hash[32];
+typedef struct CkbEntryType {
+    uint8_t code_hash[BLAKE2B_BLOCK_SIZE];
     uint8_t hash_type;
     uint8_t entry_category;
-} EntryType;
+} CkbEntryType;
 ```
 
 * code_hash/hash_type
@@ -195,6 +194,9 @@ The first argument denotes the `algorithm_id` in `CkbAuthType` described above. 
 
 A valid dynamic library denoted by `EntryType` should provide `ckb_auth_validate` exported function.
 
+A dynamic library will create a cache in static memory for loading ckb-auth. This cache is initially set to 200k, and if adjustments are necessary, you can modify it by defining the macro CKB_AUTH_DL_BUFF_SIZE. However, it's important to note that the ckb-auth default is around 100k, and setting it too small may result in execution failure. CKB-VM allocates a maximum of 4M memory, and setting it too large may lead to insufficient memory.
+By default, you can load up to 8 different ckb-auth libraries. If this is insufficient, you can modify it by defining CKB_AUTH_DL_MAX_COUNT. If you prefer not to use this feature, you can disable it by including CKB_AUTH_DISABLE_DYNAMIC_LIB. This will help conserve memory and reduce the size of the contract.
+
 ### Entry Category: Spawn
 This category shares same arguments and behavior to dynamic library. It uses `spawn` instead of `dynamic library`. When
 entry category is `spawn`, its arguments format is below:
@@ -211,6 +213,9 @@ The `auth algorithm id` denotes the `algorithm_id` in `CkbAuthType` described ab
 `pubkey_hash` are described in `key parameters` mentioned above.
 
 We can implement different auth algorithm ids in same code binary. 
+
+### Entry Category: Exec
+The invocation method is the same as that of `Spawn`.
 
 
 ### High Level APIs
