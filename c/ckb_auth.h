@@ -68,7 +68,7 @@ typedef struct {
 // TODO: when ready, move it into ckb-c-stdlib
 typedef struct CkbAuthType {
     uint8_t algorithm_id;
-    uint8_t content[20];
+    uint8_t content[AUTH160_SIZE];
 } CkbAuthType;
 
 enum EntryCategoryType {
@@ -78,7 +78,7 @@ enum EntryCategoryType {
 };
 
 typedef struct CkbEntryType {
-    uint8_t code_hash[32];
+    uint8_t code_hash[BLAKE2B_BLOCK_SIZE];
     uint8_t hash_type;
     uint8_t entry_category;
 } CkbEntryType;
@@ -202,8 +202,8 @@ int ckb_auth(CkbEntryType *entry, CkbAuthType *id, const uint8_t *signature,
         if (err) {
             return err;
         }
-        return func(id->algorithm_id, signature, signature_size, message32, 32,
-                   id->content, 20);
+        return func(id->algorithm_id, signature, signature_size, message32, BLAKE2B_BLOCK_SIZE,
+                   id->content, AUTH160_SIZE);
     } else if (entry->entry_category == EntryCategoryExec ||
                entry->entry_category == EntryCategorySpawn) {
         char algorithm_id_str[2 + 1];
@@ -211,8 +211,8 @@ int ckb_auth(CkbEntryType *entry, CkbAuthType *id, const uint8_t *signature,
             return CKB_INVALID_DATA;
         }
         char signature_str[signature_size * 2 + 1];
-        char message_str[32 * 2 + 1];
-        char pubkey_hash_str[20 * 2 + 1];
+        char message_str[BLAKE2B_BLOCK_SIZE * 2 + 1];
+        char pubkey_hash_str[AUTH160_SIZE * 2 + 1];
 
         uint32_t bin2hex_output_len = 0;
         if (ckb_bin2hex(&id->algorithm_id, 1, algorithm_id_str,
@@ -225,12 +225,12 @@ int ckb_auth(CkbEntryType *entry, CkbAuthType *id, const uint8_t *signature,
                           sizeof(signature_str), &bin2hex_output_len, true)) {
             return CKB_INVALID_DATA;
         }
-        if (ckb_bin2hex(message32, 32, message_str, sizeof(message_str),
+        if (ckb_bin2hex(message32, BLAKE2B_BLOCK_SIZE, message_str, sizeof(message_str),
                           &bin2hex_output_len, true)) {
             return CKB_INVALID_DATA;
         }
 
-        if (ckb_bin2hex(id->content, 20, pubkey_hash_str,
+        if (ckb_bin2hex(id->content, AUTH160_SIZE, pubkey_hash_str,
                           sizeof(pubkey_hash_str), &bin2hex_output_len, true)) {
             return CKB_INVALID_DATA;
         }
