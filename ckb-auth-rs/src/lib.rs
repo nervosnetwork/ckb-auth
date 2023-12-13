@@ -8,6 +8,9 @@ mod ckb_auth;
 #[cfg(target_arch = "riscv64")]
 pub use ckb_auth::ckb_auth;
 
+#[cfg(all(feature = "enable-dynamic-library", target_arch = "riscv64"))]
+mod ckb_auth_dl;
+
 #[cfg(target_arch = "riscv64")]
 mod generate_sighash_all;
 
@@ -75,6 +78,7 @@ pub enum CkbAuthError {
     SignatureMissing,
     EncodeArgs,
     GenerateSigHash,
+    UnsupportEntryType
 }
 
 #[cfg(target_arch = "riscv64")]

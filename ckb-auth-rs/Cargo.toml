@@ -6,15 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = []
+default = ["dynamic-library-memory-200"]
 ckb2023 = ["ckb-std/ckb2023"]
-dynamic-library-memory = []
-dynamic-library-memory2 = []
-dynamic-library-memory3 = []
+
+enable-dynamic-library = ["lazy_static"]
+dynamic-library-memory-200 = ["enable-dynamic-library"]
+dynamic-library-memory-400 = ["enable-dynamic-library"]
+dynamic-library-memory-600 = ["enable-dynamic-library"]
 
 [dependencies]
 ckb-std = "0.14.3"
-lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
+lazy_static = { version = "1.4.0", optional = true, features = ["spin_no_std"] }
 
 [target.'cfg(target_arch = "riscv64")'.dependencies]
 hex = { version = "0.4.3", default-features = false, features = ["alloc"]}
