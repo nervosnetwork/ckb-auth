@@ -4,7 +4,12 @@ A simple way to use ECDSA-SHA256/secp256r1 signature algorithm to lock ckb cells
 is to sign the transaction hash (or maybe `sighash_all`, i.e. hashing all fields 
 including transaction hash and other witnesses in this input group)
 with `openssl`, and then leverage ckb-auth to check the validity of this signature.
-See [the docs](./auth.md) for more details.
+
+See [the docs](./auth.md) for the fundamentals of using ckb-auth library.
+The algorithm ID for secp256r1 is 15. It should be noted that we use
+a separated binary (`./build/auth_libecc`) for secp256r1 signature verification.
+This is because the upstream dependency (libecc) to secp256r1 is too heavy.
+We do this to keep binary size of `./build/auth` and `./build/auth_libecc` small.
 
 # Generate signature with openssl
 
