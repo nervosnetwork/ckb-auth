@@ -71,6 +71,23 @@ to save this message into file `message` and then run
 ```
 openssl dgst -sha256 -sign private.pem message > signature
 ```
-to save the signature into file `signature`
+to save the signature into file `signature`, which is in the [DER format](https://wiki.openssl.org/index.php/DER).
+
+Running the following command will output the R and S value of the signature
+```
+openssl asn1parse -dump -inform DER -in signature
+    0:d=0  hl=2 l=  68 cons: SEQUENCE          
+    2:d=1  hl=2 l=  32 prim: INTEGER           :63BFDC57257A6CF67393E4BF2AA0AF38F25FA04DEC3D1428B83F9F8CF4D8050F
+   36:d=1  hl=2 l=  32 prim: INTEGER           :274417CB0D9D625AB0BAB1C611E0C445081A31F682668C0ABFA01341E97708AF
+```
+
+We need to convert the signature to the 64-bytes form required by ckb-auth
+by concatenating the R and S value in the last two lines.
+
+Running the following command would save such signature to the file `signature.raw`
+
+```
+openssl asn1parse -dump -inform DER -in signature | awk -F: '/33 prim: INTEGER/ {print $NF}' |  xxd -r -p > signature.raw   
+```
 
 The final signature field of the ckb transaction should be this public key concatenated with the above signature.
