@@ -19,6 +19,8 @@ type DLContext = CKBDLContext<[u8; 400 * 1024]>;
 #[cfg(feature = "dynamic-library-memory-600")]
 type DLContext = CKBDLContext<[u8; 600 * 1024]>;
 
+const RISCV_PGSIZE: usize = 4096;
+
 type CkbAuthValidate = unsafe extern "C" fn(
     auth_algorithm_id: u8,
     signature: *const u8,
@@ -87,6 +89,9 @@ impl CKBDLLoader {
                 .load_with_offset(code_hash, hash_type, self.context_used, size)
                 .map_err(|_| CkbAuthError::LoadDLError)?;
             self.context_used += lib.consumed_size();
+            if self.context_used % RISCV_PGSIZE != 0 {
+                self.context_used += RISCV_PGSIZE - self.context_used % RISCV_PGSIZE;
+            }
             self.loaded_lib.insert(lib_key.clone(), lib);
         };
         Ok(self.loaded_lib.get(&lib_key).unwrap())
