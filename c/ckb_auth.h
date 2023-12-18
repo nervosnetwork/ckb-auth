@@ -110,7 +110,7 @@ typedef int (*validate_signature_t)(void *prefilled_data, const uint8_t *sig,
                                     size_t *output_len);
 
 typedef int (*convert_msg_t)(const uint8_t *msg, size_t msg_len,
-                             uint8_t *new_msg, size_t new_msg_len);
+                             uint8_t *new_msg, size_t *new_msg_len);
 
 typedef int (*ckb_auth_validate_t)(uint8_t auth_algorithm_id,
                                    const uint8_t *signature,

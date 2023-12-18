@@ -46,8 +46,8 @@ exit:
 }
 
 int convert_copy(const uint8_t *msg, size_t msg_len, uint8_t *new_msg,
-                 size_t new_msg_len) {
-    if (msg_len != new_msg_len || msg_len != BLAKE2B_BLOCK_SIZE)
+                 size_t *new_msg_len) {
+    if (msg_len != *new_msg_len || msg_len != BLAKE2B_BLOCK_SIZE)
         return ERROR_INVALID_ARG;
     memcpy(new_msg, msg, msg_len);
     return 0;
@@ -58,13 +58,14 @@ static int verify(uint8_t *pubkey_hash, const uint8_t *sig, uint32_t sig_len,
                   validate_signature_t func, convert_msg_t convert) {
     int err = 0;
     uint8_t new_msg[BLAKE2B_BLOCK_SIZE];
+    size_t new_msg_len = sizeof(new_msg);
 
-    err = convert(msg, msg_len, new_msg, sizeof(new_msg));
+    err = convert(msg, msg_len, new_msg, &new_msg_len);
     CHECK(err);
 
     uint8_t output_pubkey_hash[AUTH160_SIZE];
     size_t output_len = AUTH160_SIZE;
-    err = func(NULL, sig, sig_len, new_msg, sizeof(new_msg), output_pubkey_hash,
+    err = func(NULL, sig, sig_len, new_msg, new_msg_len, output_pubkey_hash,
                &output_len);
     CHECK(err);
 
