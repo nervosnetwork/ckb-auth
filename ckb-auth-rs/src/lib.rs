@@ -44,6 +44,8 @@ pub enum AuthAlgorithmIdType {
     Solana = 13,
     Ripple = 14,
     Secp256r1 = 15,
+    Toncoin = 16,
+    Secp256r1Raw = 17,
     OwnerLock = 0xFC,
 }
 

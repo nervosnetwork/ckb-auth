@@ -101,6 +101,7 @@ enum AuthAlgorithmIdType {
     AuthAlgorithmIdRipple = 14,
     AuthAlgorithmIdSecp256R1 = 15,
     AuthAlgorithmIdToncoin = 16,
+    AuthAlgorithmIdSecp256R1Raw = 17,
     AuthAlgorithmIdOwnerLock = 0xFC,
 };
 
