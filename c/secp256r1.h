@@ -11,6 +11,7 @@
 static const char *ec_name = "SECP256R1";
 static const char *ec_sig_name = "ECDSA";
 static const char *sha256_hash_algorithm_name = "SHA256";
+static const char *copy256_hash_algorithm_name = "COPY256";
 
 const uint32_t projective_buffer_size = 96;
 const uint32_t affine_buffer_size = 64;
@@ -122,4 +123,10 @@ int secp256r1_verify_signature(const uint8_t *sig, uint8_t siglen,
                                const uint8_t *pk, uint32_t pklen,
                                const uint8_t *m, uint32_t mlen) {
   return do_secp256r1_verify_signature(sig, siglen, pk, pklen, m, mlen, sha256_hash_algorithm_name);
+}
+
+int secp256r1_raw_verify_signature(const uint8_t *sig, uint8_t siglen,
+                               const uint8_t *pk, uint32_t pklen,
+                               const uint8_t *m, uint32_t mlen) {
+  return do_secp256r1_verify_signature(sig, siglen, pk, pklen, m, mlen, copy256_hash_algorithm_name);
 }

@@ -806,6 +806,9 @@ pub fn auth_builder(t: AuthAlgorithmIdType, official: bool) -> result::Result<Bo
         AuthAlgorithmIdType::Secp256r1 => {
             return Ok(Secp256r1Auth::new());
         }
+        AuthAlgorithmIdType::Secp256r1Raw => {
+            return Ok(Secp256r1Auth::new());
+        }
         AuthAlgorithmIdType::OwnerLock => {
             return Ok(OwnerLockAuth::new());
         }
@@ -1867,6 +1870,68 @@ impl Auth for Secp256r1Auth {
 
         let pub_key = self.get_pub_key_bytes();
         let _hash = calculate_sha256(msg.as_bytes());
+
+        // Note by default, p256 will sign the sha256 hash of the message.
+        // So we don't need to do any hashing here.
+        let signature: Signature = self.key.sign(msg.as_bytes());
+        let signature = signature.to_vec();
+        let signature: Vec<u8> = pub_key.iter().chain(&signature).map(|x| *x).collect();
+
+        signature.into()
+    }
+    fn get_sign_size(&self) -> usize {
+        128
+    }
+}
+
+#[derive(Clone)]
+pub struct Secp256r1RawAuth {
+    pub key: Arc<p256::ecdsa::SigningKey>,
+}
+
+impl Secp256r1RawAuth {
+    pub fn new() -> Box<Secp256r1RawAuth> {
+        use p256::ecdsa::SigningKey;
+        const SECRET_KEY: [u8; 32] = [
+            0x51, 0x9b, 0x42, 0x3d, 0x71, 0x5f, 0x8b, 0x58, 0x1f, 0x4f, 0xa8, 0xee, 0x59, 0xf4,
+            0x77, 0x1a, 0x5b, 0x44, 0xc8, 0x13, 0x0b, 0x4e, 0x3e, 0xac, 0xca, 0x54, 0xa5, 0x6d,
+            0xda, 0x72, 0xb4, 0x64,
+        ];
+
+        let sk = SigningKey::from_bytes(&SECRET_KEY).unwrap();
+        Box::new(Self { key: Arc::new(sk) })
+    }
+    pub fn get_pub_key(&self) -> p256::ecdsa::VerifyingKey {
+        let pk = self.key.verifying_key();
+        pk
+    }
+    pub fn get_pub_key_bytes(&self) -> Vec<u8> {
+        let pub_key = self.get_pub_key();
+        let encoded_point = pub_key.to_encoded_point(false);
+        let bytes = encoded_point.as_bytes();
+        // The first byte is always 0x04, which is the tag for Uncompressed point.
+        // See https://docs.rs/sec1/latest/sec1/point/enum.Tag.html#variants
+        // Discard it as we always use x, y coordinates to encode pubkey.
+        bytes[1..].to_vec()
+    }
+}
+impl Auth for Secp256r1RawAuth {
+    fn get_pub_key_hash(&self) -> Vec<u8> {
+        let pub_key = self.get_pub_key_bytes();
+        let hash = ckb_hash::blake2b_256(&pub_key);
+        Vec::from(&hash[..20])
+    }
+    fn get_algorithm_type(&self) -> u8 {
+        AuthAlgorithmIdType::Secp256r1 as u8
+    }
+    fn convert_message(&self, message: &[u8; 32]) -> H256 {
+        H256::from(message.clone())
+    }
+    fn sign(&self, msg: &H256) -> Bytes {
+        use p256::ecdsa::{signature::Signer, Signature};
+
+        let pub_key = self.get_pub_key_bytes();
+        dbg!(msg);
 
         // Note by default, p256 will sign the sha256 hash of the message.
         // So we don't need to do any hashing here.

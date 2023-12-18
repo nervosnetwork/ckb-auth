@@ -335,6 +335,12 @@ fn secp256r1_verify() {
 }
 
 #[test]
+fn secp256r1_raw_verify() {
+    use_libecc();
+    unit_test_common(AuthAlgorithmIdType::Secp256r1Raw);
+}
+
+#[test]
 fn convert_eth_error() {
     #[derive(Clone)]
     struct EthConverFaileAuth(EthereumAuth);
