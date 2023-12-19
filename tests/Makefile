@@ -8,7 +8,10 @@ all: \
 	rust-demo-tests \
 	clean-rust-demo-tests \
 	spawn-tests \
-	clean-spawn-tests
+	clean-spawn-tests \
+	rust-demo-tests-no-def-features \
+	rust-demo-tests-only-ckb2023 \
+	rust-demo-tests-only-dl
 
 all-with-clang: \
 	build-auth-lock-with-clang \
@@ -24,8 +27,8 @@ all_tests:
 build-auth-rust-lock:
 	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
 		cd auth-rust-lock && \
-		capsule build && \
-		cp build/debug/auth-rust-demo ../../build
+		capsule build --release && \
+		cp build/release/auth-rust-demo ../../build
 
 build-auth-lock: build-auth-rust-lock
 	cd .. && make -f tests/auth-c-lock/Makefile all-via-docker
@@ -40,10 +43,31 @@ clean-c-tests:
 	rm -rf auth-c-tests/target
 
 rust-demo-tests:
-	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd auth-rust-lock/ && capsule test
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd auth-rust-lock/ && capsule build && capsule test
 
 clean-rust-demo-tests:
 	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd auth-rust-lock/ && capsule clean
+
+rust-demo-tests-no-def-features: clean-rust-demo-tests
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
+	cd auth-rust-lock && \
+	capsule build -- --no-default-features && \
+	cd tests && \
+	cargo test --no-default-features
+
+rust-demo-tests-only-ckb2023: clean-rust-demo-tests
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
+	cd auth-rust-lock && \
+	capsule build -- --no-default-features --features="ckb2023" && \
+	cd tests && \
+	cargo test --no-default-features --features="ckb2023"
+
+rust-demo-tests-only-dl: clean-rust-demo-tests
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
+	cd auth-rust-lock && \
+	capsule build -- --no-default-features --features="enable-dynamic-library" && \
+	cd tests && \
+	cargo test --no-default-features --features="enable-dynamic-library"
 
 spawn-tests:
 	export PATH=`pwd`/bin/:"$(PATH)" && cd auth-spawn-tests && make all

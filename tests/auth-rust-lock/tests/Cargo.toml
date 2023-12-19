@@ -5,8 +5,13 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["ckb2023", "enable-dynamic-library"]
+ckb2023 = ["ckb-auth-rs/ckb2023"]
+enable-dynamic-library = ["ckb-auth-rs/dynamic-library-memory-600"]
+
 [dependencies]
 ckb-testtool = "0.10"
-ckb-auth-rs = { path = "../../../ckb-auth-rs", features = ["ckb2023"] }
+ckb-auth-rs = { path = "../../../ckb-auth-rs" }
 
 rand = "0.6.5"

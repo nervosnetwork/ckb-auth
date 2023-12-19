@@ -31,7 +31,7 @@ pub fn main() -> Result<(), Error> {
 
     // get message
     let message = generate_sighash_all().map_err(|_| Error::GeneratedMsgError)?;
-    let signature = {
+    let mut signature = {
         let script = load_script()?;
         let args: Bytes = script.args().unpack();
         if args.len() != 55 {
@@ -44,6 +44,7 @@ pub fn main() -> Result<(), Error> {
             0 => ScriptHashType::Data,
             1 => ScriptHashType::Type,
             2 => ScriptHashType::Data1,
+            4 => ScriptHashType::Data1, // TODO ckb-std 0.14.3 does not support Data2 yet
             _ => {
                 return Err(Error::ArgsError);
             }
@@ -52,6 +53,7 @@ pub fn main() -> Result<(), Error> {
 
         let witness_args =
             load_witness_args(0, Source::GroupInput).map_err(|_| Error::WitnessError)?;
+
         witness_args
             .lock()
             .to_opt()
@@ -64,6 +66,17 @@ pub fn main() -> Result<(), Error> {
         pubkey_hash: pubkey_hash,
     };
 
+    match id.algorithm_id {
+        AuthAlgorithmIdType::Ripple => {
+            let l = signature[signature.len() - 1] as usize;
+            if l >= signature.len() {
+                return Err(Error::ArgsError);
+            }
+            signature = Bytes::from(signature[..signature.len() - l].to_vec());
+        }
+        _ => {}
+    }
+
     let entry = CkbEntryType {
         code_hash,
         hash_type,
@@ -72,6 +85,9 @@ pub fn main() -> Result<(), Error> {
             .unwrap(),
     };
 
+    ckb_auth(&entry, &id, &signature, &message)?;
+    // ckb_auth can be invoked multiple times for different signatures. Here we
+    // use the same one to demo the usage.
     ckb_auth(&entry, &id, &signature, &message)?;
 
     Ok(())

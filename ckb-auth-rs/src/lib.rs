@@ -8,6 +8,9 @@ mod ckb_auth;
 #[cfg(target_arch = "riscv64")]
 pub use ckb_auth::ckb_auth;
 
+#[cfg(all(feature = "enable-dynamic-library", target_arch = "riscv64"))]
+mod ckb_auth_dl;
+
 #[cfg(target_arch = "riscv64")]
 mod generate_sighash_all;
 
@@ -54,7 +57,7 @@ impl TryFrom<u8> for AuthAlgorithmIdType {
     type Error = CkbAuthError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if (value >= AuthAlgorithmIdType::Ckb.into()
-            && value <= AuthAlgorithmIdType::Iso97962.into())
+            && value <= AuthAlgorithmIdType::Secp256r1.into())
             || value == AuthAlgorithmIdType::OwnerLock.into()
         {
             Ok(unsafe { transmute(value) })
@@ -75,6 +78,7 @@ pub enum CkbAuthError {
     SignatureMissing,
     EncodeArgs,
     GenerateSigHash,
+    UnsupportEntryType,
 }
 
 #[cfg(target_arch = "riscv64")]
@@ -94,7 +98,8 @@ impl From<NulError> for CkbAuthError {
 #[derive(Clone)]
 pub enum EntryCategoryType {
     Exec = 0,
-    DynamicLinking = 1,
+    #[cfg(feature = "enable-dynamic-library")]
+    DynamicLibrary = 1,
     #[cfg(feature = "ckb2023")]
     Spawn = 2,
 }
@@ -104,7 +109,8 @@ impl TryFrom<u8> for EntryCategoryType {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::Exec),
-            1 => Ok(Self::DynamicLinking),
+            #[cfg(feature = "enable-dynamic-library")]
+            1 => Ok(Self::DynamicLibrary),
             #[cfg(feature = "ckb2023")]
             2 => Ok(Self::Spawn),
             _ => Err(CkbAuthError::EncodeArgs),

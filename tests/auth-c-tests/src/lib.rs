@@ -49,7 +49,12 @@ lazy_static! {
         Bytes::from(&include_bytes!("../../../build/auth")[..]);
     pub static ref LIBECC_AUTH_PROGRAM: Bytes =
         Bytes::from(&include_bytes!("../../../build/auth_libecc")[..]);
-    pub static ref AUTH_C_LOCK: Bytes = Bytes::from(&include_bytes!("../../../build/auth_c_lock")[..]);
+    pub static ref AUTH_C_LOCK: Bytes =
+        Bytes::from(&include_bytes!("../../../build/auth_c_lock")[..]);
+    pub static ref AUTH_RUST_LOCK: Bytes =
+        Bytes::from(&include_bytes!("../../../build/auth-rust-demo")[..]);
+    pub static ref AUTH_C_LOCK_DISABLE_DL: Bytes =
+        Bytes::from(&include_bytes!("../../../build/auth_c_lock_disable_dl")[..]);
     pub static ref SECP256K1_DATA_BIN: Bytes =
         Bytes::from(&include_bytes!("../../../build/secp256k1_data_20210801")[..]);
     pub static ref ALWAYS_SUCCESS: Bytes =
@@ -394,10 +399,11 @@ fn append_cells_deps<R: Rng>(
     let sighash_all_out_point = append_cell_deps(
         dummy,
         rng,
-        if config.auth_bin.is_some() {
-            config.auth_bin.as_ref().unwrap()
-        } else {
-            &AUTH_C_LOCK
+        match &config.auth_lock_type {
+            TestConfigAuthLockType::C => &AUTH_C_LOCK,
+            TestConfigAuthLockType::Rust => &AUTH_RUST_LOCK,
+            TestConfigAuthLockType::CDisableDl => &AUTH_C_LOCK_DISABLE_DL,
+            TestConfigAuthLockType::Rand(auth_bin) => auth_bin,
         },
     );
     let sighash_dl_out_point = append_cell_deps(dummy, rng, &auth_program::get_auth_program());
@@ -478,11 +484,14 @@ pub fn gen_tx_with_grouped_args<R: Rng>(
 ) -> TransactionView {
     let (dummy_capacity, mut tx_builder) = append_cells_deps(dummy, config, rng);
 
-    let sighash_all_cell_data_hash = CellOutput::calc_data_hash(if config.auth_bin.is_some() {
-        config.auth_bin.as_ref().unwrap()
-    } else {
-        &AUTH_C_LOCK
+    let sighash_all_cell_data_hash = CellOutput::calc_data_hash(match &config.auth_lock_type {
+        TestConfigAuthLockType::C => &AUTH_C_LOCK,
+        TestConfigAuthLockType::Rust => &AUTH_RUST_LOCK,
+        TestConfigAuthLockType::CDisableDl => &AUTH_C_LOCK_DISABLE_DL,
+        TestConfigAuthLockType::Rand(auth_bin) => auth_bin,
     });
+
+    let sighash_all_cell_hash_type = ScriptHashType::Data2;
 
     for (args, inputs_size) in grouped_args {
         // setup dummy input unlock script
@@ -496,7 +505,7 @@ pub fn gen_tx_with_grouped_args<R: Rng>(
             let script = Script::new_builder()
                 .args(args.pack())
                 .code_hash(sighash_all_cell_data_hash.clone())
-                .hash_type(ScriptHashType::Data2.into())
+                .hash_type(sighash_all_cell_hash_type.into())
                 .build();
             let previous_output_cell = CellOutput::new_builder()
                 .capacity(dummy_capacity.pack())
@@ -535,6 +544,14 @@ pub enum TestConfigIncorrectSing {
     Smaller,
 }
 
+#[derive(PartialEq, Eq)]
+pub enum TestConfigAuthLockType {
+    C,
+    Rust,
+    CDisableDl,
+    Rand(Bytes),
+}
+
 pub struct TestConfig {
     pub auth: Box<dyn Auth>,
     pub entry_category_type: EntryCategoryType,
@@ -546,7 +563,8 @@ pub struct TestConfig {
     pub incorrect_sign: bool,
     pub incorrect_sign_size: TestConfigIncorrectSing,
 
-    pub auth_bin: Option<Bytes>,
+    pub auth_lock_type: TestConfigAuthLockType,
+    // pub auth_bin: Option<Bytes>,
     pub script_hash_type: Option<u8>,
 }
 
@@ -565,7 +583,7 @@ impl TestConfig {
             incorrect_msg: false,
             incorrect_sign: false,
             incorrect_sign_size: TestConfigIncorrectSing::None,
-            auth_bin: None,
+            auth_lock_type: TestConfigAuthLockType::C,
             script_hash_type: None,
         }
     }

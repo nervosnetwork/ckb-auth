@@ -22,7 +22,7 @@ use crate::{
     gen_args, gen_tx, gen_tx_scripts_verifier, gen_tx_with_grouped_args, sign_tx, Auth,
     AuthAlgorithmIdType, AuthErrorCodeType, BitcoinAuth, BitcoinSignVType, CKbAuth,
     CkbMultisigAuth, DogecoinAuth, DummyDataLoader, EosAuth, EthereumAuth, LitecoinAuth,
-    SchnorrAuth, TestConfig, TronAuth, MAX_CYCLES,
+    SchnorrAuth, TestConfig, TestConfigAuthLockType, TronAuth, MAX_CYCLES,
 };
 
 fn verify_unit(config: &TestConfig) -> Result<u64, ckb_error::Error> {
@@ -64,7 +64,9 @@ fn assert_result_error(res: Result<u64, ckb_error::Error>, des: &str, err_codes:
 }
 
 fn unit_test_success(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
-    let config = TestConfig::new(auth, run_type, 1);
+    let mut config = TestConfig::new(auth, run_type, 1);
+    assert_result_ok(verify_unit(&config), "");
+    config.auth_lock_type = TestConfigAuthLockType::Rust;
     assert_result_ok(verify_unit(&config), "");
 }
 
@@ -174,14 +176,14 @@ fn unit_test_common_with_runtype(
 
 fn unit_test_common_all_runtype(auth: &Box<dyn Auth>) {
     unit_test_common_with_auth(auth, EntryCategoryType::Exec);
-    unit_test_common_with_auth(auth, EntryCategoryType::DynamicLinking);
+    unit_test_common_with_auth(auth, EntryCategoryType::DynamicLibrary);
     unit_test_common_with_auth(auth, EntryCategoryType::Spawn);
 }
 
 fn unit_test_common(algorithm_type: AuthAlgorithmIdType) {
     for t in [
         EntryCategoryType::Exec,
-        EntryCategoryType::DynamicLinking,
+        EntryCategoryType::DynamicLibrary,
         EntryCategoryType::Spawn,
     ] {
         unit_test_common_with_runtype(algorithm_type.clone(), t, false);
@@ -191,7 +193,7 @@ fn unit_test_common(algorithm_type: AuthAlgorithmIdType) {
 fn unit_test_common_official(algorithm_type: AuthAlgorithmIdType) {
     for t in [
         EntryCategoryType::Exec,
-        EntryCategoryType::DynamicLinking,
+        EntryCategoryType::DynamicLibrary,
         EntryCategoryType::Spawn,
     ] {
         unit_test_common_with_runtype(algorithm_type.clone(), t, true);
@@ -282,7 +284,7 @@ fn bitcoin_pubkey_recid_verify() {
         0: BitcoinAuth::default(),
     });
 
-    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
+    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLibrary, 1);
     assert_result_error(
         verify_unit(&config),
         "failed conver btc",
@@ -373,7 +375,7 @@ fn convert_eth_error() {
         },
     });
 
-    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
+    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLibrary, 1);
     assert_result_error(
         verify_unit(&config),
         "failed conver eth",
@@ -411,7 +413,7 @@ fn convert_tron_error() {
     let auth: Box<dyn Auth> = Box::new(TronConverFaileAuth {
         0: TronAuth { privkey, pubkey },
     });
-    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
+    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLibrary, 1);
     assert_result_error(
         verify_unit(&config),
         "failed conver tron",
@@ -453,7 +455,7 @@ fn convert_btc_error() {
         0: BitcoinAuth::default(),
     });
 
-    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
+    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLibrary, 1);
     assert_result_error(
         verify_unit(&config),
         "failed conver btc",
@@ -500,7 +502,7 @@ fn convert_doge_error() {
         },
     });
 
-    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
+    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLibrary, 1);
     assert_result_error(
         verify_unit(&config),
         "failed conver doge",
@@ -548,7 +550,7 @@ fn convert_lite_error() {
         },
     });
 
-    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
+    let config = TestConfig::new(&auth, EntryCategoryType::DynamicLibrary, 1);
     assert_result_error(
         verify_unit(&config),
         "failed conver lite",
@@ -669,7 +671,7 @@ fn unit_test_ckbmultisig(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
 fn ckbmultisig_verify() {
     let auth: Box<dyn Auth> = CkbMultisigAuth::new(2, 2, 1);
     unit_test_ckbmultisig(&auth, EntryCategoryType::Exec);
-    unit_test_ckbmultisig(&auth, EntryCategoryType::DynamicLinking);
+    unit_test_ckbmultisig(&auth, EntryCategoryType::DynamicLibrary);
     unit_test_ckbmultisig(&auth, EntryCategoryType::Spawn);
 }
 
@@ -707,7 +709,7 @@ fn abnormal_algorithm_type() {
         );
     }
     {
-        let config = TestConfig::new(&auth, EntryCategoryType::DynamicLinking, 1);
+        let config = TestConfig::new(&auth, EntryCategoryType::DynamicLibrary, 1);
         assert_result_error(
             verify_unit(&config),
             "sign size(smaller)",
@@ -764,4 +766,13 @@ fn ethereum_recid() {
         "recid(34) check",
         &[AuthErrorCodeType::InvalidArg as i32],
     );
+}
+
+#[test]
+fn disable_dynamic_lib() {
+    let auth = auth_builder(AuthAlgorithmIdType::Ckb, false).unwrap();
+    let mut config = TestConfig::new(&auth, EntryCategoryType::Exec, 1);
+
+    config.auth_lock_type = TestConfigAuthLockType::CDisableDl;
+    assert_result_ok(verify_unit(&config), "");
 }
