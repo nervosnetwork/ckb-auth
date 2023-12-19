@@ -139,8 +139,6 @@ The whole length of the witness must be exactly 512. If there are any space left
 - public key: the public key of the signer
 - message: the message solana client signed
 
-#### More blockchains Support Are Ongoing ...
-- Ripple
 #### Ripple(algorithm_id=14)
 
 Key parameters:
