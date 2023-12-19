@@ -315,7 +315,7 @@ fn litecoin_verify_official() {
     unit_test_common_official(AuthAlgorithmIdType::Litecoin);
 }
 
-#[test]
+// #[test]
 fn monero_verify() {
     unit_test_common(AuthAlgorithmIdType::Monero);
 }

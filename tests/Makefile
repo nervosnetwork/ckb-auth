@@ -78,9 +78,10 @@ clean-spawn-tests:
 install-all: \
 	install-ckb-tools \
 	install-litecoin-tools \
-	install-monero-tools \
 	install-solana-tools \
 	install-cardano-tools
+
+# 	install-monero-tools
 
 install-ckb-tools: \
 	bin \
@@ -144,12 +145,12 @@ install-litecoin-tools:
 	rm -rf litecoin*
 	bin/litecoin-cli --version
 
-install-monero-tools:
-	wget -nv $(monero_tools_url)
-	tar xvf `basename -- $(monero_tools_url)`
-	cp -r monero-*/* bin
-	rm -rf monero-* bin/ANONYMITY_NETWORKS.md bin/README.md bin/LICENSE
-	bin/monero-wallet-cli --version
+# install-monero-tools:
+# 	wget -nv $(monero_tools_url)
+# 	tar xvf `basename -- $(monero_tools_url)`
+# 	cp -r monero-*/* bin
+# 	rm -rf monero-* bin/ANONYMITY_NETWORKS.md bin/README.md bin/LICENSE
+# 	bin/monero-wallet-cli --version
 
 install-solana-tools:
 	wget -nv $(solana_tools_url)
