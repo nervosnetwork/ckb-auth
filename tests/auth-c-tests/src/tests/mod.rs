@@ -1,6 +1,7 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
+use crate::get_rng;
 use ckb_auth_rs::EntryCategoryType;
 use ckb_chain_spec::consensus::{Consensus, ConsensusBuilder};
 use ckb_crypto::secp::{Generator, Privkey, Pubkey};
@@ -11,7 +12,7 @@ use ckb_types::{
     H256,
 };
 use log::{Level, LevelFilter, Metadata, Record};
-use rand::{thread_rng, Rng};
+use rand::Rng;
 use sha3::{digest::generic_array::typenum::private::IsEqualPrivate, Digest, Keccak256};
 use std::sync::Arc;
 
@@ -81,7 +82,7 @@ fn unit_test_multiple_group(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
 
     let config = TestConfig::new(auth, run_type, 1);
 
-    let mut rng = thread_rng();
+    let mut rng = get_rng();
     let tx = gen_tx_with_grouped_args(
         &mut data_loader,
         vec![
@@ -264,7 +265,7 @@ fn bitcoin_pubkey_recid_verify() {
             let sign = priv_key.sign_recoverable(&msg).expect("sign").serialize();
             assert_eq!(sign.len(), 65);
 
-            let mut rng = rand::thread_rng();
+            let mut rng = get_rng();
             let mut recid: u8 = rng.gen_range(0, 4);
             while recid == sign[64] && recid < 31 {
                 recid = rng.gen_range(0, 4);
@@ -354,7 +355,7 @@ fn secp256r1_raw_verify() {
     // is the data I used to verify this.
     //
     // TODO: fix this.
-    // 
+    //
     // unit_test_common(AuthAlgorithmIdType::Secp256r1Raw);
 }
 
@@ -384,7 +385,7 @@ fn convert_eth_error() {
     }
 
     let generator: secp256k1::Secp256k1<secp256k1::All> = secp256k1::Secp256k1::new();
-    let mut rng = thread_rng();
+    let mut rng = get_rng();
     let (privkey, pubkey) = generator.generate_keypair(&mut rng);
 
     let auth: Box<dyn Auth> = Box::new(EthConverFaileAuth {
@@ -430,7 +431,7 @@ fn convert_tron_error() {
     }
 
     let generator: secp256k1::Secp256k1<secp256k1::All> = secp256k1::Secp256k1::new();
-    let mut rng = thread_rng();
+    let mut rng = get_rng();
     let (privkey, pubkey) = generator.generate_keypair(&mut rng);
     let auth: Box<dyn Auth> = Box::new(TronConverFaileAuth {
         0: TronAuth { privkey, pubkey },
