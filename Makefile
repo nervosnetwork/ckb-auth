@@ -5,7 +5,7 @@ OBJCOPY := $(TARGET)-objcopy
 AR := $(TARGET)-ar
 
 CFLAGS := -g -O3 -fPIC \
-		-Wall -Wno-nonnull -Wno-nonnull-compare -Wno-unused-function -Wno-dangling-pointer \
+		-Wall -Werror -Wno-nonnull -Wno-nonnull-compare -Wno-unused-function -Wno-dangling-pointer \
 		-fno-builtin-printf -fno-builtin-memcmp \
 		-nostdinc -nostdlib -nostartfiles -fvisibility=hidden \
 		-fdata-sections -ffunction-sections
