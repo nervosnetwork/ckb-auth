@@ -1952,8 +1952,10 @@ impl Auth for Secp256r1RawAuth {
         let pub_key = self.get_pub_key_bytes();
         dbg!(hex::encode(&msg));
 
-        // Note by default, p256 will sign the sha256 hash of the message.
-        // So we don't need to do any hashing here.
+        // TODO: we need to sign the message without hashing first,
+        // i.e. the method https://docs.rs/ecdsa/latest/ecdsa/struct.SigningKey.html#method.sign_prehash
+        // which is not available in current p256 version.
+        // See alsoo the comments in the test secp256r1_raw_verify.
         let signature: Signature = self.key.sign(msg.as_bytes());
         let signature = signature.to_vec();
         dbg!(hex::encode(&signature), &signature.len(), pub_key.len());
