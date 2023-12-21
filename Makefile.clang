@@ -12,7 +12,7 @@ LDFLAGS := -static -Wl,--gc-sections
 AUTH_DYN_LIST := --dynamic-list c/auth.syms
 
 CFLAGS := -g -O3 -fPIC \
-		-Wall -Werror -Wno-nonnull -Wno-unused-function \
+		-Wall -Wno-nonnull -Wno-unused-function \
 		-fno-builtin-printf -fno-builtin-memcmp \
 		-nostdinc -nostdlib -fvisibility=hidden \
 		-fdata-sections -ffunction-sections \
