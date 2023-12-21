@@ -1,5 +1,3 @@
-#include "dump.c"
-
 #include "ckb_auth.h"
 
 // clang-format off
@@ -121,14 +119,10 @@ ckb_auth_validate(uint8_t auth_algorithm_id, const uint8_t *signature,
   CHECK2(pubkey_hash_size == AUTH160_SIZE, ERROR_INVALID_ARG);
 
   if (auth_algorithm_id == AuthAlgorithmIdSecp256R1) {
-    hex_dump("signature", signature, signature_size, 0);
-    hex_dump("message", message, message_size, 0);
     err = verify(pubkey_hash, signature, signature_size, message, message_size,
                  validate_signature_secp256r1, convert_copy);
     CHECK(err);
   } else if (auth_algorithm_id == AuthAlgorithmIdSecp256R1Raw) {
-    hex_dump("signature", signature, signature_size, 0);
-    hex_dump("message", message, message_size, 0);
     err = verify(pubkey_hash, signature, signature_size, message, message_size,
                  validate_signature_secp256r1_raw, convert_copy);
     CHECK(err);
