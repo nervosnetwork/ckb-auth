@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
-use crate::get_rng;
+use crate::{get_rng, Secp256r1RawAuth};
 use ckb_auth_rs::EntryCategoryType;
 use ckb_chain_spec::consensus::{Consensus, ConsensusBuilder};
 use ckb_crypto::secp::{Generator, Privkey, Pubkey};
@@ -65,9 +65,12 @@ fn assert_result_error(res: Result<u64, ckb_error::Error>, des: &str, err_codes:
 }
 
 fn unit_test_success(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
+    dbg!(&run_type);
     let mut config = TestConfig::new(auth, run_type, 1);
+    dbg!(&config.auth_lock_type);
     assert_result_ok(verify_unit(&config), "");
     config.auth_lock_type = TestConfigAuthLockType::Rust;
+    dbg!(&config.auth_lock_type);
     assert_result_ok(verify_unit(&config), "");
 }
 
@@ -334,29 +337,18 @@ fn ripple_verify() {
 #[test]
 fn secp256r1_verify() {
     use_libecc();
+    crate::rng::set_seed(Secp256r1RawAuth::rng_seed());
     unit_test_common(AuthAlgorithmIdType::Secp256r1);
 }
 
 #[test]
-fn secp256r1_raw_verify() {
+fn secp256r1_raw_verify_succeed() {
     use_libecc();
-    // We need a way to sign message without hashing them first.
-    // I tried p256 crate, but the method sign_prehash requires a newer
-    // version, and this newer version depends on curve25519-dalek which in
-    // turn depends on zeroize. This zeroize has version conflict with the
-    // zeroize required by solana-sdk.
-    // I also tried to use openssl as instructed by
-    // https://stackoverflow.com/questions/61775022/openssl-ecdsa-sign-input-as-is-without-digest
-    // It turns out this does not seem to sign the message directly.
-    // The signature can not be verified by libecc, while signing the prehash and
-    // feeding the hash and signature into libecc did work.
-    // So this test is disabled for now.
-    // https://github.com/contrun/ckb-auth/commit/ad707c0b95a31b5df8cb59e423764e21a2569c53
-    // is the data I used to verify this.
-    //
-    // TODO: fix this.
-    //
-    // unit_test_common(AuthAlgorithmIdType::Secp256r1Raw);
+    crate::rng::set_seed(Secp256r1RawAuth::rng_seed());
+    let algorithm_type = AuthAlgorithmIdType::Secp256r1Raw;
+    let auth = auth_builder(algorithm_type, false).unwrap();
+    let run_type = EntryCategoryType::DynamicLibrary;
+    unit_test_success(&auth, run_type);
 }
 
 #[test]

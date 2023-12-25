@@ -569,7 +569,7 @@ pub enum TestConfigIncorrectSing {
     Smaller,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum TestConfigAuthLockType {
     C,
     Rust,
@@ -1875,9 +1875,9 @@ impl Secp256r1Auth {
     pub fn new() -> Box<Secp256r1Auth> {
         use p256::ecdsa::SigningKey;
         const SECRET_KEY: [u8; 32] = [
-            0x51, 0x9b, 0x42, 0x3d, 0x71, 0x5f, 0x8b, 0x58, 0x1f, 0x4f, 0xa8, 0xee, 0x59, 0xf4,
-            0x77, 0x1a, 0x5b, 0x44, 0xc8, 0x13, 0x0b, 0x4e, 0x3e, 0xac, 0xca, 0x54, 0xa5, 0x6d,
-            0xda, 0x72, 0xb4, 0x64,
+            0x11, 0x2c, 0x32, 0xbc, 0xd5, 0x03, 0xcb, 0x62, 0x10, 0x2b, 0x1d, 0x98, 0x37, 0x9a,
+            0xf3, 0x80, 0xc2, 0x26, 0xa1, 0x0a, 0xb3, 0x44, 0xca, 0x47, 0x88, 0xa4, 0xa6, 0x52,
+            0x63, 0x5e, 0xcf, 0xfd,
         ];
 
         let sk = SigningKey::from_bytes(&SECRET_KEY).unwrap();
@@ -1931,19 +1931,33 @@ impl Auth for Secp256r1Auth {
 #[derive(Clone)]
 pub struct Secp256r1RawAuth {
     pub key: Arc<p256::ecdsa::SigningKey>,
+    pub signature_to_messages: HashMap<Vec<u8>, Vec<u8>>,
 }
 
 impl Secp256r1RawAuth {
+    pub fn rng_seed() -> u64 {
+        42
+    }
     pub fn new() -> Box<Secp256r1RawAuth> {
         use p256::ecdsa::SigningKey;
         const SECRET_KEY: [u8; 32] = [
-            0x51, 0x9b, 0x42, 0x3d, 0x71, 0x5f, 0x8b, 0x58, 0x1f, 0x4f, 0xa8, 0xee, 0x59, 0xf4,
-            0x77, 0x1a, 0x5b, 0x44, 0xc8, 0x13, 0x0b, 0x4e, 0x3e, 0xac, 0xca, 0x54, 0xa5, 0x6d,
-            0xda, 0x72, 0xb4, 0x64,
+            0x11, 0x2c, 0x32, 0xbc, 0xd5, 0x03, 0xcb, 0x62, 0x10, 0x2b, 0x1d, 0x98, 0x37, 0x9a,
+            0xf3, 0x80, 0xc2, 0x26, 0xa1, 0x0a, 0xb3, 0x44, 0xca, 0x47, 0x88, 0xa4, 0xa6, 0x52,
+            0x63, 0x5e, 0xcf, 0xfd,
         ];
 
         let sk = SigningKey::from_bytes(&SECRET_KEY).unwrap();
-        Box::new(Self { key: Arc::new(sk) })
+        // A few pre-created signatures to the messages.
+        let mut signature_to_messages = HashMap::new();
+        signature_to_messages.insert(
+            hex::decode("4098dc9ac1815fbe9287f9f74748688b06a09bedf5aef07b667c2a979282d24f").unwrap(),
+            hex::decode(
+                "05279a8551a7453b982842150e3c58dce6f6eae399d6835e2b5a9ac5e41559f9e76f5d21e8f85ec959b6a4a089cd0dc9509649bbf57704b61abfe50c79d1da86").unwrap(),
+        );
+        Box::new(Self {
+            key: Arc::new(sk),
+            signature_to_messages,
+        })
     }
     pub fn get_pub_key(&self) -> p256::ecdsa::VerifyingKey {
         let pk = self.key.verifying_key();
@@ -1972,19 +1986,32 @@ impl Auth for Secp256r1RawAuth {
         H256::from(message.clone())
     }
     fn sign(&self, msg: &H256) -> Bytes {
-        use p256::ecdsa::{signature::Signer, Signature};
-
         let pub_key = self.get_pub_key_bytes();
         dbg!(hex::encode(&msg));
 
         // TODO: we need to sign the message without hashing first,
         // i.e. the method https://docs.rs/ecdsa/latest/ecdsa/struct.SigningKey.html#method.sign_prehash
         // which is not available in current p256 version.
-        // See alsoo the comments in the test secp256r1_raw_verify.
-        let signature: Signature = self.key.sign(msg.as_bytes());
-        let signature = signature.to_vec();
-        dbg!(hex::encode(&signature), &signature.len(), pub_key.len());
-        let signature: Vec<u8> = pub_key.iter().chain(&signature).map(|x| *x).collect();
+        // Here we use the hard coded signature and message.
+        let signature = self.signature_to_messages.get(&msg.0.to_vec()).expect(
+            &format!(r#"
+                message {0} unexpected.
+                Make sure you have not changed the way we generate transactions (thus changed the message to sign)
+                and set the rng seed with `crate::rng::sed_seed(Secp256r1Raw::rng_seed())`.
+                In case of updating messages, build ec_utils from https://github.com/contrun/libecc/tree/secp256-copy-sign
+                and generate and output new signatures with the following commands
+
+                printf 010104{1} | xxd -r -p > private_key.bin
+                printf {0} | xxd -r -p > message.bin
+                ./build/ec_utils sign SECP256R1 ECDSA SHA256 message.bin private_key.bin signature.bin
+                xxd -p signature.bin | tr -d '\n'
+                "#,
+                hex::encode(msg.0),
+                hex::encode(self.key.to_bytes())
+            )
+        );
+        dbg!(hex::encode(signature), signature.len(), pub_key.len());
+        let signature: Vec<u8> = pub_key.iter().chain(signature).map(|x| *x).collect();
 
         dbg!(hex::encode(&signature));
         signature.into()

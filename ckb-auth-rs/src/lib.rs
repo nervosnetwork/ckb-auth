@@ -97,7 +97,7 @@ impl From<NulError> for CkbAuthError {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 pub enum EntryCategoryType {
     Exec = 0,
     #[cfg(feature = "enable-dynamic-library")]
