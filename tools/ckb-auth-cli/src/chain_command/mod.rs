@@ -8,6 +8,7 @@ mod monero;
 mod ripple;
 mod solana;
 mod tron;
+mod unisat;
 
 pub use self::monero::{MoneroLock, MoneroLockArgs};
 pub use bitcoin::{BitcoinLock, BitcoinLockArgs};
@@ -19,3 +20,4 @@ pub use litecoin::{LitecoinLock, LitecoinLockArgs};
 pub use ripple::{RippleLock, RippleLockArgs};
 pub use solana::{SolanaLock, SolanaLockArgs};
 pub use tron::{TronLock, TronLockArgs};
+pub use unisat::{UnisatLock, UnisatLockArgs};
