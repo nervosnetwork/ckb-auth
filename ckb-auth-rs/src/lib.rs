@@ -44,6 +44,8 @@ pub enum AuthAlgorithmIdType {
     Solana = 13,
     Ripple = 14,
     Secp256r1 = 15,
+    Toncoin = 16,
+    Secp256r1Raw = 17,
     OwnerLock = 0xFC,
 }
 
@@ -57,7 +59,7 @@ impl TryFrom<u8> for AuthAlgorithmIdType {
     type Error = CkbAuthError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if (value >= AuthAlgorithmIdType::Ckb.into()
-            && value <= AuthAlgorithmIdType::Secp256r1.into())
+            && value <= AuthAlgorithmIdType::Secp256r1Raw.into())
             || value == AuthAlgorithmIdType::OwnerLock.into()
         {
             Ok(unsafe { transmute(value) })
@@ -95,7 +97,7 @@ impl From<NulError> for CkbAuthError {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 pub enum EntryCategoryType {
     Exec = 0,
     #[cfg(feature = "enable-dynamic-library")]

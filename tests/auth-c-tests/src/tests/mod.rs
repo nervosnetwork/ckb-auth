@@ -1,6 +1,7 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
+use crate::{get_rng, Secp256r1RawAuth};
 use ckb_auth_rs::EntryCategoryType;
 use ckb_chain_spec::consensus::{Consensus, ConsensusBuilder};
 use ckb_crypto::secp::{Generator, Privkey, Pubkey};
@@ -11,7 +12,7 @@ use ckb_types::{
     H256,
 };
 use log::{Level, LevelFilter, Metadata, Record};
-use rand::{thread_rng, Rng};
+use rand::Rng;
 use sha3::{digest::generic_array::typenum::private::IsEqualPrivate, Digest, Keccak256};
 use std::sync::Arc;
 
@@ -64,9 +65,12 @@ fn assert_result_error(res: Result<u64, ckb_error::Error>, des: &str, err_codes:
 }
 
 fn unit_test_success(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
+    dbg!(&run_type);
     let mut config = TestConfig::new(auth, run_type, 1);
+    dbg!(&config.auth_lock_type);
     assert_result_ok(verify_unit(&config), "");
     config.auth_lock_type = TestConfigAuthLockType::Rust;
+    dbg!(&config.auth_lock_type);
     assert_result_ok(verify_unit(&config), "");
 }
 
@@ -81,7 +85,7 @@ fn unit_test_multiple_group(auth: &Box<dyn Auth>, run_type: EntryCategoryType) {
 
     let config = TestConfig::new(auth, run_type, 1);
 
-    let mut rng = thread_rng();
+    let mut rng = get_rng();
     let tx = gen_tx_with_grouped_args(
         &mut data_loader,
         vec![
@@ -264,7 +268,7 @@ fn bitcoin_pubkey_recid_verify() {
             let sign = priv_key.sign_recoverable(&msg).expect("sign").serialize();
             assert_eq!(sign.len(), 65);
 
-            let mut rng = rand::thread_rng();
+            let mut rng = get_rng();
             let mut recid: u8 = rng.gen_range(0, 4);
             while recid == sign[64] && recid < 31 {
                 recid = rng.gen_range(0, 4);
@@ -333,7 +337,18 @@ fn ripple_verify() {
 #[test]
 fn secp256r1_verify() {
     use_libecc();
+    crate::rng::set_seed(Secp256r1RawAuth::rng_seed());
     unit_test_common(AuthAlgorithmIdType::Secp256r1);
+}
+
+#[test]
+fn secp256r1_raw_verify_succeed() {
+    use_libecc();
+    crate::rng::set_seed(Secp256r1RawAuth::rng_seed());
+    let algorithm_type = AuthAlgorithmIdType::Secp256r1Raw;
+    let auth = auth_builder(algorithm_type, false).unwrap();
+    let run_type = EntryCategoryType::DynamicLibrary;
+    unit_test_success(&auth, run_type);
 }
 
 #[test]
@@ -362,7 +377,7 @@ fn convert_eth_error() {
     }
 
     let generator: secp256k1::Secp256k1<secp256k1::All> = secp256k1::Secp256k1::new();
-    let mut rng = thread_rng();
+    let mut rng = get_rng();
     let (privkey, pubkey) = generator.generate_keypair(&mut rng);
 
     let auth: Box<dyn Auth> = Box::new(EthConverFaileAuth {
@@ -408,7 +423,7 @@ fn convert_tron_error() {
     }
 
     let generator: secp256k1::Secp256k1<secp256k1::All> = secp256k1::Secp256k1::new();
-    let mut rng = thread_rng();
+    let mut rng = get_rng();
     let (privkey, pubkey) = generator.generate_keypair(&mut rng);
     let auth: Box<dyn Auth> = Box::new(TronConverFaileAuth {
         0: TronAuth { privkey, pubkey },

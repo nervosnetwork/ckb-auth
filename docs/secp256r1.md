@@ -87,7 +87,7 @@ by concatenating the R and S value in the last two lines.
 Running the following command would save such signature to the file `signature.raw`
 
 ```
-openssl asn1parse -dump -inform DER -in signature | awk -F: '/33 prim: INTEGER/ {print $NF}' |  xxd -r -p > signature.raw   
+openssl asn1parse -dump -inform DER -in signature | awk -F: '/prim:\s*INTEGER/ {print $NF}' |  xxd -r -p > signature.raw
 ```
 
 The final signature field of the ckb transaction should be this public key concatenated with the above signature.
