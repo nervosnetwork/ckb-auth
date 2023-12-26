@@ -158,6 +158,20 @@ int get_btc_recid(uint8_t d, bool *compressed, bool *p2sh_hash) {
     }
 }
 
+int bitcoin_hash160(const uint8_t *data, size_t size, uint8_t *output) {
+    int err = 0;
+    const mbedtls_md_info_t *md_info =
+        mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+    unsigned char temp[SHA256_SIZE];
+    err = md_string(md_info, data, size, temp);
+    if (err) return err;
+
+    md_info = mbedtls_md_info_from_type(MBEDTLS_MD_RIPEMD160);
+    err = md_string(md_info, temp, SHA256_SIZE, output);
+    if (err) return err;
+    return 0;
+}
+
 static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
                                          const uint8_t *msg, size_t msg_len,
                                          uint8_t *out_pubkey,
@@ -207,18 +221,12 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
         }
 
         if (p2sh_hash) {
-            const mbedtls_md_info_t *md_info =
-                mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-            unsigned char temp[SHA256_SIZE];
-            int err = md_string(md_info, out_pubkey, *out_pubkey_size, temp);
+            int err =
+                bitcoin_hash160(out_pubkey, *out_pubkey_size, out_pubkey + 2);
             if (err) return err;
 
-            md_info = mbedtls_md_info_from_type(MBEDTLS_MD_RIPEMD160);
-            err = md_string(md_info, temp, SHA256_SIZE, temp);
-            if (err) return err;
             out_pubkey[0] = 0;
             out_pubkey[1] = 20;  // RIPEMD160 size
-            memcpy(out_pubkey + 2, temp, 20);
             *out_pubkey_size = 22;
         }
     } else {
@@ -338,15 +346,8 @@ int validate_signature_btc(void *prefilled_data, const uint8_t *sig,
                                         &out_pubkey_size);
     CHECK(err);
 
-    const mbedtls_md_info_t *md_info =
-        mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-    unsigned char temp[SHA256_SIZE];
-    err = md_string(md_info, out_pubkey, out_pubkey_size, temp);
-    CHECK(err);
-
-    md_info = mbedtls_md_info_from_type(MBEDTLS_MD_RIPEMD160);
-    err = md_string(md_info, temp, SHA256_SIZE, temp);
-    CHECK(err);
+    unsigned char temp[AUTH160_SIZE];
+    err = bitcoin_hash160(out_pubkey, out_pubkey_size, temp);
 
     memcpy(output, temp, AUTH160_SIZE);
     *output_len = AUTH160_SIZE;
@@ -902,10 +903,7 @@ int convert_litecoin_message(const uint8_t *msg, size_t msg_len,
 int convert_ripple_message(const uint8_t *msg, size_t msg_len, uint8_t *new_msg,
                            size_t new_msg_len) {
     int err = 0;
-    CHECK(mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), msg, msg_len,
-                     new_msg));
-    CHECK(mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_RIPEMD160), new_msg,
-                     SHA256_SIZE, new_msg));
+    CHECK(bitcoin_hash160(msg, msg_len, new_msg));
     memset(new_msg + 20, 0, 12);
 exit:
     return err;
