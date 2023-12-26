@@ -1,6 +1,6 @@
 use crate::{auth_script::run_auth_exec, utils::decode_string, BlockChain, BlockChainArgs};
 use anyhow::{anyhow, Error};
-use bitcoin::bech32::{self, FromBase32, ToBase32, Variant};
+use bitcoin::bech32::{self, FromBase32};
 use ckb_auth_rs::AuthAlgorithmIdType;
 use clap::{arg, ArgMatches, Command};
 
