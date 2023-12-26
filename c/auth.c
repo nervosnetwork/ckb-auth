@@ -139,26 +139,17 @@ static int _recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
     return ret;
 }
 
-typedef enum {
-    BTCVType_P2PKHUncompressed = 1,
-    BTCVType_P2PKHCompressed,
-    BTCVType_SegwitP2SH,
-    BTCVType_SegwitBech32,
-} BTCVType;
-
 // Refer to: https://en.bitcoin.it/wiki/BIP_0137
-int get_btc_recid(uint8_t d, BTCVType *v_type) {
+int get_btc_recid(uint8_t d, bool *compressed) {
+    *compressed = true;
     if (d >= 27 && d <= 30) {  // P2PKH uncompressed
-        *v_type = BTCVType_P2PKHUncompressed;
+        *compressed = false;
         return d - 27;
     } else if (d >= 31 && d <= 34) {  // P2PKH compressed
-        *v_type = BTCVType_P2PKHCompressed;
         return d - 31;
     } else if (d >= 35 && d <= 38) {  // Segwit P2SH
-        *v_type = BTCVType_SegwitP2SH;
         return d - 35;
     } else if (d >= 39 && d <= 42) {  // Segwit Bech32
-        *v_type = BTCVType_SegwitBech32;
         return d - 39;
     } else {
         return -1;
@@ -177,14 +168,12 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
     if (msg_len != SECP256K1_MESSAGE_SIZE) {
         return ERROR_INVALID_ARG;
     }
-
-    BTCVType v_type;
-    int recid = get_btc_recid(sig[0], &v_type);
+    bool compressed = true;
+    int recid = get_btc_recid(sig[0], &compressed);
     if (recid == -1) {
         return ERROR_INVALID_ARG;
     }
 
-    /* Load signature */
     secp256k1_context context;
     uint8_t secp_data[CKB_SECP256K1_DATA_SIZE];
     ret = ckb_secp256k1_custom_verify_only_initialize(&context, secp_data);
@@ -193,7 +182,7 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
     }
 
     secp256k1_ecdsa_recoverable_signature signature;
-    // change 2,3
+
     if (secp256k1_ecdsa_recoverable_signature_parse_compact(
             &context, &signature, sig + 1, recid) == 0) {
         return ERROR_WRONG_STATE;
@@ -206,16 +195,7 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
     }
 
     unsigned int flag = SECP256K1_EC_COMPRESSED;
-    if (v_type == BTCVType_P2PKHUncompressed) {
-        *out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
-        flag = SECP256K1_EC_UNCOMPRESSED;
-        if (secp256k1_ec_pubkey_serialize(&context, out_pubkey, out_pubkey_size,
-                                          &pubkey, flag) != 1) {
-            return ERROR_WRONG_STATE;
-        }
-    } else if (v_type == BTCVType_P2PKHCompressed ||
-               v_type == BTCVType_SegwitBech32 ||
-               v_type == BTCVType_SegwitP2SH) {
+    if (compressed) {
         *out_pubkey_size = SECP256K1_PUBKEY_SIZE;
         flag = SECP256K1_EC_COMPRESSED;
         if (secp256k1_ec_pubkey_serialize(&context, out_pubkey, out_pubkey_size,
@@ -223,26 +203,14 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
             return ERROR_WRONG_STATE;
         }
 
-        if (v_type == BTCVType_SegwitP2SH) {
-            const mbedtls_md_info_t *md_info =
-                mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-            unsigned char temp[SHA256_SIZE];
-            int err = md_string(md_info, out_pubkey, *out_pubkey_size, temp);
-            if (err) return err;
-
-            md_info = mbedtls_md_info_from_type(MBEDTLS_MD_RIPEMD160);
-            err = md_string(md_info, temp, SHA256_SIZE, temp);
-            if (err) return err;
-
-            out_pubkey[0] = 0;
-            out_pubkey[1] = AUTH160_SIZE;
-            memcpy(out_pubkey + 2, temp, AUTH160_SIZE);
-            *out_pubkey_size = 22;
-        }
     } else {
-        return ERROR_WRONG_STATE;
+        *out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
+        flag = SECP256K1_EC_UNCOMPRESSED;
+        if (secp256k1_ec_pubkey_serialize(&context, out_pubkey, out_pubkey_size,
+                                          &pubkey, flag) != 1) {
+            return ERROR_WRONG_STATE;
+        }
     }
-
     return ret;
 }
 
@@ -474,7 +442,7 @@ size_t write_varint(uint8_t *dest, size_t n) {
     uint8_t *ptr = dest;
     /* Make sure that there is one after this */
     while (n >= 0x80) {
-        *ptr = ((uint8_t)(n)&0x7f) | 0x80;
+        *ptr = ((uint8_t)(n) & 0x7f) | 0x80;
         ptr++;
         n >>= 7; /* I should be in multiples of 7, this should just get the next
                     part */
