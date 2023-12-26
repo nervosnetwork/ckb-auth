@@ -88,7 +88,7 @@ build/auth_libecc: c/auth_libecc.c $(LIBECC_OPTIMIZED_FILES)
 	ls -l $@
 
 fmt:
-	clang-format -i -style="{BasedOnStyle: Google, IndentWidth: 4}" c/*.c c/*.h
+	clang-format -i -style="{BasedOnStyle: Google, IndentWidth: 4, SortIncludes: false}" c/*.c c/*.h
 
 clean:
 	rm -rf build/*.debug
