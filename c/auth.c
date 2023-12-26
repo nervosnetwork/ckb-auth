@@ -140,14 +140,16 @@ static int _recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
 }
 
 // Refer to: https://en.bitcoin.it/wiki/BIP_0137
-int get_btc_recid(uint8_t d, bool *compressed) {
+int get_btc_recid(uint8_t d, bool *compressed, bool *p2sh_hash) {
     *compressed = true;
+    *p2sh_hash = false;
     if (d >= 27 && d <= 30) {  // P2PKH uncompressed
         *compressed = false;
         return d - 27;
     } else if (d >= 31 && d <= 34) {  // P2PKH compressed
         return d - 31;
     } else if (d >= 35 && d <= 38) {  // Segwit P2SH
+        *p2sh_hash = true;
         return d - 35;
     } else if (d >= 39 && d <= 42) {  // Segwit Bech32
         return d - 39;
@@ -169,7 +171,8 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
         return ERROR_INVALID_ARG;
     }
     bool compressed = true;
-    int recid = get_btc_recid(sig[0], &compressed);
+    bool p2sh_hash = false;
+    int recid = get_btc_recid(sig[0], &compressed, &p2sh_hash);
     if (recid == -1) {
         return ERROR_INVALID_ARG;
     }
@@ -203,6 +206,21 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
             return ERROR_WRONG_STATE;
         }
 
+        if (p2sh_hash) {
+            const mbedtls_md_info_t *md_info =
+                mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+            unsigned char temp[SHA256_SIZE];
+            int err = md_string(md_info, out_pubkey, *out_pubkey_size, temp);
+            if (err) return err;
+
+            md_info = mbedtls_md_info_from_type(MBEDTLS_MD_RIPEMD160);
+            err = md_string(md_info, temp, SHA256_SIZE, temp);
+            if (err) return err;
+            out_pubkey[0] = 0;
+            out_pubkey[1] = 20;  // RIPEMD160 size
+            memcpy(out_pubkey + 2, temp, 20);
+            *out_pubkey_size = 22;
+        }
     } else {
         *out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
         flag = SECP256K1_EC_UNCOMPRESSED;
