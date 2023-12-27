@@ -132,3 +132,62 @@ In the GUI:
 - `File` -> `Verify Message`, and enter the corresponding data.
 
 In ckb-auth-cli, base58 decoding is performed on the address, with the first 20 bytes used as the public key hash. The message is decoded to 32 bytes, and the signature is base64 decoded. After passing these data to ckb-auth, the verification process is similar to that in Bitcoin Core, and further details will not be reiterated here.
+
+## Unisat Wallet
+Bitcoin Wallet [Unisat](https://hk.unisat.io/), an open-source browser extension, supports Chrome, Firefox, Edge, and Brave browsers.
+
+As Unisat's user interface does not independently support the signing of messages, [API](https://docs.unisat.io/dev/unisat-developer-service/unisat-wallet#signmessage) is utilized here for signing.
+
+API Principle: After installation, the plugin injects a class named "unisat" into the page upon completion of initialization. All API communication with the wallet is conducted through this class.
+
+### Installation and Account Creation
+* [Chrome web store](https://chromewebstore.google.com/detail/unisat-wallet/ppbibelpcjmhbdihakflkdcoccbgbkpo)
+* For other browsers, compilation is required using the [source code](https://github.com/unisat-wallet/extension).
+
+It is recommended to use Unisat under Chrome, and all subsequent operations are also performed within Chrome.
+
+
+### Obtaining the Address
+
+Initially, after installation, follow the prompts to create a new account. Note that during creation, you can choose the `Address Type`, and after creation, it can be modified: Settings (bottom right gear icon) -> Address Type.
+
+ckb-auth supports Native Segwit, Nested Segwit, and Legacy.
+Taproot is not supported. According to official information, Taproot uses Schnorr, but in Unisat, if the Address type is set to Taproot, the signature still uses secp256k1.
+
+To obtain the complete address, use one of the following methods:
+1. In the UI, click "Receive" to enter the page, then click on the address below the QR code to copy.
+
+2. On any page, bring up DevTools (shortcut: F12). Enter the following code in the Console to retrieve the current address.
+```js
+await unisat.getAccounts()
+```
+
+Output
+```
+['bc1qngwkvfhwnp79dzfkdw8ylfaptcv9gzvk8ggvd4']
+```
+
+### Generating a Signature
+In the browser's DevTools, input the code, and in the subsequent confirmation window, click the "Sign" button to generate the signature.
+
+```js
+await unisat.signMessage("0011223344556677889900112233445500112233445566778899001122334455");
+```
+
+Output:
+```
+'GzYPwz0f6SVquNRya5qqwXAYjRHo8c2XVO2IDk0ILbXBCwCYwWupDli3ubi1gkfD6olVIG12BBKqXSkNWBA4ykM='
+```
+
+Note that signatures generated for the same account but with different Address Types are not interchangeable. Therefore, if you wish to test other types, switch the address before signing.
+
+
+### Verify
+Use ckb-auth-cli to verify the signed data:
+```shell
+./ckb-auth-cli unisat verify -a bc1qngwkvfhwnp79dzfkdw8ylfaptcv9gzvk8ggvd4 \
+    -s GzYPwz0f6SVquNRya5qqwXAYjRHo8c2XVO2IDk0ILbXBCwCYwWupDli3ubi1gkfD6olVIG12BBKqXSkNWBA4ykM= \
+    -m 0011223344556677889900112233445500112233445566778899001122334455
+```
+
+Due to an issue with Unisat's signature, there is a misalignment in the first byte, specifically regarding the signature type flag. To address this, a separate command has been created in the code to handle the correction before usage.
