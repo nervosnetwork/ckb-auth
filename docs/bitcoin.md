@@ -35,6 +35,8 @@ Output address:
 1CSbWFszmuQiPCRPsaDhhb2NuFTEZFQqih
 ```
 
+Regarding Bitcoin's support for multiple address formats, you can [refer to](https://en.bitcoin.it/wiki/List_of_address_prefixes) the following link to understand how to distinguish between these addresses
+
 ### Generate Signature
 
 To begin, generate a 32-byte data segment as the message:
