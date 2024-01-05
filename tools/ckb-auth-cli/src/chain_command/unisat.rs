@@ -137,12 +137,22 @@ impl UnisatLock {
         Some(address.try_into().unwrap())
     }
 
+    // https://en.bitcoin.it/wiki/List_of_address_prefixes
     fn parse_address_with_nested_segwit(address: &str) -> Option<[u8; 20]> {
         let address = bs58::decode(address).into_vec();
         if address.is_err() {
             return None;
         }
         let address = address.unwrap();
+
+        if address.len() != 25 {
+            return None;
+        }
+
+        if address[0] != 0x05 && address[0] != 0xC4 {
+            return None;
+        }
+
         Self::check_sum(&address);
 
         Some(address[1..21].try_into().unwrap())
@@ -160,7 +170,11 @@ impl UnisatLock {
         }
         let address = address.unwrap();
 
-        if address.len() < 21 {
+        if address.len() != 25 {
+            return None;
+        }
+
+        if address[0] != 0x00 && address[0] != 0x6f {
             return None;
         }
 
