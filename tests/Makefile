@@ -88,6 +88,7 @@ check-c-code-format:
 	fi
 
 check-rust-code-format:
+	cd ../ckb-auth-rs && cargo fmt --all --check
 	cd auth-c-tests && cargo fmt --all --check
 	cd auth-rust-lock && cargo fmt --all --check
 	cd auth-spawn-tests && cargo fmt --all --check
