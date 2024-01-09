@@ -107,7 +107,8 @@ install-ckb-tools: \
 	install-ckb-debugger \
 	install-moleculec \
 	install-capsule \
-	install-cross
+	install-cross \
+	install-cargo-fmt
 
 install-ckb-debugger:
 ifeq ($(shell uname),Darwin)
@@ -134,6 +135,9 @@ endif
 
 install-cross:
 	cargo install cross --git https://github.com/cross-rs/cross --root ./
+
+install-cargo-fmt:
+	cargo install rustfmt
 
 litecoin_tools_url=
 monero_tools_url=

@@ -12,10 +12,10 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: recursive
-    - name: Format check
-      run: cd tests && make check-code-format
     - name: Install tools
       run: cd tests && make install-all
+    - name: Format check
+      run: cd tests && make check-code-format
     - name: Build contract
       run: make all-via-docker
     - name: Run all testcases
