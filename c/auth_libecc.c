@@ -1,3 +1,4 @@
+#include "ckb_auth_internal.h"
 #include "ckb_auth.h"
 
 // clang-format off

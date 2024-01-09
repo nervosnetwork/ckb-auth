@@ -27,6 +27,7 @@
 #include "secp256k1_helper_20210801.h"
 #include "include/secp256k1_schnorrsig.h"
 
+#include "ckb_auth_internal.h"
 #include "ckb_auth.h"
 #undef CKB_SUCCESS
 #include "ckb_hex.h"
