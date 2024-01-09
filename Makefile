@@ -28,7 +28,10 @@ CFLAGS_LIBECC_OPTIMIZED = -I ../ckb-c-stdlib-2023 -I ../ckb-c-stdlib-2023/libc -
 CFLAGS_LINK_TO_LIBECC_OPTIMIZED := -fno-builtin -fno-builtin-printf -DWORDSIZE=64 -DWITH_STDLIB -DWITH_CKB -I ${LIBECC_OPTIMIZED_PATH}/src -I ${LIBECC_OPTIMIZED_PATH}/src/external_deps
 
 # docker pull nervos/ckb-riscv-gnu-toolchain:gnu-jammy-20230214
-BUILDER_DOCKER := nervos/ckb-riscv-gnu-toolchain@sha256:d3f649ef8079395eb25a21ceaeb15674f47eaa2d8cc23adc8bcdae3d5abce6ec
+BUILDER_DOCKER := \
+	nervos/ckb-riscv-gnu-toolchain@sha256:d3f649ef8079395eb25a21ceaeb15674f47eaa2d8cc23adc8bcdae3d5abce6ec
+CLANG_FORMAT_DOCKER := \
+	kason223/clang-format@sha256:3cce35b0400a7d420ec8504558a02bdfc12fd2d10e40206f140c4545059cd95d
 
 all:  build/secp256k1_data_info_20210801.h $(SECP256K1_SRC_20210801) deps/mbedtls/library/libmbedcrypto.a build/auth_libecc build/auth build/always_success
 
@@ -87,8 +90,23 @@ build/auth_libecc: c/auth_libecc.c $(LIBECC_OPTIMIZED_FILES)
 	$(OBJCOPY) --strip-debug --strip-all $@
 	ls -l $@
 
+ALL_C_SOURCE := c/always_success.c \
+				c/dump_secp256k1_data_20210801.c \
+				c/secp256k1_helper_20210801.h \
+				c/secp256r1.h \
+				c/ckb_keccak256.h \
+				c/ckb_auth.h \
+				c/auth.c \
+				c/auth_libecc.c \
+				c/ckb_hex.h \
+				c/ripple.h
+
 fmt:
-	clang-format -i -style="{BasedOnStyle: Google, IndentWidth: 4, SortIncludes: false}" c/*.c c/*.h
+	clang-format -i $(ALL_C_SOURCE)
+
+fmt-via-docker:
+	docker run -u `id -u`:`id -g` --rm -v `pwd`:/code ${CLANG_FORMAT_DOCKER} bash -c \
+		"cd code && clang-format -i $(ALL_C_SOURCE)"
 
 clean:
 	rm -rf build/*.debug

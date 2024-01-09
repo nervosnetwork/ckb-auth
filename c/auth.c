@@ -461,7 +461,7 @@ size_t write_varint(uint8_t *dest, size_t n) {
     uint8_t *ptr = dest;
     /* Make sure that there is one after this */
     while (n >= 0x80) {
-        *ptr = ((uint8_t)(n) & 0x7f) | 0x80;
+        *ptr = ((uint8_t)(n)&0x7f) | 0x80;
         ptr++;
         n >>= 7; /* I should be in multiples of 7, this should just get the next
                     part */
