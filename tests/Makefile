@@ -75,6 +75,24 @@ spawn-tests:
 clean-spawn-tests:
 	rm -rf auth-spawn-tests/target
 
+check-code-format: \
+	check-c-code-format \
+	check-rust-code-format
+
+check-c-code-format:
+	cd .. && make fmt-via-docker
+	cd .. && make tests/auth-c-lock/Makefile fmt-via-docker
+	@if [ -n "$$(cd .. && git diff --name-only HEAD | grep -E '\.(c|h)$$')" ]; then \
+		echo "Code formatting issues found. Please run make fmt-via-docker on your code."; \
+		exit 1; \
+	fi
+
+check-rust-code-format:
+	cd auth-c-tests && cargo fmt --all --check
+	cd auth-rust-lock && cargo fmt --all --check
+	cd auth-spawn-tests && cargo fmt --all --check
+	cd ../tools/ckb-auth-cli && cargo fmt --all --check
+
 install-all: \
 	install-ckb-tools \
 	install-litecoin-tools \
