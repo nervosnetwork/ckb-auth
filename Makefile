@@ -99,7 +99,8 @@ ALL_C_SOURCE := c/always_success.c \
 				c/auth.c \
 				c/auth_libecc.c \
 				c/ckb_hex.h \
-				c/ripple.h
+				c/ripple.h \
+				c/elf_setup.h
 
 fmt:
 	clang-format -i $(ALL_C_SOURCE)

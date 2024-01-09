@@ -223,11 +223,11 @@ int main() {
 
   // ckb_auth can be invoked multiple times for different signatures.
   // Here we use the same one to demo the usages.
-  ret = ckb_auth(&entry, &auth, lock_bytes_seg.ptr, lock_bytes_seg.size, msg32);
+  ret = ckb_auth(0, &entry, &auth, lock_bytes_seg.ptr, lock_bytes_seg.size, msg32);
   if (ret) {
       return ret;
   }
-  ret = ckb_auth(&entry, &auth, lock_bytes_seg.ptr, lock_bytes_seg.size, msg32);
+  ret = ckb_auth(0, &entry, &auth, lock_bytes_seg.ptr, lock_bytes_seg.size, msg32);
   if (ret) {
       return ret;
   }

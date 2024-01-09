@@ -22,6 +22,7 @@ type DLContext = CKBDLContext<[u8; 600 * 1024]>;
 const RISCV_PGSIZE: usize = 4096;
 
 type CkbAuthValidate = unsafe extern "C" fn(
+    prefilled_data: *const u8,
     auth_algorithm_id: u8,
     signature: *const u8,
     signature_size: u32,
@@ -126,8 +127,10 @@ pub fn ckb_auth_dl(
     )?;
 
     let mut pub_key = id.pubkey_hash.clone();
+    // TODO:
     let rc_code = unsafe {
         func(
+            signature.as_ptr(),
             id.algorithm_id.clone().into(),
             signature.as_ptr(),
             signature.len() as u32,
