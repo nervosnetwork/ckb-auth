@@ -100,7 +100,8 @@ ALL_C_SOURCE := c/always_success.c \
 				c/auth_libecc.c \
 				c/ckb_hex.h \
 				c/ripple.h \
-				c/elf_setup.h
+				c/elf_setup.h \
+				tests/auth-c-lock/auth_c_lock.c
 
 fmt:
 	clang-format -i $(ALL_C_SOURCE)

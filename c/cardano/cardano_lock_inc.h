@@ -1,14 +1,5 @@
 #include "ckb_consts.h"
-#if defined(CKB_USE_SIM)
-// exclude ckb_dlfcn.h
-#define CKB_C_STDLIB_CKB_DLFCN_H_
-#include "ckb_syscall_auth_sim.h"
-#else
-
 #include "ckb_syscalls.h"
-#endif
-
-//
 #include "blake2b.h"
 #include "nanocbor.h"
 

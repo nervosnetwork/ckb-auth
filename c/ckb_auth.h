@@ -11,20 +11,22 @@
 // secp256k1 also defines this macros
 #undef CHECK2
 #undef CHECK
-#define CHECK2(cond, code) \
-    do {                   \
-        if (!(cond)) {     \
-            err = code;    \
-            goto exit;     \
-        }                  \
+#define CHECK2(cond, code)                                              \
+    do {                                                                \
+        if (!(cond)) {                                                  \
+            printf("%s:%d, error code = %d", __FILE__, __LINE__, code); \
+            err = code;                                                 \
+            goto exit;                                                  \
+        }                                                               \
     } while (0)
 
-#define CHECK(code)      \
-    do {                 \
-        if (code != 0) { \
-            err = code;  \
-            goto exit;   \
-        }                \
+#define CHECK(code)                                                     \
+    do {                                                                \
+        if (code != 0) {                                                \
+            printf("%s:%d, error code = %d", __FILE__, __LINE__, code); \
+            err = code;                                                 \
+            goto exit;                                                  \
+        }                                                               \
     } while (0)
 
 #define CKB_AUTH_LEN 21
