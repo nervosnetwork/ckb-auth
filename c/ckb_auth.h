@@ -32,6 +32,11 @@
 #define CKB_AUTH_LEN 21
 #define AUTH160_SIZE 20
 #define BLAKE2B_BLOCK_SIZE 32
+// This recommended values is from secp256k1 data but might be changed in the
+// future. The buffer with this size must be success to call
+// ckb_auth_load_prefilled_data, for any algorithm id. For dependency issue,
+// don't include secp256k1_data_info_20210801.h in this file.
+#define CKB_AUTH_RECOMMEND_PREFILLED_LEN 1048576
 
 enum AuthErrorCodeType {
     ERROR_NOT_IMPLEMENTED = 100,
@@ -47,6 +52,8 @@ enum AuthErrorCodeType {
     ERROR_SPAWN_INVALID_PUBKEY,
     // schnorr
     ERROR_SCHNORR,
+    // prefilled error
+    ERROR_PREFILLED,
 };
 
 typedef struct CkbAuthType {
@@ -96,6 +103,9 @@ typedef int (*ckb_auth_validate_t)(uint8_t *prefilled_data,
                                    size_t sig_len, const uint8_t *msg,
                                    size_t msg_len, uint8_t *pubkey_hash,
                                    size_t pubkey_hash_len);
+typedef int (*ckb_auth_load_prefilled_data_t)(uint8_t algorithm_id,
+                                              uint8_t *prefilled_data,
+                                              size_t *len);
 
 typedef struct CkbAuthValidatorType {
     uint8_t *prefilled_data;
@@ -107,6 +117,9 @@ typedef struct CkbAuthValidatorType {
     uint8_t *pubkey_hash;
     size_t pubkey_hash_len;
 } CkbAuthValidatorType;
+
+int ckb_auth_load_prefilled_data(uint8_t algorithm_id, uint8_t *prefilled_data,
+                                 size_t *len);
 
 #ifndef CKB_AUTH_DISABLE_DYNAMIC_LIB
 
@@ -130,18 +143,22 @@ typedef struct {
 
     void *handle;
     ckb_auth_validate_t func;
+    ckb_auth_load_prefilled_data_t func2;
 } CkbDLCache;
+
 static CkbDLCache g_dl_cache[CKB_AUTH_DL_MAX_COUNT];
 static size_t g_dl_cache_count = 0;
 
 int get_dl_func_by_code_hash(const uint8_t *code_hash, uint8_t hash_type,
-                             ckb_auth_validate_t *out_func) {
+                             ckb_auth_validate_t *out_func,
+                             ckb_auth_load_prefilled_data_t *out_func2) {
     // Find from cache
     for (size_t i = 0; i < g_dl_cache_count; i++) {
         CkbDLCache *cache = &g_dl_cache[i];
         if (memcmp(cache->code_hash, code_hash, BLAKE2B_BLOCK_SIZE) == 0 &&
             hash_type == cache->hash_type) {
             *out_func = cache->func;
+            *out_func2 = cache->func2;
             return 0;
         }
     }
@@ -173,8 +190,14 @@ int get_dl_func_by_code_hash(const uint8_t *code_hash, uint8_t hash_type,
     if (cache->func == 0) {
         return CKB_INVALID_DATA;
     }
+    cache->func2 = (ckb_auth_load_prefilled_data_t)ckb_dlsym(
+        cache->handle, "ckb_auth_load_prefilled_data");
+    if (cache->func2 == 0) {
+        return CKB_INVALID_DATA;
+    }
 
     *out_func = cache->func;
+    *out_func2 = cache->func2;
     memcpy(cache->code_hash, code_hash, BLAKE2B_BLOCK_SIZE);
     cache->hash_type = hash_type;
 
@@ -183,6 +206,27 @@ int get_dl_func_by_code_hash(const uint8_t *code_hash, uint8_t hash_type,
 }
 
 #endif  // CKB_AUTH_DISABLE_DYNAMIC_LIB
+
+int ckb_auth_prepare(CkbEntryType *entry, uint8_t algorithm_id,
+                     uint8_t *prefilled_data, size_t *len) {
+    if (entry->entry_category == EntryCategoryDynamicLibrary) {
+#ifdef CKB_AUTH_DISABLE_DYNAMIC_LIB
+        // none dynamic library doesn't require prepare
+        return 0;
+#else   // CKB_AUTH_DISABLE_DYNAMIC_LIB
+        ckb_auth_validate_t func = NULL;
+        ckb_auth_load_prefilled_data_t func2 = NULL;
+        int err = get_dl_func_by_code_hash(entry->code_hash, entry->hash_type,
+                                           &func, &func2);
+        if (err) {
+            return err;
+        }
+        return func2(algorithm_id, prefilled_data, len);
+#endif  // CKB_AUTH_DISABLE_DYNAMIC_LIB
+    } else {
+        return 0;
+    }
+}
 
 int ckb_auth(uint8_t *prefilled_data, CkbEntryType *entry, CkbAuthType *id,
              const uint8_t *signature, uint32_t signature_size,
@@ -194,8 +238,9 @@ int ckb_auth(uint8_t *prefilled_data, CkbEntryType *entry, CkbAuthType *id,
         return ERROR_INVALID_ARG;
 #else   // CKB_AUTH_DISABLE_DYNAMIC_LIB
         ckb_auth_validate_t func = NULL;
-        err =
-            get_dl_func_by_code_hash(entry->code_hash, entry->hash_type, &func);
+        ckb_auth_load_prefilled_data_t func2 = NULL;
+        err = get_dl_func_by_code_hash(entry->code_hash, entry->hash_type,
+                                       &func, &func2);
         if (err) {
             return err;
         }
@@ -310,10 +355,15 @@ static int ckb_auth_validate_with_func(int argc, char *argv[],
                pubkey_hash_len == AUTH160_SIZE,
            ERROR_SPAWN_INVALID_PUBKEY);
 
-    // TODO: load prefilled data when in entry of exec/spawn
-    err = validate_func(NULL, algorithm_id, signature, (size_t)signature_len,
-                        message, (size_t)message_len, pubkey_hash,
-                        (size_t)pubkey_hash_len);
+    // In exec/spawn, it's safe to allocate big stack memory since the script
+    // owns whole 4M memory.
+    uint8_t secp_data[CKB_AUTH_RECOMMEND_PREFILLED_LEN];
+    size_t len = sizeof(secp_data);
+    err = ckb_auth_load_prefilled_data(algorithm_id, secp_data, &len);
+    CHECK(err);
+    err = validate_func(secp_data, algorithm_id, signature,
+                        (size_t)signature_len, message, (size_t)message_len,
+                        pubkey_hash, (size_t)pubkey_hash_len);
     CHECK(err);
 
 exit:

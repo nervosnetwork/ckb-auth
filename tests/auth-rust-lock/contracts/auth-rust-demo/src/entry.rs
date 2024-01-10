@@ -1,6 +1,5 @@
 // Import from `core` instead of from `std` since we are in no-std mode
 use core::result::Result;
-
 // Import heap related library from `alloc`
 // https://doc.rust-lang.org/alloc/index.html
 // use alloc::{vec, vec::Vec};
@@ -12,7 +11,7 @@ use crate::error::Error;
 
 use ckb_auth_rs::{
     ckb_auth, generate_sighash_all, AuthAlgorithmIdType, CkbAuthError, CkbAuthType, CkbEntryType,
-    EntryCategoryType,
+    EntryCategoryType, RECOMMEND_PREFILLED_LEN, ckb_auth_load_prefilled_data,
 };
 use ckb_std::{
     ckb_constants::Source,
@@ -21,6 +20,8 @@ use ckb_std::{
 };
 
 // use ckb_std::debug;
+static mut SECP_DATA: [u8; RECOMMEND_PREFILLED_LEN] = [0u8; RECOMMEND_PREFILLED_LEN];
+
 
 pub fn main() -> Result<(), Error> {
     let mut pubkey_hash = [0u8; 20];
@@ -84,11 +85,12 @@ pub fn main() -> Result<(), Error> {
             .map_err(|f| CkbAuthError::from(f))
             .unwrap(),
     };
-
-    ckb_auth(&entry, &id, &signature, &message)?;
+    let mut len: usize = RECOMMEND_PREFILLED_LEN;
+    ckb_auth_load_prefilled_data(&entry, id.algorithm_id.clone(), unsafe { &mut SECP_DATA }, &mut len)?;
+    ckb_auth(&entry, unsafe { &mut SECP_DATA } , &id, &signature, &message)?;
     // ckb_auth can be invoked multiple times for different signatures. Here we
     // use the same one to demo the usage.
-    ckb_auth(&entry, &id, &signature, &message)?;
+    ckb_auth(&entry, unsafe { &mut SECP_DATA }, &id, &signature, &message)?;
 
     Ok(())
 }

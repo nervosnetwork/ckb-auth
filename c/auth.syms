@@ -1,3 +1,4 @@
 {
   ckb_auth_validate;
+  ckb_auth_load_prefilled_data;
 };
