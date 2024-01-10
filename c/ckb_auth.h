@@ -228,7 +228,7 @@ int ckb_auth_prepare(CkbEntryType *entry, uint8_t algorithm_id,
     }
 }
 
-int ckb_auth(uint8_t *prefilled_data, CkbEntryType *entry, CkbAuthType *id,
+int ckb_auth(CkbEntryType *entry, uint8_t *prefilled_data, CkbAuthType *id,
              const uint8_t *signature, uint32_t signature_size,
              const uint8_t *message32) {
     int err = 0;

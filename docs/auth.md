@@ -250,8 +250,8 @@ The invocation method is the same as that of `Spawn`.
 ### High Level APIs
 The following API can combine the low level APIs together:
 ```C
-int ckb_auth_load_prefilled_data(uint8_t auth_algorithm_id, uint8_t *prefilled_data, size_t *len);
-int ckb_auth(EntryType* entry, CkbAuthType *id, uint8_t *signature, uint32_t signature_size, const uint8_t *message32)
+int ckb_auth_prepare(uint8_t auth_algorithm_id, uint8_t *prefilled_data, size_t *len);
+int ckb_auth(EntryType* entry, uint8_t* prefilled_data, CkbAuthType *id, uint8_t *signature, uint32_t signature_size, const uint8_t *message32)
 ```
 Most of developers only need to use these functions without knowing the low level APIs.
 
@@ -263,10 +263,10 @@ Dependencies name: `ckb-auth-rs`
 
 #### API Description
 ``` rust
-pub fn ckb_auth_load_prefilled_data(auth_algorithm_id: u8, prefilled_data: &mut[u8]);
+pub fn ckb_auth_prepare(entry: &CkbEntryType, auth_algorithm_id: u8, prefilled_data: &mut[u8]);
 pub fn ckb_auth(
-    prefilled_data: &[u8],
     entry: &CkbEntryType,
+    prefilled_data: &[u8],
     id: &CkbAuthType,
     signature: &[u8],
     message: &[u8; 32],

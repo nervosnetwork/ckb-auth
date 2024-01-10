@@ -153,10 +153,10 @@ pub fn ckb_auth_dl(
     }
 }
 
-pub fn ckb_auth_load_prefilled_data(
+pub fn ckb_auth_prepare(
     entry: &CkbEntryType,
-    algorithm_id: AuthAlgorithmIdType,
     prefilled_data: &mut [u8],
+    algorithm_id: AuthAlgorithmIdType,
     len: &mut usize,
 ) -> Result<(), CkbAuthError> {
     let func: Symbol<CkbLoadPrefilledData> = CKBDLLoader::get().get_validate_func(
