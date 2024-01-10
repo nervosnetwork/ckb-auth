@@ -930,9 +930,7 @@ bool is_lock_script_hash_present(uint8_t *lock_script_hash) {
     return false;
 }
 
-static int verify(uint8_t *prefilled_data, uint8_t algorithm_id,
-                  uint8_t *pubkey_hash, const uint8_t *sig, size_t sig_len,
-                  const uint8_t *msg, size_t msg_len, ckb_auth_validate_t func,
+static int verify(CkbAuthValidatorType *validator, ckb_auth_validate_t func,
                   convert_msg_t convert) {
     int err = 0;
     uint8_t new_msg[BLAKE2B_BLOCK_SIZE];
@@ -941,15 +939,16 @@ static int verify(uint8_t *prefilled_data, uint8_t algorithm_id,
     unsigned char alloc_buff[1024];
     mbedtls_memory_buffer_alloc_init(alloc_buff, sizeof(alloc_buff));
 
-    err = convert(msg, msg_len, new_msg, sizeof(new_msg));
+    err = convert(validator->msg, validator->msg_len, new_msg, sizeof(new_msg));
     CHECK(err);
 
     uint8_t output_pubkey_hash[AUTH160_SIZE];
-    err = func(prefilled_data, algorithm_id, sig, sig_len, new_msg,
-               sizeof(new_msg), output_pubkey_hash, sizeof(output_pubkey_hash));
+    err = func(validator->prefilled_data, validator->algorithm_id,
+               validator->sig, validator->sig_len, new_msg, sizeof(new_msg),
+               output_pubkey_hash, sizeof(output_pubkey_hash));
     CHECK(err);
 
-    int same = memcmp(pubkey_hash, output_pubkey_hash, AUTH160_SIZE);
+    int same = memcmp(validator->pubkey_hash, output_pubkey_hash, AUTH160_SIZE);
     CHECK2(same == 0, ERROR_MISMATCHED);
 
 exit:
@@ -1110,88 +1109,72 @@ int verify_multisig(uint8_t *prefilled_data, const uint8_t *lock_bytes,
 
 // dynamic linking entry
 __attribute__((visibility("default"))) int ckb_auth_validate(
-    uint8_t *prefilled_data, uint8_t algorithm_id, const uint8_t *signature,
-    size_t signature_size, const uint8_t *message, size_t message_size,
-    uint8_t *pubkey_hash, size_t pubkey_hash_size) {
-    printf("ckb_auth_validate entry");
+    uint8_t *prefilled_data, uint8_t algorithm_id, const uint8_t *sig,
+    size_t sig_len, const uint8_t *msg, size_t msg_len, uint8_t *pubkey_hash,
+    size_t pubkey_hash_len) {
     int err = 0;
-    CHECK2(signature != NULL, ERROR_INVALID_ARG);
-    CHECK2(message != NULL, ERROR_INVALID_ARG);
-    CHECK2(message_size > 0, ERROR_INVALID_ARG);
-    CHECK2(pubkey_hash_size == AUTH160_SIZE, ERROR_INVALID_ARG);
+
+    CkbAuthValidatorType validator = {.prefilled_data = prefilled_data,
+                                      .algorithm_id = algorithm_id,
+                                      .sig = sig,
+                                      .sig_len = sig_len,
+                                      .msg = msg,
+                                      .msg_len = msg_len,
+                                      .pubkey_hash = pubkey_hash,
+                                      .pubkey_hash_len = pubkey_hash_len};
+
+    CHECK2(sig != NULL, ERROR_INVALID_ARG);
+    CHECK2(msg != NULL, ERROR_INVALID_ARG);
+    CHECK2(msg_len > 0, ERROR_INVALID_ARG);
+    CHECK2(pubkey_hash_len == AUTH160_SIZE, ERROR_INVALID_ARG);
 
     if (algorithm_id == AuthAlgorithmIdCkb) {
-        CHECK2(signature_size == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_ckb, convert_copy);
+        CHECK2(sig_len == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+        err = verify(&validator, validate_signature_ckb, convert_copy);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdEthereum) {
-        CHECK2(signature_size == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_eth, convert_eth_message);
+        CHECK2(sig_len == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+        err = verify(&validator, validate_signature_eth, convert_eth_message);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdEos) {
-        CHECK2(signature_size == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_eos, convert_copy);
+        CHECK2(sig_len == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+        err = verify(&validator, validate_signature_eos, convert_copy);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdTron) {
-        CHECK2(signature_size == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_eth, convert_tron_message);
+        CHECK2(sig_len == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+        err = verify(&validator, validate_signature_eth, convert_tron_message);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdBitcoin) {
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_btc, convert_btc_message);
+        err = verify(&validator, validate_signature_btc, convert_btc_message);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdDogecoin) {
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_btc, convert_doge_message);
+        err = verify(&validator, validate_signature_btc, convert_doge_message);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdLitecoin) {
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_btc, convert_litecoin_message);
+        err = verify(&validator, validate_signature_btc,
+                     convert_litecoin_message);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdCkbMultisig) {
-        err = verify_multisig(prefilled_data, signature, signature_size,
-                              message, pubkey_hash);
+        err = verify_multisig(prefilled_data, sig, sig_len, msg, pubkey_hash);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdSchnorr) {
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_schnorr, convert_copy);
+        err = verify(&validator, validate_signature_schnorr, convert_copy);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdCardano) {
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_cardano, convert_copy);
+        err = verify(&validator, validate_signature_cardano, convert_copy);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdMonero) {
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_monero, convert_copy);
+        err = verify(&validator, validate_signature_monero, convert_copy);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdSolana) {
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_solana, convert_copy);
+        err = verify(&validator, validate_signature_solana, convert_copy);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdRipple) {
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_ripple, convert_ripple_message);
+        err = verify(&validator, validate_signature_ripple,
+                     convert_ripple_message);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdToncoin) {
-        err = verify(prefilled_data, algorithm_id, pubkey_hash, signature,
-                     signature_size, message, message_size,
-                     validate_signature_toncoin, convert_copy);
+        err = verify(&validator, validate_signature_toncoin, convert_copy);
         CHECK(err);
     } else if (algorithm_id == AuthAlgorithmIdOwnerLock) {
         CHECK2(is_lock_script_hash_present(pubkey_hash), ERROR_MISMATCHED);

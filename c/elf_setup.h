@@ -17,6 +17,12 @@
 #define DT_PLTREL 20
 #define DT_SYMTAB 6
 #define DT_SYMENT 11
+
+typedef struct {
+    uint64_t type;
+    uint64_t value;
+} Elf64_Dynamic;
+
 int setup_elf() {
 // fix error:
 // c/auth.c:810:50: error: array subscript 0 is outside array bounds of

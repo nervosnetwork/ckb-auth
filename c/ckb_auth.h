@@ -49,12 +49,6 @@ enum AuthErrorCodeType {
     ERROR_SCHNORR,
 };
 
-typedef struct {
-    uint64_t type;
-    uint64_t value;
-} Elf64_Dynamic;
-
-// TODO: when ready, move it into ckb-c-stdlib
 typedef struct CkbAuthType {
     uint8_t algorithm_id;
     uint8_t content[AUTH160_SIZE];
@@ -97,10 +91,22 @@ enum AuthAlgorithmIdType {
 typedef int (*convert_msg_t)(const uint8_t *msg, size_t msg_len,
                              uint8_t *new_msg, size_t new_msg_len);
 
-typedef int (*ckb_auth_validate_t)(
-    uint8_t *prefilled_data, uint8_t auth_algorithm_id,
-    const uint8_t *signature, size_t signature_size, const uint8_t *message,
-    size_t message_size, uint8_t *out_pubkey_hash, size_t pubkey_hash_size);
+typedef int (*ckb_auth_validate_t)(uint8_t *prefilled_data,
+                                   uint8_t algorithm_id, const uint8_t *sig,
+                                   size_t sig_len, const uint8_t *msg,
+                                   size_t msg_len, uint8_t *pubkey_hash,
+                                   size_t pubkey_hash_len);
+
+typedef struct CkbAuthValidatorType {
+    uint8_t *prefilled_data;
+    uint8_t algorithm_id;
+    const uint8_t *sig;
+    size_t sig_len;
+    const uint8_t *msg;
+    size_t msg_len;
+    uint8_t *pubkey_hash;
+    size_t pubkey_hash_len;
+} CkbAuthValidatorType;
 
 #ifndef CKB_AUTH_DISABLE_DYNAMIC_LIB
 
