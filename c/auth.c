@@ -1,4 +1,5 @@
 // clang-format off
+#define CKB_C_STDLIB_PRINTF
 #include "mbedtls/md.h"
 #include "mbedtls/md_internal.h"
 #include "mbedtls/memory_buffer_alloc.h"
@@ -15,29 +16,20 @@
 #define __builtin_ctzl secp256k1_ctz64_var_debruijn
 
 #include "ckb_consts.h"
-#if defined(CKB_USE_SIM)
-// exclude ckb_dlfcn.h
-#define CKB_C_STDLIB_CKB_DLFCN_H_
-#include "ckb_syscall_auth_sim.h"
-#else
 #include "ckb_syscalls.h"
-#endif
-
 #include "ckb_keccak256.h"
 #include "secp256k1_helper_20210801.h"
 #include "include/secp256k1_schnorrsig.h"
-
-#include "ckb_auth.h"
-#undef CKB_SUCCESS
-#include "ckb_hex.h"
-#include "blake2b.h"
-
 // Must be the last to include, as secp256k1 and this header file both define
 // the macros CHECK and CHECK2.
-// clang-format on
 
+#include "ckb_auth.h"
+#include "ckb_hex.h"
+#include "blake2b.h"
+#include "elf_setup.h"
 #include "cardano/cardano_lock_inc.h"
 #include "ripple.h"
+// clang-format on
 
 #define SECP256K1_PUBKEY_SIZE 33
 #define UNCOMPRESSED_SECP256K1_PUBKEY_SIZE 65
@@ -240,11 +232,12 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
     return ret;
 }
 
-int validate_signature_ckb(void *prefilled_data, const uint8_t *sig,
-                           size_t sig_len, const uint8_t *msg, size_t msg_len,
-                           uint8_t *output, size_t *output_len) {
+int validate_signature_ckb(uint8_t *prefilled_data, uint8_t algorithm_id,
+                           const uint8_t *sig, size_t sig_len,
+                           const uint8_t *msg, size_t msg_len,
+                           uint8_t *out_pubkey_hash, size_t pubkey_hash_len) {
     int ret = 0;
-    if (*output_len < AUTH160_SIZE) {
+    if (pubkey_hash_len < AUTH160_SIZE) {
         return ERROR_INVALID_ARG;
     }
     uint8_t out_pubkey[SECP256K1_PUBKEY_SIZE];
@@ -259,17 +252,17 @@ int validate_signature_ckb(void *prefilled_data, const uint8_t *sig,
     blake2b_update(&ctx, out_pubkey, out_pubkey_size);
     blake2b_final(&ctx, out_pubkey, BLAKE2B_BLOCK_SIZE);
 
-    memcpy(output, out_pubkey, AUTH160_SIZE);
-    *output_len = AUTH160_SIZE;
+    memcpy(out_pubkey_hash, out_pubkey, AUTH160_SIZE);
 
     return ret;
 }
 
-int validate_signature_eth(void *prefilled_data, const uint8_t *sig,
-                           size_t sig_len, const uint8_t *msg, size_t msg_len,
-                           uint8_t *output, size_t *output_len) {
+int validate_signature_eth(uint8_t *prefilled_data, uint8_t algorithm_id,
+                           const uint8_t *sig, size_t sig_len,
+                           const uint8_t *msg, size_t msg_len,
+                           uint8_t *out_pubkey_hash, size_t pubkey_hash_len) {
     int ret = 0;
-    if (*output_len < AUTH160_SIZE) {
+    if (pubkey_hash_len < AUTH160_SIZE) {
         return ERROR_INVALID_ARG;
     }
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
@@ -303,17 +296,17 @@ int validate_signature_eth(void *prefilled_data, const uint8_t *sig,
     keccak_update(&sha3_ctx, &out_pubkey[1], out_pubkey_size - 1);
     keccak_final(&sha3_ctx, out_pubkey);
 
-    memcpy(output, &out_pubkey[12], AUTH160_SIZE);
-    *output_len = AUTH160_SIZE;
+    memcpy(out_pubkey_hash, &out_pubkey[12], AUTH160_SIZE);
 
     return ret;
 }
 
-int validate_signature_eos(void *prefilled_data, const uint8_t *sig,
-                           size_t sig_len, const uint8_t *msg, size_t msg_len,
-                           uint8_t *output, size_t *output_len) {
+int validate_signature_eos(uint8_t *prefilled_data, uint8_t algorithm_id,
+                           const uint8_t *sig, size_t sig_len,
+                           const uint8_t *msg, size_t msg_len,
+                           uint8_t *out_pubkey_hash, size_t pubkey_hash_len) {
     int err = 0;
-    if (*output_len < AUTH160_SIZE) {
+    if (pubkey_hash_len < AUTH160_SIZE) {
         return ERROR_INVALID_ARG;
     }
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
@@ -327,17 +320,17 @@ int validate_signature_eos(void *prefilled_data, const uint8_t *sig,
     blake2b_update(&ctx, out_pubkey, out_pubkey_size);
     blake2b_final(&ctx, out_pubkey, BLAKE2B_BLOCK_SIZE);
 
-    memcpy(output, out_pubkey, AUTH160_SIZE);
-    *output_len = AUTH160_SIZE;
+    memcpy(out_pubkey_hash, out_pubkey, AUTH160_SIZE);
 exit:
     return err;
 }
 
-int validate_signature_btc(void *prefilled_data, const uint8_t *sig,
-                           size_t sig_len, const uint8_t *msg, size_t msg_len,
-                           uint8_t *output, size_t *output_len) {
+int validate_signature_btc(uint8_t *prefilled_data, uint8_t algorithm_id,
+                           const uint8_t *sig, size_t sig_len,
+                           const uint8_t *msg, size_t msg_len,
+                           uint8_t *out_pubkey_hash, size_t pubkey_hash_len) {
     int err = 0;
-    if (*output_len < AUTH160_SIZE) {
+    if (pubkey_hash_len < AUTH160_SIZE) {
         return ERROR_INVALID_ARG;
     }
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
@@ -349,21 +342,21 @@ int validate_signature_btc(void *prefilled_data, const uint8_t *sig,
     unsigned char temp[AUTH160_SIZE];
     err = bitcoin_hash160(out_pubkey, out_pubkey_size, temp);
 
-    memcpy(output, temp, AUTH160_SIZE);
-    *output_len = AUTH160_SIZE;
+    memcpy(out_pubkey_hash, temp, AUTH160_SIZE);
 
 exit:
     return err;
 }
 
-int validate_signature_schnorr(void *prefilled_data, const uint8_t *sig,
-                               size_t sig_len, const uint8_t *msg,
-                               size_t msg_len, uint8_t *output,
-                               size_t *output_len) {
+int validate_signature_schnorr(uint8_t *prefilled_data, uint8_t algorithm_id,
+                               const uint8_t *sig, size_t sig_len,
+                               const uint8_t *msg, size_t msg_len,
+                               uint8_t *out_pubkey_hash,
+                               size_t pubkey_hash_len) {
     int err = 0;
     int success = 0;
 
-    if (*output_len < AUTH160_SIZE) {
+    if (pubkey_hash_len < AUTH160_SIZE) {
         return ERROR_INVALID_ARG;
     }
     if (sig_len != SCHNORR_SIGNATURE_SIZE || msg_len != 32) {
@@ -387,19 +380,19 @@ int validate_signature_schnorr(void *prefilled_data, const uint8_t *sig,
     blake2b_update(&blake2b_ctx, sig, SCHNORR_PUBKEY_SIZE);
     blake2b_final(&blake2b_ctx, temp, BLAKE2B_BLOCK_SIZE);
 
-    memcpy(output, temp, AUTH160_SIZE);
-    *output_len = AUTH160_SIZE;
+    memcpy(out_pubkey_hash, temp, AUTH160_SIZE);
 
     return 0;
 }
 
-int validate_signature_cardano(void *prefilled_data, const uint8_t *sig,
-                               size_t sig_len, const uint8_t *msg,
-                               size_t msg_len, uint8_t *output,
-                               size_t *output_len) {
+int validate_signature_cardano(uint8_t *prefilled_data, uint8_t algorithm_id,
+                               const uint8_t *sig, size_t sig_len,
+                               const uint8_t *msg, size_t msg_len,
+                               uint8_t *out_pubkey_hash,
+                               size_t pubkey_hash_len) {
     int err = 0;
 
-    if (*output_len < AUTH160_SIZE) {
+    if (pubkey_hash_len < AUTH160_SIZE) {
         return ERROR_INVALID_ARG;
     }
 
@@ -422,18 +415,18 @@ int validate_signature_cardano(void *prefilled_data, const uint8_t *sig,
                    sizeof(cardano_data.public_key));
     blake2b_final(&ctx, pubkey_hash, sizeof(pubkey_hash));
 
-    memcpy(output, pubkey_hash, AUTH160_SIZE);
-    *output_len = AUTH160_SIZE;
+    memcpy(out_pubkey_hash, pubkey_hash, AUTH160_SIZE);
 exit:
     return err;
 }
 
-int validate_signature_ripple(void *prefilled_data, const uint8_t *sig,
-                              size_t sig_len, const uint8_t *msg,
-                              size_t msg_len, uint8_t *output,
-                              size_t *output_len) {
+int validate_signature_ripple(uint8_t *prefilled_data, uint8_t algorithm_id,
+                              const uint8_t *sig, size_t sig_len,
+                              const uint8_t *msg, size_t msg_len,
+                              uint8_t *out_pubkey_hash,
+                              size_t pubkey_hash_len) {
     int err = 0;
-    if (*output_len < AUTH160_SIZE) {
+    if (pubkey_hash_len < AUTH160_SIZE) {
         return ERROR_INVALID_ARG;
     }
 
@@ -448,8 +441,7 @@ int validate_signature_ripple(void *prefilled_data, const uint8_t *sig,
            ERROR_INVALID_ARG);
 
     CHECK(verify_ripple(&sign_data));
-    get_ripple_pubkey_hash(sign_data.public_key, output);
-    *output_len = AUTH160_SIZE;
+    get_ripple_pubkey_hash(sign_data.public_key, out_pubkey_hash);
 exit:
     return err;
 }
@@ -582,14 +574,18 @@ int ed25519_verify_monero(const unsigned char *signature,
     return sc_isnonzero((const uint8_t *)c) == 0;
 }
 
-int validate_signature_monero(void *prefilled_data, const uint8_t *sig,
-                              size_t sig_len, const uint8_t *msg,
-                              size_t msg_len, uint8_t *output,
-                              size_t *output_len) {
+int validate_signature_monero(uint8_t *prefilled_data, uint8_t algorithm_id,
+                              const uint8_t *sig, size_t sig_len,
+                              const uint8_t *msg, size_t msg_len,
+                              uint8_t *out_pubkey_hash,
+                              size_t pubkey_hash_len) {
     int err = 0;
 
     CHECK2(msg_len == BLAKE2B_BLOCK_SIZE, ERROR_INVALID_ARG);
     CHECK2(sig_len == MONERO_DATA_SIZE, ERROR_INVALID_ARG);
+    if (pubkey_hash_len < AUTH160_SIZE) {
+        return ERROR_INVALID_ARG;
+    }
 
     uint8_t *mode_ptr = (uint8_t *)sig + MONERO_SIGNATURE_SIZE;
     // We only support using spend key to sign transactions.
@@ -613,8 +609,7 @@ int validate_signature_monero(void *prefilled_data, const uint8_t *sig,
     blake2b_update(&ctx, mode_ptr, 1 + MONERO_PUBKEY_SIZE * 2);
     blake2b_final(&ctx, pubkey_hash, sizeof(pubkey_hash));
 
-    memcpy(output, pubkey_hash, AUTH160_SIZE);
-    *output_len = AUTH160_SIZE;
+    memcpy(out_pubkey_hash, pubkey_hash, AUTH160_SIZE);
 exit:
     return err;
 }
@@ -659,12 +654,16 @@ exit:
     return err;
 }
 
-int validate_signature_solana(void *prefilled_data, const uint8_t *sig,
-                              size_t sig_len, const uint8_t *msg,
-                              size_t msg_len, uint8_t *output,
-                              size_t *output_len) {
+int validate_signature_solana(uint8_t *prefilled_data, uint8_t algorithm_id,
+                              const uint8_t *sig, size_t sig_len,
+                              const uint8_t *msg, size_t msg_len,
+                              uint8_t *out_pubkey_hash,
+                              size_t pubkey_hash_len) {
     int err = 0;
 
+    if (pubkey_hash_len < AUTH160_SIZE) {
+        return ERROR_INVALID_ARG;
+    }
     CHECK2(sig_len == SOLANA_WRAPPED_SIGNATURE_SIZE, ERROR_INVALID_ARG);
     CHECK2(msg_len == SOLANA_BLOCKHASH_SIZE, ERROR_INVALID_ARG);
     sig_len = (size_t)sig[0] | ((size_t)sig[1] << 8);
@@ -689,8 +688,7 @@ int validate_signature_solana(void *prefilled_data, const uint8_t *sig,
     blake2b_update(&ctx, pub_key_ptr, SOLANA_PUBKEY_SIZE);
     blake2b_final(&ctx, pubkey_hash, sizeof(pubkey_hash));
 
-    memcpy(output, pubkey_hash, AUTH160_SIZE);
-    *output_len = AUTH160_SIZE;
+    memcpy(out_pubkey_hash, pubkey_hash, AUTH160_SIZE);
 exit:
     return err;
 }
@@ -736,10 +734,11 @@ exit:
     return err;
 }
 
-int validate_signature_toncoin(void *prefilled_data, const uint8_t *sig,
-                               size_t sig_len, const uint8_t *msg,
-                               size_t msg_len, uint8_t *output,
-                               size_t *output_len) {
+int validate_signature_toncoin(uint8_t *prefilled_data, uint8_t algorithm_id,
+                               const uint8_t *sig, size_t sig_len,
+                               const uint8_t *msg, size_t msg_len,
+                               uint8_t *out_pubkey_hash,
+                               size_t pubkey_hash_len) {
     int err = 0;
 
     CHECK2(sig_len == TONCOIN_WRAPPED_SIGNATURE_SIZE, ERROR_INVALID_ARG);
@@ -768,8 +767,7 @@ int validate_signature_toncoin(void *prefilled_data, const uint8_t *sig,
 
     uint8_t test_pubkey_hash[AUTH160_SIZE] = {0};
     // memcpy(output, pubkey_hash, AUTH160_SIZE);
-    memcpy(output, test_pubkey_hash, AUTH160_SIZE);
-    *output_len = AUTH160_SIZE;
+    memcpy(out_pubkey_hash, test_pubkey_hash, AUTH160_SIZE);
 exit:
     return err;
 }
@@ -932,9 +930,8 @@ bool is_lock_script_hash_present(uint8_t *lock_script_hash) {
     return false;
 }
 
-static int verify(uint8_t *pubkey_hash, const uint8_t *sig, uint32_t sig_len,
-                  const uint8_t *msg, uint32_t msg_len,
-                  validate_signature_t func, convert_msg_t convert) {
+static int verify(CkbAuthValidatorType *validator, ckb_auth_validate_t func,
+                  convert_msg_t convert) {
     int err = 0;
     uint8_t new_msg[BLAKE2B_BLOCK_SIZE];
 
@@ -942,16 +939,16 @@ static int verify(uint8_t *pubkey_hash, const uint8_t *sig, uint32_t sig_len,
     unsigned char alloc_buff[1024];
     mbedtls_memory_buffer_alloc_init(alloc_buff, sizeof(alloc_buff));
 
-    err = convert(msg, msg_len, new_msg, sizeof(new_msg));
+    err = convert(validator->msg, validator->msg_len, new_msg, sizeof(new_msg));
     CHECK(err);
 
     uint8_t output_pubkey_hash[AUTH160_SIZE];
-    size_t output_len = AUTH160_SIZE;
-    err = func(NULL, sig, sig_len, new_msg, sizeof(new_msg), output_pubkey_hash,
-               &output_len);
+    err = func(validator->prefilled_data, validator->algorithm_id,
+               validator->sig, validator->sig_len, new_msg, sizeof(new_msg),
+               output_pubkey_hash, sizeof(output_pubkey_hash));
     CHECK(err);
 
-    int same = memcmp(pubkey_hash, output_pubkey_hash, AUTH160_SIZE);
+    int same = memcmp(validator->pubkey_hash, output_pubkey_hash, AUTH160_SIZE);
     CHECK2(same == 0, ERROR_MISMATCHED);
 
 exit:
@@ -977,8 +974,9 @@ exit:
 #define SIGNATURE_SIZE 65
 #define PUBKEY_SIZE 33
 
-int verify_multisig(const uint8_t *lock_bytes, size_t lock_bytes_len,
-                    const uint8_t *message, const uint8_t *hash) {
+int verify_multisig(uint8_t *prefilled_data, const uint8_t *lock_bytes,
+                    size_t lock_bytes_len, const uint8_t *message,
+                    const uint8_t *hash) {
     int ret;
     uint8_t temp[PUBKEY_SIZE];
 
@@ -1111,79 +1109,74 @@ int verify_multisig(const uint8_t *lock_bytes, size_t lock_bytes_len,
 
 // dynamic linking entry
 __attribute__((visibility("default"))) int ckb_auth_validate(
-    uint8_t auth_algorithm_id, const uint8_t *signature,
-    uint32_t signature_size, const uint8_t *message, uint32_t message_size,
-    uint8_t *pubkey_hash, uint32_t pubkey_hash_size) {
+    uint8_t *prefilled_data, uint8_t algorithm_id, const uint8_t *sig,
+    size_t sig_len, const uint8_t *msg, size_t msg_len, uint8_t *pubkey_hash,
+    size_t pubkey_hash_len) {
     int err = 0;
-    CHECK2(signature != NULL, ERROR_INVALID_ARG);
-    CHECK2(message != NULL, ERROR_INVALID_ARG);
-    CHECK2(message_size > 0, ERROR_INVALID_ARG);
-    CHECK2(pubkey_hash_size == AUTH160_SIZE, ERROR_INVALID_ARG);
 
-    if (auth_algorithm_id == AuthAlgorithmIdCkb) {
-        CHECK2(signature_size == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_ckb, convert_copy);
+    CkbAuthValidatorType validator = {.prefilled_data = prefilled_data,
+                                      .algorithm_id = algorithm_id,
+                                      .sig = sig,
+                                      .sig_len = sig_len,
+                                      .msg = msg,
+                                      .msg_len = msg_len,
+                                      .pubkey_hash = pubkey_hash,
+                                      .pubkey_hash_len = pubkey_hash_len};
+
+    CHECK2(sig != NULL, ERROR_INVALID_ARG);
+    CHECK2(msg != NULL, ERROR_INVALID_ARG);
+    CHECK2(msg_len > 0, ERROR_INVALID_ARG);
+    CHECK2(pubkey_hash_len == AUTH160_SIZE, ERROR_INVALID_ARG);
+
+    if (algorithm_id == AuthAlgorithmIdCkb) {
+        CHECK2(sig_len == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+        err = verify(&validator, validate_signature_ckb, convert_copy);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdEthereum) {
-        CHECK2(signature_size == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_eth, convert_eth_message);
+    } else if (algorithm_id == AuthAlgorithmIdEthereum) {
+        CHECK2(sig_len == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+        err = verify(&validator, validate_signature_eth, convert_eth_message);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdEos) {
-        CHECK2(signature_size == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_eos, convert_copy);
+    } else if (algorithm_id == AuthAlgorithmIdEos) {
+        CHECK2(sig_len == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+        err = verify(&validator, validate_signature_eos, convert_copy);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdTron) {
-        CHECK2(signature_size == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
-        err =
-            verify(pubkey_hash, signature, signature_size, message,
-                   message_size, validate_signature_eth, convert_tron_message);
+    } else if (algorithm_id == AuthAlgorithmIdTron) {
+        CHECK2(sig_len == SECP256K1_SIGNATURE_SIZE, ERROR_INVALID_ARG);
+        err = verify(&validator, validate_signature_eth, convert_tron_message);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdBitcoin) {
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_btc, convert_btc_message);
+    } else if (algorithm_id == AuthAlgorithmIdBitcoin) {
+        err = verify(&validator, validate_signature_btc, convert_btc_message);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdDogecoin) {
-        err =
-            verify(pubkey_hash, signature, signature_size, message,
-                   message_size, validate_signature_btc, convert_doge_message);
+    } else if (algorithm_id == AuthAlgorithmIdDogecoin) {
+        err = verify(&validator, validate_signature_btc, convert_doge_message);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdLitecoin) {
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_btc,
+    } else if (algorithm_id == AuthAlgorithmIdLitecoin) {
+        err = verify(&validator, validate_signature_btc,
                      convert_litecoin_message);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdCkbMultisig) {
-        err = verify_multisig(signature, signature_size, message, pubkey_hash);
+    } else if (algorithm_id == AuthAlgorithmIdCkbMultisig) {
+        err = verify_multisig(prefilled_data, sig, sig_len, msg, pubkey_hash);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdSchnorr) {
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_schnorr, convert_copy);
+    } else if (algorithm_id == AuthAlgorithmIdSchnorr) {
+        err = verify(&validator, validate_signature_schnorr, convert_copy);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdCardano) {
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_cardano, convert_copy);
+    } else if (algorithm_id == AuthAlgorithmIdCardano) {
+        err = verify(&validator, validate_signature_cardano, convert_copy);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdMonero) {
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_monero, convert_copy);
+    } else if (algorithm_id == AuthAlgorithmIdMonero) {
+        err = verify(&validator, validate_signature_monero, convert_copy);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdSolana) {
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_solana, convert_copy);
+    } else if (algorithm_id == AuthAlgorithmIdSolana) {
+        err = verify(&validator, validate_signature_solana, convert_copy);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdRipple) {
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_ripple,
+    } else if (algorithm_id == AuthAlgorithmIdRipple) {
+        err = verify(&validator, validate_signature_ripple,
                      convert_ripple_message);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdToncoin) {
-        err = verify(pubkey_hash, signature, signature_size, message,
-                     message_size, validate_signature_toncoin, convert_copy);
+    } else if (algorithm_id == AuthAlgorithmIdToncoin) {
+        err = verify(&validator, validate_signature_toncoin, convert_copy);
         CHECK(err);
-    } else if (auth_algorithm_id == AuthAlgorithmIdOwnerLock) {
+    } else if (algorithm_id == AuthAlgorithmIdOwnerLock) {
         CHECK2(is_lock_script_hash_present(pubkey_hash), ERROR_MISMATCHED);
         err = 0;
     } else {

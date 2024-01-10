@@ -4,7 +4,7 @@ Omnilock](https://github.com/nervosnetwork/rfcs/pull/343). It's used for
 authentication by validating signature for different blockchains.
 
 ### Compile dependencies
-Before using the following APIs, it is necessary to compile CKB contracts.
+Before using the following APIs, it is necessary to compile CKB scripts.
 
 To compile, use the following commands in the root directory. The generated files will be located in the `build` directory.
 
@@ -157,10 +157,9 @@ The whole length of the witness must be exactly 512. If there are any space left
 
 ### Low Level APIs
 
-We define some low level APIs to auth (Authentication), which can be also used for other purposes.
+We define some low level APIs to auth libraries, which can be also used for other purposes.
 It is based on the following idea:
 * [RFC: Swappable Signature Verification Protocol Spec](https://talk.nervos.org/t/rfc-swappable-signature-verification-protocol-spec/4802)
-* [Ideas on chained locks](https://talk.nervos.org/t/ideas-on-chained-locks/5887)
 
 First we define the "EntryType":
 ```C
@@ -176,24 +175,56 @@ typedef struct CkbEntryType {
   the cell which contains the code binary
 * entry_category
 
-  The entry to the algorithm. Now there are 2 categories:
+  The entry to the algorithm. Now there are 3 categories:
   - dynamic library
-  - spawn (activated after hardfork 2023)
+  - exec
+  - spawn (will be activated after hardfork 2023/2024)
 
 ### Entry Category: Dynamic Library
-We define the follow functions when entry category is `dynamic library`:
+We should export the follow function from dynamic library when entry category is
+`dynamic library`:
 ```C
-int ckb_auth_validate(uint8_t auth_algorithm_id, const uint8_t *signature,
+int ckb_auth_load_prefilled_data(uint8_t auth_algorithm_id, void *prefilled_data, size_t *len);
+```
+The first argument denotes the `algorithm_id` in `CkbAuthType`. The `prefilled`
+and `len` will be described below.
+
+It gives a chance for different algorithms to load necessary data. For example,
+a [precomputed table](https://github.com/bitcoin-core/secp256k1) is necessary
+for secp256k1. So far, this is the only data should be loaded. In the full
+lifetime of a CKB script, it is expected to only call this function once to
+initialize the data. All latter invocations can share the same prefilled data.
+
+This function should support 2 invocation modes:
+
+- When `data` is NULL, and `len` is an address for a variable with value 0, the
+  function is expected to fill in the length required by the prefilled data into
+  the address denoted by `len`. This can be used by the caller to allocate
+  enough prefilled data for the library.
+
+- When `data` is not NULL, and the variable denoted by `len` contains enough
+length, the function is expected to fill prefilled data in the memory buffer
+started from data, and then fill the actual length of the prefilled data in `len`
+field. The `len` value is suggested to be 1048576 for secp256k1.
+
+In either mode, a return value of 0 denoting success, other values denote
+failures, and should immediately trigger a script failure.
+
+We should also export the following important function from dynamic library:
+```C
+int ckb_auth_validate(void *prefilled_data, uint8_t auth_algorithm_id, const uint8_t *signature,
     uint32_t signature_size, const uint8_t *message, uint32_t message_size,
     uint8_t *pubkey_hash, uint32_t pubkey_hash_size);
 ```
-The first argument denotes the `algorithm_id` in `CkbAuthType` described above. The arguments `signature` and
-`pubkey_hash` are described in `key parameters` mentioned above.
+The first argument denotes the `prefilled_data` returned from
+`ckb_auth_load_prefilled_data`. The second argument denotes the `algorithm_id` in
+`CkbAuthType` described above. The arguments `signature` and `pubkey_hash` are
+described in `key parameters` mentioned above. A return value of 0 denoting
+success, other values denote failures, and should immediately trigger a script
+failure.
 
-A valid dynamic library denoted by `EntryType` should provide `ckb_auth_validate` exported function.
-
-A dynamic library will create a cache in static memory for loading ckb-auth. This cache is initially set to 200k, and if adjustments are necessary, you can modify it by defining the macro CKB_AUTH_DL_BUFF_SIZE. However, it's important to note that the ckb-auth default is around 100k, and setting it too small may result in execution failure. CKB-VM allocates a maximum of 4M memory, and setting it too large may lead to insufficient memory.
-By default, you can load up to 8 different ckb-auth libraries. If this is insufficient, you can modify it by defining CKB_AUTH_DL_MAX_COUNT. If you prefer not to use this feature, you can disable it by including CKB_AUTH_DISABLE_DYNAMIC_LIB. This will help conserve memory and reduce the size of the contract.
+A valid dynamic library denoted by `EntryType` should provide
+`ckb_auth_load_prefilled_data` and `ckb_auth_validate` exported functions.
 
 ### Entry Category: Spawn
 This category shares same arguments and behavior to dynamic library. It uses `spawn` instead of `dynamic library`. When
@@ -219,9 +250,10 @@ The invocation method is the same as that of `Spawn`.
 ### High Level APIs
 The following API can combine the low level APIs together:
 ```C
+int ckb_auth_load_prefilled_data(uint8_t auth_algorithm_id, void *prefilled_data, size_t *len);
 int ckb_auth(EntryType* entry, CkbAuthType *id, uint8_t *signature, uint32_t signature_size, const uint8_t *message32)
 ```
-Most of developers only need to use this function without knowing the low level APIs.
+Most of developers only need to use these functions without knowing the low level APIs.
 
 
 ### Rust High Level APIs
@@ -231,6 +263,7 @@ Dependencies name: `ckb-auth-rs`
 
 #### API Description
 ``` rust
+pub fn ckb_auth_load_prefilled_data(auth_algorithm_id: u8, prefilled_data: &mut[u8]);
 pub fn ckb_auth(
     entry: &CkbEntryType,
     id: &CkbAuthType,
@@ -247,3 +280,16 @@ pub fn ckb_auth(
 
 `message` : Participate in the message data of the signature.
 
+#### Other Issues for High Level C APIs
+A dynamic library will create a cache in static memory for loading ckb-auth.
+This cache is initially set to 200k, and if adjustments are necessary, you can
+modify it by defining the macro CKB_AUTH_DL_BUFF_SIZE in C. However, it's
+important to note that the ckb-auth default is around 100k, and setting it too
+small may result in execution failure. CKB-VM allocates a maximum of 4M memory,
+and setting it too large may lead to insufficient memory.
+
+By default, you can load up to 8 different ckb-auth libraries. If this is
+insufficient, you can modify it by defining CKB_AUTH_DL_MAX_COUNT. If you prefer
+not to use this feature, you can disable it by including
+CKB_AUTH_DISABLE_DYNAMIC_LIB. This will help conserve memory and reduce the size
+of the script.

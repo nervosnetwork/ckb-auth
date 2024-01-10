@@ -11,38 +11,27 @@
 // secp256k1 also defines this macros
 #undef CHECK2
 #undef CHECK
-#define CHECK2(cond, code) \
-    do {                   \
-        if (!(cond)) {     \
-            err = code;    \
-            goto exit;     \
-        }                  \
+#define CHECK2(cond, code)                                              \
+    do {                                                                \
+        if (!(cond)) {                                                  \
+            printf("%s:%d, error code = %d", __FILE__, __LINE__, code); \
+            err = code;                                                 \
+            goto exit;                                                  \
+        }                                                               \
     } while (0)
 
-#define CHECK(code)      \
-    do {                 \
-        if (code != 0) { \
-            err = code;  \
-            goto exit;   \
-        }                \
+#define CHECK(code)                                                     \
+    do {                                                                \
+        if (code != 0) {                                                \
+            printf("%s:%d, error code = %d", __FILE__, __LINE__, code); \
+            err = code;                                                 \
+            goto exit;                                                  \
+        }                                                               \
     } while (0)
 
 #define CKB_AUTH_LEN 21
 #define AUTH160_SIZE 20
 #define BLAKE2B_BLOCK_SIZE 32
-
-#define OFFSETOF(TYPE, ELEMENT) ((size_t) & (((TYPE *)0)->ELEMENT))
-#define PT_DYNAMIC 2
-
-/* See https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-42444.html
- * for details */
-#define DT_RELA 7
-#define DT_RELACOUNT 0x6ffffff9
-#define DT_JMPREL 23
-#define DT_PLTRELSZ 2
-#define DT_PLTREL 20
-#define DT_SYMTAB 6
-#define DT_SYMENT 11
 
 enum AuthErrorCodeType {
     ERROR_NOT_IMPLEMENTED = 100,
@@ -60,12 +49,6 @@ enum AuthErrorCodeType {
     ERROR_SCHNORR,
 };
 
-typedef struct {
-    uint64_t type;
-    uint64_t value;
-} Elf64_Dynamic;
-
-// TODO: when ready, move it into ckb-c-stdlib
 typedef struct CkbAuthType {
     uint8_t algorithm_id;
     uint8_t content[AUTH160_SIZE];
@@ -105,20 +88,25 @@ enum AuthAlgorithmIdType {
     AuthAlgorithmIdOwnerLock = 0xFC,
 };
 
-typedef int (*validate_signature_t)(void *prefilled_data, const uint8_t *sig,
-                                    size_t sig_len, const uint8_t *msg,
-                                    size_t msg_len, uint8_t *output,
-                                    size_t *output_len);
-
 typedef int (*convert_msg_t)(const uint8_t *msg, size_t msg_len,
                              uint8_t *new_msg, size_t new_msg_len);
 
-typedef int (*ckb_auth_validate_t)(uint8_t auth_algorithm_id,
-                                   const uint8_t *signature,
-                                   uint32_t signature_size,
-                                   const uint8_t *message,
-                                   uint32_t message_size, uint8_t *pubkey_hash,
-                                   uint32_t pubkey_hash_size);
+typedef int (*ckb_auth_validate_t)(uint8_t *prefilled_data,
+                                   uint8_t algorithm_id, const uint8_t *sig,
+                                   size_t sig_len, const uint8_t *msg,
+                                   size_t msg_len, uint8_t *pubkey_hash,
+                                   size_t pubkey_hash_len);
+
+typedef struct CkbAuthValidatorType {
+    uint8_t *prefilled_data;
+    uint8_t algorithm_id;
+    const uint8_t *sig;
+    size_t sig_len;
+    const uint8_t *msg;
+    size_t msg_len;
+    uint8_t *pubkey_hash;
+    size_t pubkey_hash_len;
+} CkbAuthValidatorType;
 
 #ifndef CKB_AUTH_DISABLE_DYNAMIC_LIB
 
@@ -196,8 +184,9 @@ int get_dl_func_by_code_hash(const uint8_t *code_hash, uint8_t hash_type,
 
 #endif  // CKB_AUTH_DISABLE_DYNAMIC_LIB
 
-int ckb_auth(CkbEntryType *entry, CkbAuthType *id, const uint8_t *signature,
-             uint32_t signature_size, const uint8_t *message32) {
+int ckb_auth(uint8_t *prefilled_data, CkbEntryType *entry, CkbAuthType *id,
+             const uint8_t *signature, uint32_t signature_size,
+             const uint8_t *message32) {
     int err = 0;
     if (entry->entry_category == EntryCategoryDynamicLibrary) {
 #ifdef CKB_AUTH_DISABLE_DYNAMIC_LIB
@@ -210,8 +199,8 @@ int ckb_auth(CkbEntryType *entry, CkbAuthType *id, const uint8_t *signature,
         if (err) {
             return err;
         }
-        return func(id->algorithm_id, signature, signature_size, message32,
-                    BLAKE2B_BLOCK_SIZE, id->content, AUTH160_SIZE);
+        return func(prefilled_data, id->algorithm_id, signature, signature_size,
+                    message32, BLAKE2B_BLOCK_SIZE, id->content, AUTH160_SIZE);
 #endif  // CKB_AUTH_DISABLE_DYNAMIC_LIB
     } else if (entry->entry_category == EntryCategoryExec ||
                entry->entry_category == EntryCategorySpawn) {
@@ -263,98 +252,6 @@ int ckb_auth(CkbEntryType *entry, CkbAuthType *id, const uint8_t *signature,
     } else {
         return CKB_INVALID_DATA;
     }
-}
-
-int setup_elf() {
-// fix error:
-// c/auth.c:810:50: error: array subscript 0 is outside array bounds of
-// 'uint64_t[0]' {aka 'long unsigned int[]'} [-Werror=array-bounds]
-//   810 |     Elf64_Phdr *program_headers = (Elf64_Phdr *)(*phoff);
-//       |                                                 ~^~~~~~~
-#if defined(__GNUC__) && (__GNUC__ >= 12)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-#endif
-    uint64_t *phoff = (uint64_t *)OFFSETOF(Elf64_Ehdr, e_phoff);
-    uint16_t *phnum = (uint16_t *)OFFSETOF(Elf64_Ehdr, e_phnum);
-    Elf64_Phdr *program_headers = (Elf64_Phdr *)(*phoff);
-
-    for (int i = 0; i < *phnum; i++) {
-        Elf64_Phdr *program_header = &program_headers[i];
-        if (program_header->p_type == PT_DYNAMIC) {
-            Elf64_Dynamic *d = (Elf64_Dynamic *)program_header->p_vaddr;
-            uint64_t rela_address = 0;
-            uint64_t rela_count = 0;
-            uint64_t jmprel_address = 0;
-            uint64_t pltrel_size = 0;
-            uint64_t pltrel = 0;
-            uint64_t symtab_address = 0;
-            uint64_t symtab_entry_size = 0;
-            while (d->type != 0) {
-                switch (d->type) {
-                    case DT_RELA:
-                        rela_address = d->value;
-                        break;
-                    case DT_RELACOUNT:
-                        rela_count = d->value;
-                        break;
-                    case DT_JMPREL:
-                        jmprel_address = d->value;
-                        break;
-                    case DT_PLTRELSZ:
-                        pltrel_size = d->value;
-                        break;
-                    case DT_PLTREL:
-                        pltrel = d->value;
-                        break;
-                    case DT_SYMTAB:
-                        symtab_address = d->value;
-                        break;
-                    case DT_SYMENT:
-                        symtab_entry_size = d->value;
-                        break;
-                }
-                d++;
-            }
-            if (rela_address > 0 && rela_count > 0) {
-                Elf64_Rela *relocations = (Elf64_Rela *)rela_address;
-                for (int j = 0; j < rela_count; j++) {
-                    Elf64_Rela *relocation = &relocations[j];
-                    if (relocation->r_info != R_RISCV_RELATIVE) {
-                        return ERROR_INVALID_ELF;
-                    }
-                    *((uint64_t *)(relocation->r_offset)) =
-                        (uint64_t)(relocation->r_addend);
-                }
-            }
-            if (jmprel_address > 0 && pltrel_size > 0 && pltrel == DT_RELA &&
-                symtab_address > 0) {
-                if (pltrel_size % sizeof(Elf64_Rela) != 0) {
-                    return ERROR_INVALID_ELF;
-                }
-                if (symtab_entry_size != sizeof(Elf64_Sym)) {
-                    return ERROR_INVALID_ELF;
-                }
-                Elf64_Rela *relocations = (Elf64_Rela *)jmprel_address;
-                Elf64_Sym *symbols = (Elf64_Sym *)symtab_address;
-                for (int j = 0; j < pltrel_size / sizeof(Elf64_Rela); j++) {
-                    Elf64_Rela *relocation = &relocations[j];
-                    uint32_t idx = (uint32_t)(relocation->r_info >> 32);
-                    uint32_t t = (uint32_t)relocation->r_info;
-                    if (t != R_RISCV_JUMP_SLOT) {
-                        return ERROR_INVALID_ELF;
-                    }
-                    Elf64_Sym *sym = &symbols[idx];
-                    *((uint64_t *)(relocation->r_offset)) = sym->st_value;
-                }
-            }
-        }
-    }
-
-    return 0;
-#if defined(__GNUC__) && (__GNUC__ >= 12)
-#pragma GCC diagnostic pop
-#endif
 }
 
 static int ckb_auth_validate_with_func(int argc, char *argv[],
@@ -413,8 +310,10 @@ static int ckb_auth_validate_with_func(int argc, char *argv[],
                pubkey_hash_len == AUTH160_SIZE,
            ERROR_SPAWN_INVALID_PUBKEY);
 
-    err = validate_func(algorithm_id, signature, signature_len, message,
-                        message_len, pubkey_hash, pubkey_hash_len);
+    // TODO: load prefilled data when in entry of exec/spawn
+    err = validate_func(NULL, algorithm_id, signature, (size_t)signature_len,
+                        message, (size_t)message_len, pubkey_hash,
+                        (size_t)pubkey_hash_len);
     CHECK(err);
 
 exit:
