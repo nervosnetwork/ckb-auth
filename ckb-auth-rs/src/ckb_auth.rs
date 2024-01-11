@@ -6,12 +6,12 @@ use alloc::format;
 use ckb_std::high_level::exec_cell;
 use hex::encode;
 
+#[cfg(feature = "enable-dynamic-library")]
+use super::ckb_auth_dl::ckb_auth_dl;
 #[cfg(feature = "ckb2023")]
 use alloc::vec::Vec;
 #[cfg(feature = "ckb2023")]
 use ckb_std::high_level::spawn_cell;
-#[cfg(feature = "enable-dynamic-library")]
-use super::ckb_auth_dl::ckb_auth_dl;
 
 pub fn ckb_auth(
     entry: &CkbEntryType,

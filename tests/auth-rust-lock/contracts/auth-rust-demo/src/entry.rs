@@ -91,11 +91,11 @@ pub fn main() -> Result<(), Error> {
         let mut len: usize = RECOMMEND_PREFILLED_LEN;
         ckb_auth_prepare(
             &entry,
-            unsafe { &mut SECP_DATA },
             id.algorithm_id.clone(),
+            unsafe { &mut SECP_DATA },
             &mut len,
         )?;
-        unsafe { &mut SECP_DATA }
+        unsafe { &SECP_DATA }
     };
     #[cfg(not(feature = "enable-dynamic-library"))]
     let secp_data = &mut [0u8; 1];

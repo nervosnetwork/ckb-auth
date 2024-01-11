@@ -151,8 +151,10 @@ int generate_sighash_all(uint8_t *msg, size_t msg_len) {
 
     return 0;
 }
+
 // while using ckb-auth with dynamic library, the stack memory space is limited.
-// Put it in global variables(RSS) or allocator memory to avoid stack overflow.
+// Put it in global variables(bss section) or allocator memory to avoid stack
+// overflow.
 uint8_t g_secp_data[CKB_AUTH_RECOMMEND_PREFILLED_LEN];
 size_t g_secp_data_len = sizeof(g_secp_data);
 
