@@ -1,4 +1,4 @@
-use crate::{CkbAuthError, CkbAuthType, CkbEntryType};
+use crate::{AuthAlgorithmIdType, CkbAuthError, CkbAuthType, CkbEntryType};
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use ckb_std::{
@@ -21,6 +21,8 @@ type DLContext = CKBDLContext<[u8; 600 * 1024]>;
 
 const RISCV_PGSIZE: usize = 4096;
 
+pub const RECOMMEND_PREFILLED_LEN: usize = 1048576;
+
 type CkbAuthValidate = unsafe extern "C" fn(
     prefilled_data: *const u8,
     auth_algorithm_id: u8,
@@ -32,7 +34,11 @@ type CkbAuthValidate = unsafe extern "C" fn(
     pubkey_hash_size: usize,
 ) -> i32;
 
+type CkbLoadPrefilledData =
+    unsafe extern "C" fn(auth_algorithm_id: u8, data: *mut u8, len: *mut usize) -> i32;
+
 const EXPORTED_FUNC_NAME: &str = "ckb_auth_validate";
+const EXPORTED_PREFILLED_FUNC_NAME: &str = "ckb_auth_load_prefilled_data";
 
 struct CKBDLLoader {
     pub context: Box<DLContext>,
@@ -116,6 +122,7 @@ impl CKBDLLoader {
 
 pub fn ckb_auth_dl(
     entry: &CkbEntryType,
+    prefilled_data: &[u8],
     id: &CkbAuthType,
     signature: &[u8],
     message: &[u8; 32],
@@ -127,10 +134,9 @@ pub fn ckb_auth_dl(
     )?;
 
     let mut pub_key = id.pubkey_hash.clone();
-    // TODO:
     let rc_code = unsafe {
         func(
-            0 as *const u8,
+            prefilled_data.as_ptr() as *const u8,
             id.algorithm_id.clone().into(),
             signature.as_ptr(),
             signature.len() as usize,
@@ -142,6 +148,36 @@ pub fn ckb_auth_dl(
     };
 
     match rc_code {
+        0 => Ok(()),
+        _ => Err(CkbAuthError::RunDLError),
+    }
+}
+
+pub fn ckb_auth_prepare(
+    entry: &CkbEntryType,
+    algorithm_id: AuthAlgorithmIdType,
+    prefilled_data: &mut [u8],
+    len: &mut usize,
+) -> Result<(), CkbAuthError> {
+    let func: Symbol<CkbLoadPrefilledData> = CKBDLLoader::get().get_validate_func(
+        &entry.code_hash,
+        entry.hash_type,
+        EXPORTED_PREFILLED_FUNC_NAME,
+    )?;
+    // always fetch the prefilled data length regardless of whether the
+    // operation succeeds or fails.
+    let mut prefilled_len = 0;
+    unsafe {
+        func(
+            algorithm_id.clone().into(),
+            0 as *mut u8,
+            &mut prefilled_len,
+        );
+    }
+
+    let code = unsafe { func(algorithm_id.into(), prefilled_data.as_mut_ptr(), len) };
+    *len = prefilled_len;
+    match code {
         0 => Ok(()),
         _ => Err(CkbAuthError::RunDLError),
     }

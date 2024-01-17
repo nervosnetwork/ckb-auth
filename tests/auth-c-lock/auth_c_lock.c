@@ -3,7 +3,7 @@
 // entry category> see `CkbEntryType`
 //
 // witness lock: signature
-
+#define CKB_C_STDLIB_PRINTF
 #include "blake2b.h"
 #include "blockchain.h"
 #include "ckb_auth.h"
@@ -152,6 +152,12 @@ int generate_sighash_all(uint8_t *msg, size_t msg_len) {
     return 0;
 }
 
+// while using ckb-auth with dynamic library, the stack memory space is limited.
+// Put it in global variables(bss section) or allocator memory to avoid stack
+// overflow.
+uint8_t g_secp_data[CKB_AUTH_RECOMMEND_PREFILLED_LEN];
+size_t g_secp_data_len = sizeof(g_secp_data);
+
 int main() {
     int ret;
     uint64_t len = 0;
@@ -214,6 +220,7 @@ int main() {
         case AuthAlgorithmIdRipple:
             if (lock_bytes_seg.ptr[lock_bytes_seg.size - 1] >=
                 lock_bytes_seg.size) {
+                printf("AuthAlgorithmIdRipple");
                 return 102;  // ERROR_INVALID_ARG
             }
             lock_bytes_seg.size -= lock_bytes_seg.ptr[lock_bytes_seg.size - 1];
@@ -221,16 +228,20 @@ int main() {
         default:
             break;
     }
-
-    // ckb_auth can be invoked multiple times for different signatures.
-    // Here we use the same one to demo the usages.
-    ret = ckb_auth(0, &entry, &auth, lock_bytes_seg.ptr, lock_bytes_seg.size,
-                   msg32);
+    ret = ckb_auth_prepare(&entry, auth.algorithm_id, g_secp_data,
+                           &g_secp_data_len);
     if (ret) {
         return ret;
     }
-    ret = ckb_auth(0, &entry, &auth, lock_bytes_seg.ptr, lock_bytes_seg.size,
-                   msg32);
+    // ckb_auth can be invoked multiple times for different signatures.
+    // Here we use the same one to demo the usages.
+    ret = ckb_auth(&entry, g_secp_data, &auth, lock_bytes_seg.ptr,
+                   lock_bytes_seg.size, msg32);
+    if (ret) {
+        return ret;
+    }
+    ret = ckb_auth(&entry, g_secp_data, &auth, lock_bytes_seg.ptr,
+                   lock_bytes_seg.size, msg32);
     if (ret) {
         return ret;
     }

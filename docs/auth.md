@@ -184,7 +184,7 @@ typedef struct CkbEntryType {
 We should export the follow function from dynamic library when entry category is
 `dynamic library`:
 ```C
-int ckb_auth_load_prefilled_data(uint8_t auth_algorithm_id, void *prefilled_data, size_t *len);
+int ckb_auth_load_prefilled_data(uint8_t auth_algorithm_id, uint8_t *prefilled_data, size_t *len);
 ```
 The first argument denotes the `algorithm_id` in `CkbAuthType`. The `prefilled`
 and `len` will be described below.
@@ -250,10 +250,11 @@ The invocation method is the same as that of `Spawn`.
 ### High Level APIs
 The following API can combine the low level APIs together:
 ```C
-int ckb_auth_load_prefilled_data(uint8_t auth_algorithm_id, void *prefilled_data, size_t *len);
-int ckb_auth(EntryType* entry, CkbAuthType *id, uint8_t *signature, uint32_t signature_size, const uint8_t *message32)
+int ckb_auth_prepare(uint8_t auth_algorithm_id, uint8_t *prefilled_data, size_t *len);
+int ckb_auth(EntryType* entry, uint8_t* prefilled_data, CkbAuthType *id, uint8_t *signature, uint32_t signature_size, const uint8_t *message32)
 ```
 Most of developers only need to use these functions without knowing the low level APIs.
+The behavior of `ckb_auth_prepare` is identical to `ckb_auth_load_prefilled_data`.
 
 
 ### Rust High Level APIs
@@ -263,9 +264,10 @@ Dependencies name: `ckb-auth-rs`
 
 #### API Description
 ``` rust
-pub fn ckb_auth_load_prefilled_data(auth_algorithm_id: u8, prefilled_data: &mut[u8]);
+pub fn ckb_auth_prepare(entry: &CkbEntryType,  algorithm_id: AuthAlgorithmIdType, prefilled_data: &mut [u8],len: &mut usize);
 pub fn ckb_auth(
     entry: &CkbEntryType,
+    prefilled_data: &[u8],
     id: &CkbAuthType,
     signature: &[u8],
     message: &[u8; 32],
@@ -279,6 +281,53 @@ pub fn ckb_auth(
 `signature` : signature data.
 
 `message` : Participate in the message data of the signature.
+
+Note that `ckb_auth_prepare` is nearly identical to the C version's
+`ckb_auth_prepare`. However, since it is not possible to pass a variable like
+`NULL` as `&mut [u8]` in Rust, the len function will always return the length of
+the required prefilled data, regardless of whether the operation succeeds or
+fails.
+
+### Examples of High Level API
+
+
+Recommended way to use high level APIs in C:
+```C
+// while using ckb-auth with dynamic library, the stack memory space is limited.
+// Put it in global variables(bss section) or allocator memory to avoid stack overflow.
+uint8_t g_secp_data[CKB_AUTH_RECOMMEND_PREFILLED_LEN];
+size_t g_secp_data_len = sizeof(g_secp_data);
+int main() {
+  // other code ...
+  int ret = ckb_auth_prepare(&entry, algorithm_id, g_secp_data, &g_secp_data_len);
+  if (ret) {
+      return ret;
+  }
+  ret = ckb_auth(&entry, g_secp_data, &auth, sig, sig_len, msg);
+  // other code ...
+}
+```
+
+Recommended way to use high level APIs in Rust:
+```Rust
+static mut SECP_DATA: [u8; RECOMMEND_PREFILLED_LEN] = [0u8; RECOMMEND_PREFILLED_LEN];
+pub fn main() {
+    // other code ...
+    let secp_data = {
+        let mut len: usize = RECOMMEND_PREFILLED_LEN;
+        ckb_auth_prepare(
+            &entry,
+            algorithm_id,
+            unsafe { &mut SECP_DATA },
+            &mut len,
+        )?;
+        unsafe { &SECP_DATA }
+    };
+    ckb_auth(&entry, secp_data, &id, &signature, &message)?;
+    // other code ...
+}
+```
+
 
 #### Other Issues for High Level C APIs
 A dynamic library will create a cache in static memory for loading ckb-auth.
