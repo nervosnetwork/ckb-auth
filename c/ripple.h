@@ -215,7 +215,7 @@ exit:
 #undef SIGN_BUFF_OFFSET
 }
 
-int verify_ripple(uint8_t *prefilled_data, RippleSignatureData *data) {
+int verify_ripple(RippleSignatureData *data) {
     int err = 0;
 
     uint8_t msg_hash[256];
@@ -223,8 +223,9 @@ int verify_ripple(uint8_t *prefilled_data, RippleSignatureData *data) {
         mbedtls_md_info_from_type(MBEDTLS_MD_SHA512);
     CHECK(mbedtls_md(md_info, data->sign_msg, data->sign_msg_len, msg_hash));
 
+    uint8_t secp256k1_ctx_buf[CKB_SECP256K1_DATA_SIZE];
     secp256k1_context ctx;
-    ckb_secp256k1_custom_verify_only_initialize(&ctx, prefilled_data);
+    ckb_secp256k1_custom_verify_only_initialize(&ctx, secp256k1_ctx_buf);
 
     secp256k1_pubkey pubkey;
     secp256k1_ecdsa_signature sig;

@@ -13,15 +13,6 @@ all: \
 	rust-demo-tests-only-ckb2023 \
 	rust-demo-tests-only-dl
 
-dev: \
-	build-auth-lock \
-	c-tests \
-	rust-demo-tests \
-	spawn-tests \
-	rust-demo-tests-no-def-features \
-	rust-demo-tests-only-ckb2023 \
-	rust-demo-tests-only-dl
-
 all-with-clang: \
 	build-auth-lock-with-clang \
 	c-tests \

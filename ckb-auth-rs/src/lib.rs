@@ -5,17 +5,14 @@ use core::mem::transmute;
 #[cfg(target_arch = "riscv64")]
 mod ckb_auth;
 
+#[cfg(target_arch = "riscv64")]
+pub use ckb_auth::ckb_auth;
+
 #[cfg(all(feature = "enable-dynamic-library", target_arch = "riscv64"))]
 mod ckb_auth_dl;
 
 #[cfg(target_arch = "riscv64")]
 mod generate_sighash_all;
-
-#[cfg(target_arch = "riscv64")]
-pub use ckb_auth::ckb_auth;
-
-#[cfg(all(feature = "enable-dynamic-library", target_arch = "riscv64"))]
-pub use ckb_auth_dl::{ckb_auth_prepare, RECOMMEND_PREFILLED_LEN};
 
 #[cfg(target_arch = "riscv64")]
 pub use crate::generate_sighash_all::generate_sighash_all;
@@ -24,7 +21,6 @@ pub use crate::generate_sighash_all::generate_sighash_all;
 use alloc::ffi::NulError;
 #[cfg(target_arch = "riscv64")]
 use ckb_std::{ckb_types::core::ScriptHashType, error::SysError};
-
 #[cfg(not(target_arch = "riscv64"))]
 type SysError = u64;
 #[cfg(not(target_arch = "riscv64"))]
@@ -85,7 +81,6 @@ pub enum CkbAuthError {
     EncodeArgs,
     GenerateSigHash,
     UnsupportEntryType,
-    PrefilledData,
 }
 
 #[cfg(target_arch = "riscv64")]
