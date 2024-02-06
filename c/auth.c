@@ -82,8 +82,7 @@ exit:
     return err;
 }
 
-static int _recover_secp256k1_pubkey(uint8_t *prefilled_data,
-                                     const uint8_t *sig, size_t sig_len,
+static int _recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
                                      const uint8_t *msg, size_t msg_len,
                                      uint8_t *out_pubkey,
                                      size_t *out_pubkey_size, int recid,
@@ -99,7 +98,8 @@ static int _recover_secp256k1_pubkey(uint8_t *prefilled_data,
 
     /* Load signature */
     secp256k1_context context;
-    ret = ckb_secp256k1_custom_verify_only_initialize(&context, prefilled_data);
+    uint8_t secp_data[CKB_SECP256K1_DATA_SIZE];
+    ret = ckb_secp256k1_custom_verify_only_initialize(&context, secp_data);
     if (ret != 0) {
         return ret;
     }
@@ -164,8 +164,7 @@ int bitcoin_hash160(const uint8_t *data, size_t size, uint8_t *output) {
     return 0;
 }
 
-static int _recover_secp256k1_pubkey_btc(uint8_t *prefilled_data,
-                                         const uint8_t *sig, size_t sig_len,
+static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
                                          const uint8_t *msg, size_t msg_len,
                                          uint8_t *out_pubkey,
                                          size_t *out_pubkey_size) {
@@ -183,9 +182,10 @@ static int _recover_secp256k1_pubkey_btc(uint8_t *prefilled_data,
     if (recid == -1) {
         return ERROR_INVALID_ARG;
     }
-    secp256k1_context context;
 
-    ret = ckb_secp256k1_custom_verify_only_initialize(&context, prefilled_data);
+    secp256k1_context context;
+    uint8_t secp_data[CKB_SECP256K1_DATA_SIZE];
+    ret = ckb_secp256k1_custom_verify_only_initialize(&context, secp_data);
     if (ret != 0) {
         return ret;
     }
@@ -243,9 +243,8 @@ int validate_signature_ckb(uint8_t *prefilled_data, uint8_t algorithm_id,
     uint8_t out_pubkey[SECP256K1_PUBKEY_SIZE];
     size_t out_pubkey_size = SECP256K1_PUBKEY_SIZE;
 
-    ret = _recover_secp256k1_pubkey(prefilled_data, sig, sig_len, msg, msg_len,
-                                    out_pubkey, &out_pubkey_size,
-                                    sig[RECID_INDEX], true);
+    ret = _recover_secp256k1_pubkey(sig, sig_len, msg, msg_len, out_pubkey,
+                                    &out_pubkey_size, sig[RECID_INDEX], true);
     if (ret != 0) return ret;
 
     blake2b_state ctx;
@@ -287,8 +286,8 @@ int validate_signature_eth(uint8_t *prefilled_data, uint8_t algorithm_id,
         return ERROR_INVALID_ARG;
     }
 
-    ret = _recover_secp256k1_pubkey(prefilled_data, sig, sig_len, msg, msg_len,
-                                    out_pubkey, &out_pubkey_size, recid, false);
+    ret = _recover_secp256k1_pubkey(sig, sig_len, msg, msg_len, out_pubkey,
+                                    &out_pubkey_size, recid, false);
     if (ret != 0) return ret;
 
     // here are the 2 differences than validate_signature_secp256k1
@@ -312,8 +311,8 @@ int validate_signature_eos(uint8_t *prefilled_data, uint8_t algorithm_id,
     }
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
     size_t out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
-    err = _recover_secp256k1_pubkey_btc(prefilled_data, sig, sig_len, msg,
-                                        msg_len, out_pubkey, &out_pubkey_size);
+    err = _recover_secp256k1_pubkey_btc(sig, sig_len, msg, msg_len, out_pubkey,
+                                        &out_pubkey_size);
     CHECK(err);
 
     blake2b_state ctx;
@@ -336,8 +335,8 @@ int validate_signature_btc(uint8_t *prefilled_data, uint8_t algorithm_id,
     }
     uint8_t out_pubkey[UNCOMPRESSED_SECP256K1_PUBKEY_SIZE];
     size_t out_pubkey_size = UNCOMPRESSED_SECP256K1_PUBKEY_SIZE;
-    err = _recover_secp256k1_pubkey_btc(prefilled_data, sig, sig_len, msg,
-                                        msg_len, out_pubkey, &out_pubkey_size);
+    err = _recover_secp256k1_pubkey_btc(sig, sig_len, msg, msg_len, out_pubkey,
+                                        &out_pubkey_size);
     CHECK(err);
 
     unsigned char temp[AUTH160_SIZE];
@@ -364,7 +363,8 @@ int validate_signature_schnorr(uint8_t *prefilled_data, uint8_t algorithm_id,
         return ERROR_INVALID_ARG;
     }
     secp256k1_context ctx;
-    err = ckb_secp256k1_custom_verify_only_initialize(&ctx, prefilled_data);
+    uint8_t secp_data[CKB_SECP256K1_DATA_SIZE];
+    err = ckb_secp256k1_custom_verify_only_initialize(&ctx, secp_data);
     if (err != 0) return err;
 
     secp256k1_xonly_pubkey pk;
@@ -440,7 +440,7 @@ int validate_signature_ripple(uint8_t *prefilled_data, uint8_t algorithm_id,
     CHECK2(memcmp(sign_data.ckb_msg, msg, RIPPLE_ACCOUNT_ID_SIZE) == 0,
            ERROR_INVALID_ARG);
 
-    CHECK(verify_ripple(prefilled_data, &sign_data));
+    CHECK(verify_ripple(&sign_data));
     get_ripple_pubkey_hash(sign_data.public_key, out_pubkey_hash);
 exit:
     return err;
@@ -1034,7 +1034,8 @@ int verify_multisig(uint8_t *prefilled_data, const uint8_t *lock_bytes,
     // contract, you don't have to wait for the foundation to ship a new
     // cryptographic algorithm. You can just build and ship your own.
     secp256k1_context context;
-    ret = ckb_secp256k1_custom_verify_only_initialize(&context, prefilled_data);
+    uint8_t secp_data[CKB_SECP256K1_DATA_SIZE];
+    ret = ckb_secp256k1_custom_verify_only_initialize(&context, secp_data);
     if (ret != 0) return ret;
 
     // We will perform *threshold* number of signature verifications here.
@@ -1106,69 +1107,7 @@ int verify_multisig(uint8_t *prefilled_data, const uint8_t *lock_bytes,
     return 0;
 }
 
-static bool require_secp256k1_data(uint8_t algorithm_id) {
-    switch (algorithm_id) {
-        case AuthAlgorithmIdCkb:
-        case AuthAlgorithmIdEthereum:
-        case AuthAlgorithmIdEos:
-        case AuthAlgorithmIdTron:
-        case AuthAlgorithmIdBitcoin:
-        case AuthAlgorithmIdDogecoin:
-        case AuthAlgorithmIdCkbMultisig:
-        case AuthAlgorithmIdSchnorr:
-        case AuthAlgorithmIdLitecoin:
-        case AuthAlgorithmIdRipple:
-            return true;
-        default:
-            return false;
-    }
-    return false;
-}
-
 // dynamic linking entry
-__attribute__((visibility("default"))) int ckb_auth_load_prefilled_data(
-    uint8_t algorithm_id, uint8_t *prefilled_data, size_t *len) {
-    if (require_secp256k1_data(algorithm_id)) {
-        if (prefilled_data == NULL) {
-            if (*len == 0) {
-                *len = CKB_AUTH_RECOMMEND_PREFILLED_LEN;
-                return 0;
-            } else {
-                return ERROR_PREFILLED;
-            }
-        } else {
-            if (*len >= CKB_AUTH_RECOMMEND_PREFILLED_LEN) {
-                size_t index = SIZE_MAX;
-                int err =
-                    ckb_look_for_dep_with_hash(ckb_secp256k1_data_hash, &index);
-                if (err) {
-                    return err;
-                }
-                uint64_t len = CKB_AUTH_RECOMMEND_PREFILLED_LEN;
-                err = ckb_load_cell_data(prefilled_data, &len, 0, index,
-                                         CKB_SOURCE_CELL_DEP);
-                if (err || len != CKB_AUTH_RECOMMEND_PREFILLED_LEN) {
-                    return ERROR_PREFILLED;
-                }
-                return 0;
-            } else {
-                return ERROR_PREFILLED;
-            }
-        }
-    } else {
-        if (prefilled_data == NULL) {
-            if (*len == 0) {
-                return 0;
-            } else {
-                return ERROR_PREFILLED;
-            }
-        } else {
-            *len = 0;
-            return 0;
-        }
-    }
-}
-
 __attribute__((visibility("default"))) int ckb_auth_validate(
     uint8_t *prefilled_data, uint8_t algorithm_id, const uint8_t *sig,
     size_t sig_len, const uint8_t *msg, size_t msg_len, uint8_t *pubkey_hash,

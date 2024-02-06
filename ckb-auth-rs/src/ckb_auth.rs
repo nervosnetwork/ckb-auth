@@ -6,16 +6,16 @@ use alloc::format;
 use ckb_std::high_level::exec_cell;
 use hex::encode;
 
-#[cfg(feature = "enable-dynamic-library")]
-use super::ckb_auth_dl::ckb_auth_dl;
 #[cfg(feature = "ckb2023")]
 use alloc::vec::Vec;
 #[cfg(feature = "ckb2023")]
 use ckb_std::high_level::spawn_cell;
 
+#[cfg(feature = "enable-dynamic-library")]
+use super::ckb_auth_dl::ckb_auth_dl;
+
 pub fn ckb_auth(
     entry: &CkbEntryType,
-    prefilled_data: &[u8],
     id: &CkbAuthType,
     signature: &[u8],
     message: &[u8; 32],
@@ -23,9 +23,7 @@ pub fn ckb_auth(
     match entry.entry_category {
         EntryCategoryType::Exec => ckb_auth_exec(entry, id, signature, message),
         #[cfg(feature = "enable-dynamic-library")]
-        EntryCategoryType::DynamicLibrary => {
-            ckb_auth_dl(entry, prefilled_data, id, signature, message)
-        }
+        EntryCategoryType::DynamicLibrary => ckb_auth_dl(entry, id, signature, message),
         #[cfg(feature = "ckb2023")]
         EntryCategoryType::Spawn => ckb_auth_spawn(entry, id, signature, message),
     }

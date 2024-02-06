@@ -97,13 +97,6 @@ exit:
     return err;
 }
 
-// secp256r1 don't need prefilled data.
-__attribute__((visibility("default"))) int ckb_auth_load_prefilled_data(
-    uint8_t algorithm_id, uint8_t *prefilled_data, size_t *len) {
-    *len = 0;
-    return 0;
-}
-
 // dynamic linking entry
 __attribute__((visibility("default"))) int ckb_auth_validate(
     uint8_t *prefilled_data, uint8_t algorithm_id, const uint8_t *sig,
@@ -123,6 +116,7 @@ __attribute__((visibility("default"))) int ckb_auth_validate(
     CHECK2(msg != NULL, ERROR_INVALID_ARG);
     CHECK2(msg_len > 0, ERROR_INVALID_ARG);
     CHECK2(pubkey_hash_len == AUTH160_SIZE, ERROR_INVALID_ARG);
+
     if (algorithm_id == AuthAlgorithmIdSecp256R1) {
         err = verify_secp256r1(&validator, validate_signature_secp256r1,
                                convert_copy);
