@@ -1,5 +1,4 @@
 #include <stdio.h>
-
 #include "blake2b.h"
 
 /*
@@ -36,22 +35,23 @@ int main(int argc, char* argv[]) {
     fprintf(fp, "#define CKB_SECP256K1_DATA_PRE_SIZE %ld\n", pre_size);
     fprintf(fp, "#define CKB_SECP256K1_DATA_PRE128_SIZE %ld\n", pre128_size);
 
-    blake2b_state blake2b_ctx;
-    uint8_t hash[32];
-    blake2b_init(&blake2b_ctx, 32);
-    blake2b_update(&blake2b_ctx, secp256k1_ecmult_static_pre_context, pre_size);
-    blake2b_update(&blake2b_ctx, secp256k1_ecmult_static_pre128_context,
-                   pre128_size);
-    blake2b_final(&blake2b_ctx, hash, 32);
-
-    fprintf(fp, "static uint8_t ckb_secp256k1_data_hash[32] = {\n  ");
-    for (int i = 0; i < 32; i++) {
-        fprintf(fp, "%u", hash[i]);
-        if (i != 31) {
+    fprintf(fp, "static uint8_t ckb_secp256k1_data[] = {\n  ");
+    unsigned char* p = (unsigned char*)secp256k1_ecmult_static_pre_context;
+    for (int i = 0; i < pre_size; i++) {
+        fprintf(fp, "0x%02x", p[i]);
+        fprintf(fp, ", ");
+    }
+    fprintf(fp, "\n");
+    p = (unsigned char*)secp256k1_ecmult_static_pre128_context;
+    for (int i = 0; i < pre128_size; i++) {
+        fprintf(fp, "0x%02x", p[i]);
+        if (i != (pre128_size - 1)) {
             fprintf(fp, ", ");
         }
     }
+
     fprintf(fp, "\n};\n");
+
     fprintf(fp, "#endif\n");
     fclose(fp);
 
