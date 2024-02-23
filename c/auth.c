@@ -98,8 +98,7 @@ static int _recover_secp256k1_pubkey(const uint8_t *sig, size_t sig_len,
 
     /* Load signature */
     secp256k1_context context;
-    uint8_t secp_data[CKB_SECP256K1_DATA_SIZE];
-    ret = ckb_secp256k1_custom_verify_only_initialize(&context, secp_data);
+    ret = ckb_secp256k1_custom_verify_only_initialize(&context);
     if (ret != 0) {
         return ret;
     }
@@ -184,8 +183,7 @@ static int _recover_secp256k1_pubkey_btc(const uint8_t *sig, size_t sig_len,
     }
 
     secp256k1_context context;
-    uint8_t secp_data[CKB_SECP256K1_DATA_SIZE];
-    ret = ckb_secp256k1_custom_verify_only_initialize(&context, secp_data);
+    ret = ckb_secp256k1_custom_verify_only_initialize(&context);
     if (ret != 0) {
         return ret;
     }
@@ -363,8 +361,7 @@ int validate_signature_schnorr(uint8_t *prefilled_data, uint8_t algorithm_id,
         return ERROR_INVALID_ARG;
     }
     secp256k1_context ctx;
-    uint8_t secp_data[CKB_SECP256K1_DATA_SIZE];
-    err = ckb_secp256k1_custom_verify_only_initialize(&ctx, secp_data);
+    err = ckb_secp256k1_custom_verify_only_initialize(&ctx);
     if (err != 0) return err;
 
     secp256k1_xonly_pubkey pk;
@@ -1034,8 +1031,7 @@ int verify_multisig(uint8_t *prefilled_data, const uint8_t *lock_bytes,
     // contract, you don't have to wait for the foundation to ship a new
     // cryptographic algorithm. You can just build and ship your own.
     secp256k1_context context;
-    uint8_t secp_data[CKB_SECP256K1_DATA_SIZE];
-    ret = ckb_secp256k1_custom_verify_only_initialize(&context, secp_data);
+    ret = ckb_secp256k1_custom_verify_only_initialize(&context);
     if (ret != 0) return ret;
 
     // We will perform *threshold* number of signature verifications here.

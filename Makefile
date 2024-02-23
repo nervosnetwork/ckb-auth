@@ -54,7 +54,7 @@ build/dump_secp256k1_data_20210801: c/dump_secp256k1_data_20210801.c $(SECP256K1
 $(SECP256K1_SRC_20210801):
 	cd deps/secp256k1-20210801 && \
 		./autogen.sh && \
-		CC=$(CC) LD=$(LD) ./configure --with-bignum=no --enable-ecmult-static-precomputation --enable-endomorphism --enable-module-recovery --host=$(TARGET) && \
+		CC=$(CC) LD=$(LD) ./configure --enable-ecmult-static-precomputation --with-ecmult-window=6 --enable-module-recovery --host=$(TARGET) && \
 		make src/ecmult_static_pre_context.h src/ecmult_static_context.h
 
 $(LIBECC_OPTIMIZED_FILES): libecc
