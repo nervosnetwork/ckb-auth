@@ -8,38 +8,38 @@ edition = "2018"
 
 [dependencies]
 ckb-auth-rs = { path = "../../ckb-auth-rs", features = ["ckb2023", "enable-dynamic-library"] }
-ckb-crypto = "0.111.0"
-ckb-error = "0.111.0"
-ckb-hash = "0.111.0"
-ckb-script = "0.111.0"
-ckb-traits = "0.111.0"
-ckb-types = "0.111.0"
-ckb-chain-spec = "0.111.0"
+ckb-crypto = "0.112.0"
+ckb-error = "0.112.0"
+ckb-hash = "0.112.0"
+ckb-script = "0.112.0"
+ckb-traits = "0.112.0"
+ckb-types = "0.112.0"
+ckb-chain-spec = "0.112.0"
+
 ref_thread_local = "0.1.1"
 rand = "0.6.5"
-
-bitcoin = "0.30.0"
-base64 = "0.21.0"
-monero = { version = "0.18.2", features = ["serde"] }
-hex-literal = "0.4.1"
-base58-monero = "1.0.0"
 log = { version = "0.4.14", features = ["std"] }
 bincode = "1.3.3"
-serde = { version = "=1.0.163", features = ["derive"] }
 hex = "0.4.3"
-secp256k1 = { version = "0.22.1", features = ["rand-std", "recovery"] }
 dyn-clone = "1.0.4"
 tempdir = "0.3.7"
 which = "4.4.0"
-bs58 = "0.5.0"
 anyhow = "1.0.71"
-solana-sdk = { version = "1.16.1" , default-features = false }
-solana-cli-output = { version = "1.16.1", default-features = false }
+serde = { version = "=1.0.163", features = ["derive"] }
 serde_json = "1.0.99"
-ripple-keypairs = "0.1.0"
-p256 = { version = "^0.10.1" }
 lazy_static = "1.3.0"
 
+base64 = "0.21.0"
+secp256k1 = { version = "0.22.1", features = ["rand-std", "recovery"] }
+bs58 = "0.5.0"
 sha2 = "0.10.6"
 sha3 = "0.9.1"
 ripemd = "0.1.3"
+p256 = { version = "^0.10.1" }
+
+bitcoin = "0.30.0"
+monero = { version = "0.18.2", features = ["serde"] }
+base58-monero = "1.0.0"
+solana-sdk = { version = "1.16.1" , default-features = false }
+solana-cli-output = { version = "1.16.1", default-features = false }
+ripple-keypairs = "0.1.0"
