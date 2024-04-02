@@ -78,12 +78,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "buddy-alloc"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f0d2da64a6a895d5a7e0724882825d50f83c13396b1b9f1878e19a024bab395"
-
-[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -265,6 +259,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ckb-gen-types"
+version = "0.112.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a12020d50dd3757cde0fdc88d3837b7a2ab503fe38bd11be86ddace11318c77"
+dependencies = [
+ "cfg-if",
+ "molecule",
+]
+
+[[package]]
 name = "ckb-hash"
 version = "0.111.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -392,25 +396,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "ckb-standalone-types"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5c776d70eb4f60a22a3180857646d77b2da8d33c0c4a063ad9f6610fc94609f"
-dependencies = [
- "blake2b-ref",
- "cfg-if",
- "molecule",
-]
-
-[[package]]
 name = "ckb-std"
-version = "0.14.3"
+version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a08518aa0fd4ce069d3ec80b63dcd3d6543ad3805ad1c0b4e1d8e4d38f8a9fc"
+checksum = "9357d9464ed36a8e542a7d588e894aff25ccb0cdd66221ac94e76bc69ca3ad55"
 dependencies = [
- "buddy-alloc",
  "cc",
- "ckb-standalone-types",
+ "ckb-gen-types 0.112.1",
+ "gcd",
 ]
 
 [[package]]
@@ -474,7 +467,7 @@ dependencies = [
  "ckb-constant",
  "ckb-error",
  "ckb-fixed-hash",
- "ckb-gen-types",
+ "ckb-gen-types 0.111.0",
  "ckb-hash",
  "ckb-merkle-mountain-range",
  "ckb-occupied-capacity",
@@ -646,6 +639,12 @@ name = "fuchsia-cprng"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a06f77d526c1a601b7c4cdd98f54b5eaabffc14d5f2f0296febdc7f357c6d3ba"
+
+[[package]]
+name = "gcd"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d758ba1b47b00caf47f24925c0074ecb20d6dfcffe7f6d53395c0465674841a"
 
 [[package]]
 name = "getrandom"
