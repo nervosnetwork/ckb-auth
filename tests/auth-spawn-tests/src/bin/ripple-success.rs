@@ -24,23 +24,19 @@ fn update_args(tx: &mut ReprMockTransaction, pubkey: [u8; 20]) {
 }
 
 fn hash_ripemd160(data: &[u8]) -> [u8; 20] {
-    use mbedtls::hash::*;
-    let mut md = Md::new(Type::Ripemd).unwrap();
-    md.update(data).expect("hash ripemd update");
-    let mut out = [0u8; 20];
-    md.finish(&mut out).expect("hash ripemd finish");
+    use ripemd::{Digest, Ripemd160};
+    let mut hasher = Ripemd160::new();
 
-    out
+    hasher.update(data);
+    hasher.finalize()[..].try_into().unwrap()
 }
 
 fn hash_sha256(data: &[u8]) -> [u8; 32] {
-    use mbedtls::hash::*;
-    let mut md = Md::new(Type::Sha256).unwrap();
-    md.update(data).expect("hash sha256 update");
-    let mut out = [0u8; 32];
-    md.finish(&mut out).expect("hash sha256 finish");
+    use sha2::{Digest, Sha256};
 
-    out
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    hasher.finalize()[..].try_into().unwrap()
 }
 
 fn get_ripple_hash(data: &[u8]) -> [u8; 20] {

@@ -11,7 +11,7 @@ ckb2023 = ["ckb-auth-rs/ckb2023"]
 enable-dynamic-library = ["ckb-auth-rs/dynamic-library-memory-600"]
 
 [dependencies]
-ckb-testtool = "0.10"
+ckb-testtool = "0.11"
 ckb-auth-rs = { path = "../../../ckb-auth-rs" }
 
 rand = "0.6.5"

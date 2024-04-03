@@ -44,7 +44,7 @@ pub fn main() -> Result<(), Error> {
             0 => ScriptHashType::Data,
             1 => ScriptHashType::Type,
             2 => ScriptHashType::Data1,
-            4 => ScriptHashType::Data1, // TODO ckb-std 0.14.3 does not support Data2 yet
+            4 => ScriptHashType::Data2,
             _ => {
                 return Err(Error::ArgsError);
             }

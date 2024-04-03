@@ -11,22 +11,27 @@ pub mod blockchain {
 use anyhow;
 use anyhow::Context;
 use ckb_auth_rs::EntryCategoryType;
-use ckb_hash::new_blake2b;
+use ckb_chain_spec::consensus::TYPE_ID_CODE_HASH;
+use ckb_hash::{blake2b_256, new_blake2b};
 use ckb_types::core::ScriptHashType;
+use ckb_types::molecule::{bytes::Bytes, prelude::*};
 use ckb_types::packed;
 use ckb_types::packed::CellOutput;
+use ckb_types::packed::Script;
 use ckb_types::packed::WitnessArgsBuilder;
 use ckb_types::prelude::*;
-use molecule::bytes::Bytes;
-use molecule::prelude::*;
-use std::{fs::read_to_string, path::PathBuf};
+use std::collections::HashMap;
+use std::{
+    fs::read_to_string,
+    path::{Path, PathBuf},
+};
 
 use auto_complete::auto_complete;
-use ckb_debugger_api::embed::Embed;
 use ckb_jsonrpc_types::JsonBytes;
 use ckb_mock_tx_types::{MockTransaction, ReprMockTransaction};
 use hash::hash;
 use lazy_static::lazy_static;
+use regex::{Captures, Regex};
 use serde_json::from_str as from_json_str;
 
 lazy_static! {
@@ -34,15 +39,96 @@ lazy_static! {
     pub static ref AUTH_DL_HASH_TYPE: ScriptHashType = ScriptHashType::Data1;
 }
 
-pub fn read_tx_template(file_name: &str) -> Result<ReprMockTransaction, anyhow::Error> {
+fn load_tx(tx_file: &str) -> Result<ReprMockTransaction, anyhow::Error> {
     let mock_tx =
-        read_to_string(file_name).with_context(|| format!("Failed to read from {}", file_name))?;
-    let mock_tx = auto_complete(&mock_tx)?;
+        read_to_string(tx_file).with_context(|| format!("Failed to read from {}", tx_file))?;
+    let mut mock_tx = auto_complete(&mock_tx)?;
 
-    let mut mock_tx_embed = Embed::new(PathBuf::from(file_name), mock_tx.clone());
-    let mock_tx = mock_tx_embed.replace_all();
-    let mut repr_mock_tx: ReprMockTransaction =
+    let tx_file = PathBuf::from(tx_file);
+    // replace_data
+    let regex = Regex::new(r"\{\{ ?data (.+?) ?\}\}").unwrap();
+    mock_tx = regex
+        .replace_all(&mock_tx, |caps: &Captures| -> String {
+            let cap1 = &caps[1];
+            let path = if !Path::new(cap1).is_absolute() {
+                let root = tx_file.parent().unwrap();
+                root.join(cap1)
+            } else {
+                Path::new(cap1).to_path_buf()
+            };
+            let data = std::fs::read(&path);
+            if data.is_err() {
+                panic!("Read {:?} failed : {:?}", path, data);
+            }
+            let data = data.unwrap();
+            hex::encode(data)
+        })
+        .to_string();
+
+    // replace_hash
+    let regex = Regex::new(r"\{\{ ?hash (.+?) ?\}\}").unwrap();
+    mock_tx = regex
+        .replace_all(&mock_tx, |caps: &Captures| -> String {
+            let cap1 = &caps[1];
+            let path = if !Path::new(cap1).is_absolute() {
+                let root = tx_file.parent().unwrap();
+                root.join(cap1)
+            } else {
+                Path::new(cap1).to_path_buf()
+            };
+            let data = std::fs::read(path).unwrap();
+            hex::encode(blake2b_256(data))
+        })
+        .to_string();
+
+    // prelude_type_id
+    let mut type_id_dict = HashMap::new();
+    let rule = Regex::new(r"\{\{ ?def_type (.+?) ?\}\}").unwrap();
+    for caps in rule.captures_iter(&mock_tx) {
+        let type_id_name = &caps[1];
+        assert!(!type_id_dict.contains_key(type_id_name));
+        let type_id_script = Script::new_builder()
+            .args(Bytes::from(type_id_name.to_string()).pack())
+            .code_hash(TYPE_ID_CODE_HASH.pack())
+            .hash_type(ScriptHashType::Type.into())
+            .build();
+        let type_id_script_hash = type_id_script.calc_script_hash();
+        let type_id_script_hash = format!("{:x}", type_id_script_hash);
+        type_id_dict.insert(type_id_name.to_string(), type_id_script_hash);
+    }
+
+    // replace_def_type
+    let regex = Regex::new(r#""?\{\{ ?def_type (.+?) ?\}\}"?"#).unwrap();
+    mock_tx = regex
+        .replace_all(&mock_tx, |caps: &Captures| -> String {
+            let cap1 = &caps[1];
+            let type_id_script_json = ckb_jsonrpc_types::Script {
+                code_hash: TYPE_ID_CODE_HASH,
+                hash_type: ckb_jsonrpc_types::ScriptHashType::Type,
+                args: ckb_jsonrpc_types::JsonBytes::from_vec(cap1.as_bytes().to_vec()),
+            };
+            return serde_json::to_string_pretty(&type_id_script_json).unwrap();
+        })
+        .to_string();
+
+    // replace_ref_type
+    let regex = Regex::new(r"\{\{ ?ref_type (.+?) ?\}\}").unwrap();
+    mock_tx = regex
+        .replace_all(&mock_tx, |caps: &Captures| -> String {
+            let cap1 = &caps[1];
+            return type_id_dict[&cap1.to_string()].clone();
+        })
+        .to_string();
+
+    let repr_mock_tx: ReprMockTransaction =
         from_json_str(&mock_tx).with_context(|| "in from_json_str(&mock_tx)")?;
+
+    Ok(repr_mock_tx)
+}
+
+pub fn read_tx_template(file_name: &str) -> Result<ReprMockTransaction, anyhow::Error> {
+    let mut repr_mock_tx = load_tx(file_name)?;
+
     if repr_mock_tx.tx.cell_deps.len() == 0 {
         repr_mock_tx.tx.cell_deps = repr_mock_tx
             .mock_info

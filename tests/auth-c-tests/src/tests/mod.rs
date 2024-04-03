@@ -3,27 +3,20 @@
 
 use crate::{get_rng, Secp256r1RawAuth};
 use ckb_auth_rs::EntryCategoryType;
-use ckb_chain_spec::consensus::{Consensus, ConsensusBuilder};
 use ckb_crypto::secp::{Generator, Privkey, Pubkey};
 use ckb_types::{
     bytes::{BufMut, Bytes, BytesMut},
-    core::{hardfork::HardForks, EpochNumberWithFraction, HeaderView},
     prelude::*,
     H256,
 };
-use log::{Level, LevelFilter, Metadata, Record};
 use rand::Rng;
-use sha3::{digest::generic_array::typenum::private::IsEqualPrivate, Digest, Keccak256};
-use std::sync::Arc;
-
-use hex_literal::hex;
 
 use crate::{
-    assert_script_error, auth_builder, auth_program::use_libecc, build_resolved_tx, debug_printer,
-    gen_args, gen_tx, gen_tx_scripts_verifier, gen_tx_with_grouped_args, sign_tx, Auth,
-    AuthAlgorithmIdType, AuthErrorCodeType, BitcoinAuth, BitcoinSignVType, CKbAuth,
-    CkbMultisigAuth, DogecoinAuth, DummyDataLoader, EosAuth, EthereumAuth, LitecoinAuth,
-    SchnorrAuth, TestConfig, TestConfigAuthLockType, TronAuth, MAX_CYCLES,
+    auth_builder, auth_program::use_libecc, debug_printer, gen_args, gen_tx,
+    gen_tx_scripts_verifier, gen_tx_with_grouped_args, sign_tx, Auth, AuthAlgorithmIdType,
+    AuthErrorCodeType, BitcoinAuth, BitcoinSignVType, CKbAuth, CkbMultisigAuth, DogecoinAuth,
+    DummyDataLoader, EosAuth, EthereumAuth, LitecoinAuth, SchnorrAuth, TestConfig,
+    TestConfigAuthLockType, TronAuth, MAX_CYCLES,
 };
 
 fn verify_unit(config: &TestConfig) -> Result<u64, ckb_error::Error> {
@@ -364,6 +357,8 @@ fn convert_eth_error() {
             AuthAlgorithmIdType::Ethereum as u8
         }
         fn convert_message(&self, message: &[u8; 32]) -> H256 {
+            use sha3::{Digest, Keccak256};
+
             let eth_prefix: &[u8; 28] = b"\x19Ethereum Signed Xessage:\n32";
             let mut hasher = Keccak256::new();
             hasher.update(eth_prefix);
@@ -411,6 +406,8 @@ fn convert_tron_error() {
             AuthAlgorithmIdType::Tron as u8
         }
         fn convert_message(&self, message: &[u8; 32]) -> H256 {
+            use sha3::{Digest, Keccak256};
+
             let eth_prefix: &[u8; 24] = b"\x19TRON Signed Xessage:\n32";
             let mut hasher = Keccak256::new();
             hasher.update(eth_prefix);
