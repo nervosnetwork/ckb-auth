@@ -86,7 +86,6 @@ install-all: \
 install-ckb-tools: \
 	bin \
 	install-ckb-debugger \
-	install-moleculec \
 	install-capsule \
 	install-cross
 
@@ -99,9 +98,6 @@ else ifeq ($(shell uname),Linux)
 	mv ckb-debugger bin/ckb-debugger
 	rm -rf LICENSE ckb-debugger-linux-x64.tar.gz
 endif
-
-install-moleculec:
-	cargo install moleculec --version 0.7.3 --root ./
 
 install-capsule:
 ifeq ($(shell uname),Darwin)
