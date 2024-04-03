@@ -14,13 +14,12 @@ use ckb_auth_rs::EntryCategoryType;
 use ckb_chain_spec::consensus::TYPE_ID_CODE_HASH;
 use ckb_hash::{blake2b_256, new_blake2b};
 use ckb_types::core::ScriptHashType;
+use ckb_types::molecule::{bytes::Bytes, prelude::*};
 use ckb_types::packed;
 use ckb_types::packed::CellOutput;
 use ckb_types::packed::Script;
 use ckb_types::packed::WitnessArgsBuilder;
 use ckb_types::prelude::*;
-use molecule::bytes::Bytes;
-use molecule::prelude::*;
 use std::collections::HashMap;
 use std::{
     fs::read_to_string,

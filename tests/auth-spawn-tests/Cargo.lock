@@ -43,7 +43,6 @@ dependencies = [
  "ckb-types",
  "hex",
  "lazy_static",
- "molecule",
  "regex",
  "ripemd",
  "ripple-keypairs",

@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 ckb-auth-rs = { path = "../../ckb-auth-rs", features = ["ckb2023"] }
-molecule = { version = "0.7.5", default-features = false }
 ckb-mock-tx-types = "0.112.0"
 ckb-hash = "0.112.0"
 ckb-jsonrpc-types = "0.112.0"

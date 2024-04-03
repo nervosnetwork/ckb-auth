@@ -317,10 +317,8 @@ dependencies = [
 name = "auth_c_tests"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "base58-monero",
  "base64 0.21.5",
- "bincode",
  "bitcoin",
  "bs58 0.5.1",
  "ckb-auth-rs",
@@ -342,7 +340,6 @@ dependencies = [
  "ripemd",
  "ripple-keypairs",
  "secp256k1 0.22.2",
- "serde",
  "serde_json",
  "sha2 0.10.8",
  "sha3 0.9.1",

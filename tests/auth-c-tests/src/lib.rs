@@ -21,7 +21,6 @@ use hex;
 use log::{Metadata, Record};
 use rand::{distributions::Standard, Rng};
 use secp256k1;
-use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use std::{collections::HashMap, convert::TryInto, mem::size_of, process::Stdio, result, vec};
 
@@ -555,11 +554,30 @@ pub fn gen_tx_with_grouped_args<R: Rng>(
     tx_builder.build()
 }
 
-#[derive(Serialize, Deserialize)]
+// #[derive(Serialize, Deserialize)]
 struct EntryType {
     code_hash: [u8; 32],
     hash_type: u8,
     entry_category: u8,
+}
+
+impl EntryType {
+    pub fn to_vec(&self) -> Vec<u8> {
+        use std::mem::size_of_val;
+        let mut data = Vec::new();
+        data.resize(
+            size_of_val(&self.code_hash)
+                + size_of_val(&self.hash_type)
+                + size_of_val(&self.entry_category),
+            0,
+        );
+
+        data[..32].copy_from_slice(&self.code_hash);
+        data[32] = self.hash_type;
+        data[33] = self.entry_category;
+
+        data
+    }
 }
 
 #[derive(PartialEq, Eq)]
@@ -671,7 +689,7 @@ pub fn do_gen_args(config: &TestConfig, pub_key_hash: Option<Vec<u8>>) -> Bytes 
     bytes.put_u8(config.auth.get_algorithm_type()); // Need to test algorithm_id out of range
     bytes.put(Bytes::from(ckb_auth_type.pubkey_hash.to_vec()));
 
-    bytes.put(Bytes::from(bincode::serialize(&entry_type).unwrap()));
+    bytes.put(Bytes::from(entry_type.to_vec()));
 
     bytes.freeze()
 }
