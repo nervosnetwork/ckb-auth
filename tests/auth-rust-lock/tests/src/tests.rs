@@ -15,7 +15,7 @@ use ckb_testtool::{
 use rand::{thread_rng, Rng};
 use std::mem::size_of;
 
-const MAX_CYCLES: u64 = 10_000_000;
+const MAX_CYCLES: u64 = 10_000_000_000;
 
 #[derive(Clone)]
 struct CKbAuth {
