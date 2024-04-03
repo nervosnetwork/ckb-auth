@@ -43,7 +43,11 @@ clean-c-tests:
 	rm -rf auth-c-tests/target
 
 rust-demo-tests:
-	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd auth-rust-lock/ && capsule build --release && capsule test
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
+	cd auth-rust-lock/ && \
+	capsule build --release && \
+	cd tests && \
+	cargo test
 
 clean-rust-demo-tests:
 	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd auth-rust-lock/ && capsule clean
