@@ -32,7 +32,7 @@ impl Default for Loader {
     fn default() -> Self {
         let test_env = match env::var(TEST_ENV_VAR) {
             Ok(val) => val.parse().expect("test env"),
-            Err(_) => TestEnv::Debug,
+            Err(_) => TestEnv::Release,
         };
         Self::with_test_env(test_env)
     }
@@ -63,7 +63,7 @@ impl Loader {
     fn load_binary(&self, name: &str) -> Bytes {
         let mut path = self.0.clone();
         path.push(name);
-        fs::read(path).expect("binary").into()
+        fs::read(path.clone()).expect(&format!("binary: {:?}", path)).into()
     }
 
     pub fn load_demo(&self) -> Bytes {
