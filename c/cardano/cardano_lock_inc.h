@@ -3,24 +3,27 @@
 #include "blake2b.h"
 #include "nanocbor.h"
 
+#undef CHECK2
 #undef CHECK
-#define CHECK(code)      \
-    do {                 \
-        if (code != 0) { \
-            err = code;  \
-            goto exit;   \
-        }                \
-    } while (0)
 
-#ifndef CHECK2
+#define CHECK(_code)    \
+  do {                  \
+    int code = (_code); \
+    if (code != 0) {    \
+      printf("error at %s:%d, error code %d", __FILE__, __LINE__, code); \
+      err = code;       \
+      goto exit;        \
+    }                   \
+  } while (0)
+
 #define CHECK2(cond, code) \
-    do {                   \
-        if (!(cond)) {     \
-            err = code;    \
-            goto exit;     \
-        }                  \
-    } while (0)
-#endif  // CHECK2
+  do {                     \
+    if (!(cond)) {         \
+      printf("error at %s:%d, error code %d", __FILE__, __LINE__, code); \
+      err = code;          \
+      goto exit;           \
+    }                      \
+  } while (0)
 
 #define CARDANO_LOCK_PUBKEY_SIZE 32
 #define CARDANO_LOCK_SIGNATURE_SIZE 64
