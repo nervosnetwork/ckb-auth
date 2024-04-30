@@ -11,22 +11,24 @@
 
 #undef CHECK2
 #undef CHECK
-#define CHECK2(cond, code)                                              \
-    do {                                                                \
-        if (!(cond)) {                                                  \
-            printf("%s:%d, error code = %d", __FILE__, __LINE__, code); \
-            err = code;                                                 \
-            goto exit;                                                  \
-        }                                                               \
+
+#define CHECK(_code)                                                           \
+    do {                                                                       \
+        int code = (_code);                                                    \
+        if (code != 0) {                                                       \
+            printf("error at %s:%d, error code %d", __FILE__, __LINE__, code); \
+            err = code;                                                        \
+            goto exit;                                                         \
+        }                                                                      \
     } while (0)
 
-#define CHECK(code)                                                     \
-    do {                                                                \
-        if (code != 0) {                                                \
-            printf("%s:%d, error code = %d", __FILE__, __LINE__, code); \
-            err = code;                                                 \
-            goto exit;                                                  \
-        }                                                               \
+#define CHECK2(cond, code)                                                     \
+    do {                                                                       \
+        if (!(cond)) {                                                         \
+            printf("error at %s:%d, error code %d", __FILE__, __LINE__, code); \
+            err = code;                                                        \
+            goto exit;                                                         \
+        }                                                                      \
     } while (0)
 
 #define RIPPLE_SIGN_DATA_MAX_SIZE 72
