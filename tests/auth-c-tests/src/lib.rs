@@ -17,6 +17,7 @@ use ckb_types::{
     H256,
 };
 use dyn_clone::{clone_trait_object, DynClone};
+use ed25519_dalek::SigningKey;
 use hex;
 use log::{Metadata, Record};
 use rand::{distributions::Standard, Rng};
@@ -39,8 +40,7 @@ type BtcNetwork = bitcoin::Network;
 pub const MAX_CYCLES: u64 = std::u64::MAX;
 pub const SIGNATURE_SIZE: usize = 65;
 pub const SOLANA_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE: usize = 510;
-pub const SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE: usize =
-    SOLANA_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE + 2;
+pub const SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE: usize = 96;
 
 lazy_static! {
     pub static ref ORIGINAL_AUTH_PROGRAM: Bytes =
@@ -1620,59 +1620,23 @@ impl Auth for MoneroAuth {
     }
 }
 
-pub struct SolanaSignature {
-    pub len: u16,
-    pub signature: Vec<u8>,
-}
-
 #[derive(Clone)]
 pub struct SolanaAuth {
-    pub key_pair: Arc<solana_sdk::signer::keypair::Keypair>,
+    pub key_pair: [u8; 32],
 }
 impl SolanaAuth {
     pub fn new() -> Box<SolanaAuth> {
-        let key_pair = solana_sdk::signer::keypair::Keypair::new();
-        let key_pair = Arc::new(key_pair);
+        let mut key_pair = [0u8; 32];
+        let mut rng = get_rng();
+        rng.fill(&mut key_pair);
         Box::new(SolanaAuth { key_pair })
-    }
-    pub fn get_pub_key(
-        key_pair: &solana_sdk::signer::keypair::Keypair,
-    ) -> solana_sdk::pubkey::Pubkey {
-        use solana_sdk::signer::EncodableKeypair;
-        key_pair.encodable_pubkey()
-    }
-    pub fn get_pub_key_bytes(key_pair: &solana_sdk::signer::keypair::Keypair) -> Vec<u8> {
-        let pub_key = Self::get_pub_key(key_pair);
-        let pub_key = pub_key.to_bytes();
-        pub_key.into()
-    }
-    pub fn wrap_signature(signature: &[u8]) -> Option<[u8; SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE]> {
-        let len = signature.len();
-        if len > SOLANA_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE {
-            return None;
-        }
-        let len = len as u16;
-        let len_bytes = len.to_le_bytes();
-        let mut data = [0u8; SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE];
-        data[..2].copy_from_slice(len_bytes.as_slice());
-        data[2..(signature.len() + 2)].copy_from_slice(signature);
-        Some(data)
-    }
-    pub fn unwrap_signature(
-        signature: &[u8; SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE],
-    ) -> Option<&[u8]> {
-        let len_bytes: [u8; 2] = std::convert::TryInto::try_into(&signature[0..2]).unwrap();
-        let len = u16::from_le_bytes(len_bytes) as usize;
-        if len > SOLANA_MAXIMUM_UNWRAPPED_SIGNATURE_SIZE {
-            return None;
-        }
-        Some(&signature[2..(2 + len)])
     }
 }
 impl Auth for SolanaAuth {
     fn get_pub_key_hash(&self) -> Vec<u8> {
-        let pub_key = Self::get_pub_key_bytes(&self.key_pair);
-        Vec::from(&ckb_hash::blake2b_256(&pub_key)[..20])
+        let signing_key = SigningKey::from_bytes(&self.key_pair);
+        let verifying_key = signing_key.verifying_key();
+        Vec::from(&ckb_hash::blake2b_256(&verifying_key.to_bytes())[..20])
     }
     fn get_algorithm_type(&self) -> u8 {
         AuthAlgorithmIdType::Solana as u8
@@ -1681,73 +1645,18 @@ impl Auth for SolanaAuth {
         H256::from(message.clone())
     }
     fn sign(&self, msg: &H256) -> Bytes {
-        let pub_key = Self::get_pub_key(&self.key_pair);
-        let pub_key_buf = Self::get_pub_key_bytes(&self.key_pair);
-        let base58_msg = bs58::encode(msg.as_bytes()).into_string();
+        // name conflicted
+        use ed25519_dalek::Signer;
+        // solana has different signing process and algorithm
+        let signing_key = SigningKey::from_bytes(&self.key_pair);
+        let msg = &hex::encode(msg);
+        let sig = signing_key.sign(msg.as_bytes());
+        let verifying_key = signing_key.verifying_key();
 
-        // May need to run `solana-keygen new`, otherwise the following error will be reported.
-        // Error: Dynamic program error: No default signer found, run "solana-keygen new -o /home/runner/.config/solana/id.json" to create a new one
-        let mut child = Command::new("solana")
-            .args([
-                "transfer",
-                "--from=-",
-                "--output=json",
-                "--dump-transaction-message",
-                "--sign-only",
-                "--blockhash",
-                base58_msg.as_str(),
-                "6dN24Y1wBW66CxLfXbRT9umy1PMed8ZmfMWsghopczFg", // Just a random public key, does not matter
-                "0", // Just a simple amount, does not matter
-            ])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
-            .expect("Spawn subprocess");
-
-        let child_stdin = child.stdin.as_mut().unwrap();
-
-        let _keypair_json = solana_sdk::signer::keypair::write_keypair(&self.key_pair, child_stdin)
-            .expect("Must write keypair");
-        // Close stdin to finish and avoid indefinite blocking
-        // #[allow(dropping_references)]
-        // drop(child_stdin);
-
-        let output = child.wait_with_output().expect("Wait for output");
-        assert!(output.status.success());
-
-        let sign_only_data: solana_cli_output::CliSignOnlyData =
-            serde_json::from_slice(&output.stdout).expect("Deserialize command output");
-        assert_eq!(sign_only_data.blockhash, base58_msg.as_str());
-        assert!(sign_only_data.message.is_some());
-        let signer_prefix = format!("{pub_key}=");
-        let base58_signature = sign_only_data
-            .signers
-            .iter()
-            .find(|signer| signer.starts_with(&signer_prefix))
-            .map(|signer| signer.strip_prefix(&signer_prefix).unwrap());
-        let signature = bs58::decode(base58_signature.unwrap())
-            .into_vec()
-            .expect("base58 decode");
-
-        use base64::{engine::general_purpose, Engine as _};
-        let message = general_purpose::STANDARD
-            .decode(&sign_only_data.message.unwrap())
-            .expect("Decode message");
-
-        let signature: Vec<u8> = signature
-            .iter()
-            .chain(&pub_key_buf)
-            .chain(&message)
-            .map(|x| *x)
-            .collect();
-        let signature: [u8; SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE] =
-            Self::wrap_signature(&signature).expect("Signature size not too large");
-        signature.to_vec().into()
+        let mut sig_plus_pubkey = sig.to_vec();
+        sig_plus_pubkey.extend(verifying_key.to_bytes());
+        sig_plus_pubkey.into()
     }
-    // The "signature" passed to ckb-auth actually contains the message signed by solana,
-    // which in turn contains all the accounts involved and is thus dynamically sized.
-    // We set a maximum length for the message here. The "signature" will be a u16 represents
-    // the signature plus the actual signature. The bytes after the signature will not be used.
     fn get_sign_size(&self) -> usize {
         SOLANA_MAXIMUM_WRAPPED_SIGNATURE_SIZE
     }
