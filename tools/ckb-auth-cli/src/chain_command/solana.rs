@@ -12,17 +12,14 @@ impl BlockChainArgs for SolanaLockArgs {
         "solana"
     }
     fn reg_parse_args(&self, cmd: Command) -> Command {
-        cmd.arg(arg!(-a --address <ADDRESS> "The address to parse"))
+        cmd
     }
     fn reg_generate_args(&self, cmd: Command) -> Command {
-        cmd.arg(arg!(-a --address <ADDRESS> "The pubkey address whose hash will be included in the message").required(false))
-      .arg(arg!(-p --pubkeyhash <PUBKEYHASH> "The pubkey hash to include in the message").required(false))
-      .arg(arg!(-e --encoding <ENCODING> "The encoding of the signature (may be hex or base64)"))
+        cmd
     }
     fn reg_verify_args(&self, cmd: Command) -> Command {
-        cmd.arg(arg!(-a --address <ADDRESS> "The pubkey address whose hash verify against"))
+        cmd.arg(arg!(-p --pubkey <PUBKEY> "The pubkey"))
             .arg(arg!(-s --signature <SIGNATURE> "The signature to verify"))
-            .arg(arg!(--solanamessage <MESSAGE> "The message output by solana command"))
             .arg(arg!(-m --message <MESSAGE> "The signed message"))
     }
 
@@ -43,39 +40,29 @@ impl BlockChain for SolanaLock {
     }
 
     fn verify(&self, operate_mathches: &ArgMatches) -> Result<(), Error> {
-        let address = operate_mathches
-            .get_one::<String>("address")
+        let pubkey = operate_mathches
+            .get_one::<String>("pubkey")
             .expect("get verify address");
 
-        let signature = operate_mathches
-            .get_one::<String>("signature")
-            .expect("get verify signature");
-
-        let solana_message = operate_mathches
-            .get_one::<String>("solanamessage")
-            .expect("get solanamessage");
-
-        let pubkey_hash: [u8; 20] = get_pub_key_hash_from_address(address)?
-            .try_into()
-            .expect("address buf to [u8; 20]");
-
-        let mut data = Vec::new();
-        data.extend_from_slice(decode_string(signature, "base58")?.as_slice());
-        data.extend_from_slice(decode_string(address, "base58")?.as_slice());
-        data.extend_from_slice(decode_string(solana_message, "base64")?.as_slice());
-        // This is the fixed size of a solana "signature"
-        // TODO: we shouldn't hard code 512 here.
-        let mut signature = [0u8; 512].to_vec();
-        let len = u16::try_from(data.len()).unwrap();
-        signature[..2].copy_from_slice(&len.to_le_bytes());
-        signature[2..(data.len() + 2)].copy_from_slice(&data);
+        let pubkey = bs58::decode(pubkey).into_vec().unwrap();
 
         let message = hex::decode(
             operate_mathches
                 .get_one::<String>("message")
-                .expect("get message from args"),
+                .expect("get message"),
         )
         .expect("decode message");
+
+        let signature = hex::decode(
+            operate_mathches
+                .get_one::<String>("signature")
+                .expect("get verify signature"),
+        )
+        .expect("decode signature");
+
+        let signature = [signature, pubkey.clone()].concat();
+
+        let pubkey_hash = ckb_hash::blake2b_256(pubkey)[0..20].to_vec();
 
         run_auth_exec(
             AuthAlgorithmIdType::Solana,
@@ -88,9 +75,4 @@ impl BlockChain for SolanaLock {
 
         Ok(())
     }
-}
-
-fn get_pub_key_hash_from_address(address: &str) -> Result<Vec<u8>, Error> {
-    let hash = ckb_hash::blake2b_256(bs58::decode(&address).into_vec()?);
-    Ok(hash[0..20].into())
 }
