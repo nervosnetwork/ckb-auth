@@ -82,7 +82,6 @@ clean-spawn-tests:
 install-all: \
 	install-ckb-tools \
 	install-litecoin-tools \
-	install-solana-tools \
 	install-cardano-tools
 
 # 	install-monero-tools
@@ -118,23 +117,19 @@ install-cross:
 
 litecoin_tools_url=
 monero_tools_url=
-solana_tools_url=
 cardano_tools_url=
 ifeq ($(shell uname),Darwin)
 	litecoin_tools_url = https://download.litecoin.org/litecoin-0.21.2.2/osx/litecoin-0.21.2.2-osx64.tar.gz
 	cardano_tools_url = https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-8.0.0-macos.tar.gz
 	ifeq ($(shell uname -m),arm64)
-		solana_tools_url = https://github.com/solana-labs/solana/releases/download/v1.16.1/solana-release-aarch64-apple-darwin.tar.bz2
 		monero_tools_url = https://downloads.getmonero.org/cli/monero-mac-armv8-v0.18.2.2.tar.bz2
 	else
-		solana_tools_url = https://github.com/solana-labs/solana/releases/download/v1.16.1/solana-release-x86_64-apple-darwin.tar.bz2
 		monero_tools_url = https://downloads.getmonero.org/cli/monero-mac-x64-v0.18.2.2.tar.bz2
 	endif
 
 else ifeq ($(shell uname), Linux)
 	litecoin_tools_url = https://download.litecoin.org/litecoin-0.21.2.2/linux/litecoin-0.21.2.2-x86_64-linux-gnu.tar.gz
 	monero_tools_url = https://downloads.getmonero.org/cli/monero-linux-x64-v0.18.2.2.tar.bz2
-	solana_tools_url = https://github.com/solana-labs/solana/releases/download/v1.16.1/solana-release-x86_64-unknown-linux-gnu.tar.bz2
 	cardano_tools_url = https://update-cardano-mainnet.iohk.io/cardano-node-releases/cardano-node-8.0.0-linux.tar.gz
 endif
 
@@ -151,14 +146,6 @@ install-litecoin-tools:
 # 	cp -r monero-*/* bin
 # 	rm -rf monero-* bin/ANONYMITY_NETWORKS.md bin/README.md bin/LICENSE
 # 	bin/monero-wallet-cli --version
-
-install-solana-tools:
-	wget -nv $(solana_tools_url)
-	tar xvf `basename -- $(solana_tools_url)`
-	cp -r solana-*/bin/* bin
-	rm -rf solana-*
-	bin/solana --version
-	bin/solana-keygen new --force --no-bip39-passphrase
 
 install-cardano-tools:
 	wget -nv $(cardano_tools_url)

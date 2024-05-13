@@ -61,6 +61,10 @@
 #define TONCOIN_MESSAGE_PREFIX2_SIZE 11
 #define TONCOIN_PREIMAGE2_SIZE (2 + TONCOIN_MESSAGE_PREFIX2_SIZE + 32)
 
+#define MESSAGE_HEX_LEN 64
+#define ED25519_SIGNATURE_SIZE 64
+#define ED25519_PUBKEY_SIZE 32
+
 int md_string(const mbedtls_md_info_t *md_info, const uint8_t *buf, size_t n,
               unsigned char *output) {
     int err = 0;
@@ -450,7 +454,7 @@ size_t write_varint(uint8_t *dest, size_t n) {
     uint8_t *ptr = dest;
     /* Make sure that there is one after this */
     while (n >= 0x80) {
-        *ptr = ((uint8_t)(n)&0x7f) | 0x80;
+        *ptr = ((uint8_t)(n) & 0x7f) | 0x80;
         ptr++;
         n >>= 7; /* I should be in multiples of 7, this should just get the next
                     part */
@@ -459,39 +463,6 @@ size_t write_varint(uint8_t *dest, size_t n) {
     *ptr = (uint8_t)(n);
     ptr++;
     return ptr - dest;
-}
-
-// Read uint16_t from varint buffer
-// See
-// https://github.com/solana-labs/solana/blob/3b0b0ba07d345ef86e270187a1a7d99bd0da7f4c/sdk/program/src/short_vec.rs#L120-L148
-int read_varint_u16(uint8_t **src, size_t src_size, uint16_t *result) {
-    size_t maximum_full_bytes = sizeof(uint16_t) * 8 / 7;
-
-    uint8_t *ptr = *src;
-    uint16_t acc = 0;
-    for (size_t i = 0; i <= maximum_full_bytes; i++) {
-        if (i >= src_size) {
-            return -1;
-        }
-        uint8_t current_value = *ptr;
-        size_t bits = (i < maximum_full_bytes)
-                          ? 7
-                          : sizeof(uint16_t) * 8 - maximum_full_bytes * 7;
-        uint8_t maximum_value = (1 << bits) - 1;
-        acc += ((uint16_t)(current_value & maximum_value) << (i * 7));
-        ptr = ptr + 1;
-        if (current_value < 0x80 && i < maximum_full_bytes) {
-            *src = ptr;
-            *result = acc;
-            return 0;
-        } else if (i == maximum_full_bytes && current_value > maximum_value) {
-            // The last byte should not have all zeroes in high bits.
-            return -2;
-        }
-    }
-    *src = ptr;
-    *result = acc;
-    return 0;
 }
 
 // Get monero hash digest from message.
@@ -611,83 +582,44 @@ exit:
     return err;
 }
 
-int validate_solana_signed_message(const uint8_t *signed_msg,
-                                   size_t signed_msg_len,
-                                   const uint8_t *pub_key,
-                                   const uint8_t *blockhash) {
-    int err = 0;
-    // Official solana transaction structure documentation.
-    // [Transactions | Solana
-    // Docs](https://docs.solana.com/developing/programming-model/transactions)
-    // See also
-    // https://github.com/solana-labs/solana/blob/3b0b0ba07d345ef86e270187a1a7d99bd0da7f4c/sdk/program/src/message/legacy.rs#L90-L129
-    CHECK2(signed_msg_len > SOLANA_MESSAGE_HEADER_SIZE + SOLANA_BLOCKHASH_SIZE,
-           ERROR_INVALID_ARG);
-    uint8_t num_signers = *signed_msg;
-    uint16_t num_keys = 0;
-    uint8_t *pub_key_ptr = (uint8_t *)(signed_msg + SOLANA_MESSAGE_HEADER_SIZE);
-    CHECK2(read_varint_u16(&pub_key_ptr,
-                           signed_msg_len - SOLANA_MESSAGE_HEADER_SIZE,
-                           &num_keys) == 0,
-           ERROR_INVALID_ARG);
-    size_t pub_key_size =
-        (pub_key_ptr - (uint8_t *)(signed_msg + SOLANA_MESSAGE_HEADER_SIZE)) +
-        SOLANA_PUBKEY_SIZE * num_keys;
-    CHECK2(signed_msg_len > SOLANA_MESSAGE_HEADER_SIZE + pub_key_size +
-                                SOLANA_BLOCKHASH_SIZE,
-           ERROR_INVALID_ARG);
-    const uint8_t *blockhash_ptr =
-        signed_msg + SOLANA_MESSAGE_HEADER_SIZE + pub_key_size;
-    CHECK2(memcmp(blockhash_ptr, blockhash, SOLANA_BLOCKHASH_SIZE) == 0,
-           ERROR_INVALID_ARG);
-    for (uint8_t i = 0; i < num_signers; i++) {
-        uint8_t *tmp_pub_key = pub_key_ptr + i * SOLANA_PUBKEY_SIZE;
-        if (memcmp(tmp_pub_key, pub_key, SOLANA_PUBKEY_SIZE) == 0) {
-            return 0;
-        }
+static void bin_to_hex(const uint8_t *source, uint8_t *dest, size_t len) {
+    const static uint8_t HEX_TABLE[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+                                        '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+    for (int i = 0; i < len; i++) {
+        dest[i * 2] = HEX_TABLE[source[i] >> 4];
+        dest[i * 2 + 1] = HEX_TABLE[source[i] & 0x0F];
     }
-    return ERROR_INVALID_ARG;
-exit:
-    return err;
 }
 
 int validate_signature_solana(uint8_t *prefilled_data, uint8_t algorithm_id,
                               const uint8_t *sig, size_t sig_len,
                               const uint8_t *msg, size_t msg_len,
-                              uint8_t *out_pubkey_hash,
-                              size_t pubkey_hash_len) {
-    int err = 0;
-
-    if (pubkey_hash_len < AUTH160_SIZE) {
+                              uint8_t *output, size_t output_len) {
+    if (output_len < AUTH160_SIZE || msg_len != SHA256_SIZE) {
         return ERROR_INVALID_ARG;
     }
-    CHECK2(sig_len == SOLANA_WRAPPED_SIGNATURE_SIZE, ERROR_INVALID_ARG);
-    CHECK2(msg_len == SOLANA_BLOCKHASH_SIZE, ERROR_INVALID_ARG);
-    sig_len = (size_t)sig[0] | ((size_t)sig[1] << 8);
-    CHECK2(sig_len <= SOLANA_UNWRAPPED_SIGNATURE_SIZE, ERROR_INVALID_ARG);
-    const uint8_t *signature_ptr = sig + 2;
-    const uint8_t *pub_key_ptr = signature_ptr + SOLANA_SIGNATURE_SIZE;
-    const uint8_t *signed_msg_ptr =
-        signature_ptr + SOLANA_SIGNATURE_SIZE + SOLANA_PUBKEY_SIZE;
-    size_t signed_msg_len =
-        sig_len - SOLANA_SIGNATURE_SIZE - SOLANA_PUBKEY_SIZE;
 
-    CHECK(validate_solana_signed_message(signed_msg_ptr, signed_msg_len,
-                                         pub_key_ptr, msg));
+    // CKB transaction: 0x<signing message hash, hex format>
+    uint8_t displaying_msg[MESSAGE_HEX_LEN] = {0};
+    bin_to_hex(msg, displaying_msg, msg_len);
 
-    int suc = ed25519_verify(signature_ptr, signed_msg_ptr, signed_msg_len,
-                             pub_key_ptr);
-    CHECK2(suc == 1, ERROR_WRONG_STATE);
+    // Unlike secp256k1, Ed25519 cannot recover the public key from the
+    // signature alone. The public key is located immediately after the
+    // signature.
+    const uint8_t *pubkey = sig + ED25519_SIGNATURE_SIZE;
+    int success =
+        ed25519_verify(sig, displaying_msg, sizeof(displaying_msg), pubkey);
+    if (!success) {
+        return ERROR_MISMATCHED;
+    }
 
+    uint8_t hash[SHA256_SIZE] = {0};
     blake2b_state ctx;
-    uint8_t pubkey_hash[BLAKE2B_BLOCK_SIZE] = {0};
     blake2b_init(&ctx, BLAKE2B_BLOCK_SIZE);
-    blake2b_update(&ctx, pub_key_ptr, SOLANA_PUBKEY_SIZE);
-    blake2b_final(&ctx, pubkey_hash, sizeof(pubkey_hash));
-
-    memcpy(out_pubkey_hash, pubkey_hash, AUTH160_SIZE);
-exit:
-    return err;
+    blake2b_update(&ctx, pubkey, ED25519_PUBKEY_SIZE);
+    blake2b_final(&ctx, hash, BLAKE2B_BLOCK_SIZE);
+    memcpy(output, hash, AUTH160_SIZE);
+    return 0;
 }
 
 // Ton uses ed25519 to sign messages. The message to be signed is
@@ -812,15 +744,6 @@ int convert_tron_message(const uint8_t *msg, size_t msg_len, uint8_t *new_msg,
     keccak_update(&sha3_ctx, (unsigned char *)msg, 32);
     keccak_final(&sha3_ctx, new_msg);
     return 0;
-}
-
-static void bin_to_hex(const uint8_t *source, uint8_t *dest, size_t len) {
-    const static uint8_t HEX_TABLE[] = {'0', '1', '2', '3', '4', '5', '6', '7',
-                                        '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-    for (int i = 0; i < len; i++) {
-        dest[i * 2] = HEX_TABLE[source[i] >> 4];
-        dest[i * 2 + 1] = HEX_TABLE[source[i] & 0x0F];
-    }
 }
 
 static void split_hex_hash(const uint8_t *source, unsigned char *dest) {
