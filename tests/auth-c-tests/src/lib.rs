@@ -867,7 +867,6 @@ pub fn auth_builder(t: AuthAlgorithmIdType, official: bool) -> result::Result<Bo
         AuthAlgorithmIdType::Secp256r1 => {
             return Ok(Secp256r1Auth::new());
         }
-        AuthAlgorithmIdType::Toncoin => todo!("Toncoin tests currectly unimplemented"),
         AuthAlgorithmIdType::Secp256r1Raw => {
             return Ok(Secp256r1RawAuth::new());
         }
