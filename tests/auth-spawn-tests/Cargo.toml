@@ -1,18 +1,18 @@
 [package]
 name = "auth_spawn_rust"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ckb-auth-rs = { path = "../../ckb-auth-rs", features = ["ckb2023"] }
-ckb-mock-tx-types = "0.112.0"
-ckb-hash = "0.112.0"
-ckb-jsonrpc-types = "0.112.0"
-ckb-types = "0.112.0"
-ckb-chain-spec = "0.112.0"
-ckb-crypto = "0.112.0"
+ckb-auth-rs = { path = "../../ckb-auth-rs" }
+ckb-mock-tx-types = "0.202.0"
+ckb-hash = "0.202.0"
+ckb-jsonrpc-types = "0.202.0"
+ckb-types = "0.202.0"
+ckb-chain-spec = "0.202.0"
+ckb-crypto = "0.202.0"
 
 anyhow = "1.0.70"
 lazy_static = "1.4.0"

@@ -2,7 +2,7 @@ use anyhow::{anyhow, Error};
 use ckb_auth_rs::AuthAlgorithmIdType;
 use ckb_vm::cost_model::estimate_cycles;
 use ckb_vm::registers::{A0, A1, A2, A3, A4, A5, A7};
-use ckb_vm::{Bytes, Memory, Register, SupportMachine, Syscalls};
+use ckb_vm::{Bytes, DefaultMachineRunner, Memory, Register, SupportMachine, Syscalls};
 use hex::encode;
 use lazy_static::lazy_static;
 
@@ -133,7 +133,7 @@ pub fn run_auth_exec(
     //     args_algorithm_id, args_sign, args_msg, args_pubkey_hash
     // );
 
-    let asm_core = ckb_vm::machine::asm::AsmCoreMachine::new(
+    let asm_core = <Box<ckb_vm::machine::asm::AsmCoreMachine> as SupportMachine>::new(
         ckb_vm::ISA_IMC | ckb_vm::ISA_B | ckb_vm::ISA_MOP,
         ckb_vm::machine::VERSION1,
         u64::MAX,
@@ -146,12 +146,14 @@ pub fn run_auth_exec(
     machine
         .load_program(
             &AUTH_CODE,
-            &[
+            [
                 Bytes::copy_from_slice(args_algorithm_id.as_bytes()),
                 Bytes::copy_from_slice(args_sign.as_bytes()),
                 Bytes::copy_from_slice(args_msg.as_bytes()),
                 Bytes::copy_from_slice(args_pubkey_hash.as_bytes()),
-            ],
+            ]
+            .into_iter()
+            .map(Ok),
         )
         .expect("load auth_code failed");
     let exit = machine.run().expect("run failed");

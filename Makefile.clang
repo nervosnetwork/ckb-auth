@@ -21,12 +21,12 @@ CFLAGS := -g -O3 -fPIC \
 INCLUDE_SECP256K1_CFLAGS = \
 		-I deps/secp256k1-20210801/src -I deps/secp256k1-20210801
 INCLUDE_CKB_STD_CFLAGS = \
-		-I deps/ckb-c-stdlib-2023 -I deps/ckb-c-stdlib-2023/libc -I deps/ckb-c-stdlib-2023/molecule
+		-I deps/ckb-c-stdlib-2025 -I deps/ckb-c-stdlib-2025/libc -I deps/ckb-c-stdlib-2025/molecule
 INCLUDE_CFLAGS := $(INCLUDE_SECP256K1_CFLAGS) $(INCLUDE_CKB_STD_CFLAGS) \
 		-I c -I build -I deps/mbedtls/include -I deps/ed25519/src -I c/cardano/nanocbor
 
 AUTH_CFLAGS := $(CFLAGS) $(INCLUDE_CFLAGS) -Wno-array-bounds
-PASSED_MBEDTLS_CFLAGS := $(CFLAGS) -DCKB_DECLARATION_ONLY -I ../../ckb-c-stdlib-2023/libc
+PASSED_MBEDTLS_CFLAGS := $(CFLAGS) -DCKB_DECLARATION_ONLY -I ../../ckb-c-stdlib-2025/libc
 
 SECP256K1_SRC_20210801 := deps/secp256k1-20210801/src/ecmult_static_pre_context.h
 
@@ -39,9 +39,9 @@ LIBECC_OPTIMIZED_FILES := \
 		${LIBECC_OPTIMIZED_PATH}/build/libec.a \
 		${LIBECC_OPTIMIZED_PATH}/build/libsign.a
 CFLAGS_LIBECC_OPTIMIZED = \
-		-I ../ckb-c-stdlib-2023 \
-		-I ../ckb-c-stdlib-2023/libc \
-		-I ../ckb-c-stdlib-2023/molecule \
+		-I ../ckb-c-stdlib-2025 \
+		-I ../ckb-c-stdlib-2025/libc \
+		-I ../ckb-c-stdlib-2025/molecule \
 		$(CFLAGS_LIBECC) \
 		-DWITH_LL_U256_MONT
 CFLAGS_LINK_TO_LIBECC_OPTIMIZED := \
@@ -66,7 +66,7 @@ build/secp256k1_data_info_20210801.h: build/dump_secp256k1_data_20210801
 
 build/dump_secp256k1_data_20210801: c/dump_secp256k1_data_20210801.c $(SECP256K1_SRC_20210801)
 	mkdir -p build
-	gcc -I deps/ckb-c-stdlib-2023 -I deps/secp256k1-20210801/src -I deps/secp256k1-20210801 -o $@ $<
+	gcc -I deps/ckb-c-stdlib-2025 -I deps/secp256k1-20210801/src -I deps/secp256k1-20210801 -o $@ $<
 
 $(SECP256K1_SRC_20210801):
 	cd deps/secp256k1-20210801 && \
@@ -149,4 +149,3 @@ clean:
 	make -C deps/libecc clean
 
 .PHONY: all
-

@@ -2100,7 +2100,7 @@ pub fn gen_tx_scripts_verifier(
         .hardfork_switch(HardForks::new_dev())
         .build();
 
-    let mut verifier = TransactionScriptsVerifier::new(
+    let verifier = TransactionScriptsVerifier::new(
         Arc::new(resolved_tx),
         data_loader.clone(),
         Arc::new(consensus),
@@ -2108,6 +2108,5 @@ pub fn gen_tx_scripts_verifier(
             &HeaderView::new_advanced_builder().build(),
         )),
     );
-    verifier.set_debug_printer(debug_printer);
     verifier
 }
