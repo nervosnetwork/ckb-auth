@@ -43,7 +43,7 @@ fn ckb_auth_spawn(
         pubkey_hash_str.as_c_str(),
     ];
 
-    let pid = spawn_cell(&entry.code_hash, entry.hash_type, &args, &mut Vec::new())?;
+    let pid = spawn_cell(&entry.code_hash, entry.hash_type, &args, &[])?;
     let exit_code = wait(pid)?;
     if exit_code != 0 {
         return Err(CkbAuthError::VerifyFailed);
