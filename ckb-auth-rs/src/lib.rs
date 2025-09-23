@@ -80,6 +80,7 @@ pub enum CkbAuthError {
     SignatureMissing,
     EncodeArgs,
     GenerateSigHash,
+    VerifyFailed,
     UnsupportEntryType,
 }
 
@@ -102,7 +103,6 @@ pub enum EntryCategoryType {
     Exec = 0,
     #[cfg(feature = "enable-dynamic-library")]
     DynamicLibrary = 1,
-    #[cfg(feature = "ckb2023")]
     Spawn = 2,
 }
 
@@ -113,7 +113,6 @@ impl TryFrom<u8> for EntryCategoryType {
             0 => Ok(Self::Exec),
             #[cfg(feature = "enable-dynamic-library")]
             1 => Ok(Self::DynamicLibrary),
-            #[cfg(feature = "ckb2023")]
             2 => Ok(Self::Spawn),
             _ => Err(CkbAuthError::EncodeArgs),
         }

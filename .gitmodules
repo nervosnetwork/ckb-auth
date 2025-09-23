@@ -4,10 +4,6 @@
 	path = deps/secp256k1-20210801
 	url = https://github.com/nervosnetwork/secp256k1.git
 	branch = schnorr
-[submodule "deps/ckb-c-stdlib-2023"]
-	path = deps/ckb-c-stdlib-2023
-	url = https://github.com/nervosnetwork/ckb-c-stdlib.git
-	branch = master
 [submodule "deps/mbedtls"]
 	path = deps/mbedtls
 	url = https://github.com/nervosnetwork/mbedtls.git
@@ -19,3 +15,6 @@
 	path = deps/libecc
 	url = https://github.com/cryptape/libecc.git
 	branch = riscv-optimized
+[submodule "deps/ckb-c-stdlib-2025"]
+	path = deps/ckb-c-stdlib-2025
+	url = https://github.com/nervosnetwork/ckb-c-stdlib

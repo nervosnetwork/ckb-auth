@@ -2,6 +2,9 @@
 members = ["contracts/auth-rust-demo"]
 exclude = ["tests"]
 
+[workspace.package]
+edition = "2024"
+
 [profile.release]
 overflow-checks = true
 strip = true

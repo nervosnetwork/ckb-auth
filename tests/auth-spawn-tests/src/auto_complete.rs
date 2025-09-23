@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use serde_json::{json, Value};
 
+#[allow(static_mut_refs)]
 static mut NONCE: u32 = 0;
 
 /* generate a pseudo unique out point:
@@ -9,6 +10,7 @@ static mut NONCE: u32 = 0;
     "index": "0x0"
 }
 */
+#[allow(static_mut_refs)]
 fn gen_outpoint() -> Value {
     let tx_hash = unsafe {
         let r = format!(

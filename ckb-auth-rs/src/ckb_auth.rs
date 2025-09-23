@@ -3,13 +3,10 @@ extern crate alloc;
 use crate::{CkbAuthError, CkbAuthType, CkbEntryType, EntryCategoryType};
 use alloc::ffi::CString;
 use alloc::format;
-use ckb_std::high_level::exec_cell;
-use hex::encode;
-
-#[cfg(feature = "ckb2023")]
 use alloc::vec::Vec;
-#[cfg(feature = "ckb2023")]
-use ckb_std::high_level::spawn_cell;
+use ckb_std::high_level::{exec_cell, spawn_cell};
+use ckb_std::syscalls::wait;
+use hex::encode;
 
 #[cfg(feature = "enable-dynamic-library")]
 use super::ckb_auth_dl::ckb_auth_dl;
@@ -24,12 +21,10 @@ pub fn ckb_auth(
         EntryCategoryType::Exec => ckb_auth_exec(entry, id, signature, message),
         #[cfg(feature = "enable-dynamic-library")]
         EntryCategoryType::DynamicLibrary => ckb_auth_dl(entry, id, signature, message),
-        #[cfg(feature = "ckb2023")]
         EntryCategoryType::Spawn => ckb_auth_spawn(entry, id, signature, message),
     }
 }
 
-#[cfg(feature = "ckb2023")]
 fn ckb_auth_spawn(
     entry: &CkbEntryType,
     id: &CkbAuthType,
@@ -48,7 +43,11 @@ fn ckb_auth_spawn(
         pubkey_hash_str.as_c_str(),
     ];
 
-    spawn_cell(&entry.code_hash, entry.hash_type, &args, 8, &mut Vec::new())?;
+    let pid = spawn_cell(&entry.code_hash, entry.hash_type, &args, &[])?;
+    let exit_code = wait(pid)?;
+    if exit_code != 0 {
+        return Err(CkbAuthError::VerifyFailed);
+    }
     Ok(())
 }
 

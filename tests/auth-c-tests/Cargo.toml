@@ -2,19 +2,19 @@
 name = "auth_c_tests"
 version = "0.1.0"
 authors = ["joii <joii@cryptape.com"]
-edition = "2018"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ckb-auth-rs = { path = "../../ckb-auth-rs", features = ["ckb2023", "enable-dynamic-library"] }
-ckb-crypto = "0.112"
-ckb-error = "0.112"
-ckb-hash = "0.112"
-ckb-script = "0.112"
-ckb-traits = "0.112"
-ckb-types = "0.112"
-ckb-chain-spec = "0.112"
+ckb-auth-rs = { path = "../../ckb-auth-rs", features = ["enable-dynamic-library"] }
+ckb-crypto = "0.202"
+ckb-error = "0.202"
+ckb-hash = "0.202"
+ckb-script = "0.202"
+ckb-traits = "0.202"
+ckb-types = "0.202"
+ckb-chain-spec = "0.202"
 
 ref_thread_local = "0.1.1"
 rand = "0.6.5"

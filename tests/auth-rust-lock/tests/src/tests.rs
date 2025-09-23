@@ -228,7 +228,6 @@ fn test_dll() {
 }
 
 #[test]
-#[cfg(feature = "ckb2023")]
 fn test_spawn() {
     let auth = CKbAuth::new();
 

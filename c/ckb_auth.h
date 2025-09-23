@@ -243,11 +243,17 @@ int ckb_auth(uint8_t *prefilled_data, CkbEntryType *entry, CkbAuthType *id,
             err = ckb_exec_cell(entry->code_hash, entry->hash_type, 0, 0, 4,
                                 argv);
         } else {
+            uint64_t pid = 0;
+            uint64_t fds[1] = {0};
             spawn_args_t spawn_args = {0};
-            spawn_args.memory_limit = 8;
-            spawn_args.exit_code = &exit_code;
-            err = ckb_spawn_cell(entry->code_hash, entry->hash_type, 0, 0, 4,
-                                 argv, &spawn_args);
+            spawn_args.argc = 4;
+            spawn_args.argv = argv;
+            spawn_args.process_id = &pid;
+            spawn_args.inherited_fds = fds;
+            err = ckb_spawn_cell(entry->code_hash, entry->hash_type, 0, 0,
+                                 &spawn_args);
+            if (err != 0) return err;
+            err = ckb_wait(pid, &exit_code);
         }
         if (err != 0) return err;
         return exit_code;

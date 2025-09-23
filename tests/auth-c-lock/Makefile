@@ -14,7 +14,7 @@ CFLAGS := -fPIC -O3 -g \
 		-I c \
 		-I build
 LDFLAGS := -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections
-AUTH_CFLAGS=$(subst ckb-c-std-lib,ckb-c-stdlib-2023,$(CFLAGS)) -Wno-dangling-pointer -Wno-array-bounds -Wno-stringop-overflow
+AUTH_CFLAGS=$(subst ckb-c-std-lib,ckb-c-stdlib-2025,$(CFLAGS)) -Wno-dangling-pointer -Wno-array-bounds -Wno-stringop-overflow
 
 # docker pull nervos/ckb-riscv-gnu-toolchain:gnu-jammy-20230214
 BUILDER_DOCKER := nervos/ckb-riscv-gnu-toolchain@sha256:d3f649ef8079395eb25a21ceaeb15674f47eaa2d8cc23adc8bcdae3d5abce6ec

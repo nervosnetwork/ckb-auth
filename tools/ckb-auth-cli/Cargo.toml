@@ -6,11 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ckb-auth-rs = { path = "../../ckb-auth-rs", features = ["ckb2023"] }
+ckb-auth-rs = { path = "../../ckb-auth-rs" }
 ckb-vm = { version = "0.24", features = [ "asm" ] }
-ckb-types = "0.112"
-ckb-hash = "0.112"
-ckb-script = "0.112"
+ckb-types = "0.202"
+ckb-hash = "0.202"
+ckb-script = "0.202"
 
 clap = "4.3.2"
 hex = "0.4.3"
