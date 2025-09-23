@@ -1,8 +1,8 @@
-CC := clang-16
-LD := ld.lld-16
-OBJCOPY := llvm-objcopy-16
-AR := llvm-ar-16
-RANLIB := llvm-ranlib-16
+CC := clang-19
+LD := ld.lld-19
+OBJCOPY := llvm-objcopy-19
+AR := llvm-ar-19
+RANLIB := llvm-ranlib-19
 LLVM_CFLAGS := --target=riscv64 -march=rv64imc_zba_zbb_zbc_zbs \
 		-Wno-error=unused-but-set-variable \
 		-Wno-error=unused-command-line-argument \
