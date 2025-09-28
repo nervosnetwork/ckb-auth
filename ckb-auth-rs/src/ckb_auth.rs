@@ -3,7 +3,6 @@ extern crate alloc;
 use crate::{CkbAuthError, CkbAuthType, CkbEntryType, EntryCategoryType};
 use alloc::ffi::CString;
 use alloc::format;
-use alloc::vec::Vec;
 use ckb_std::high_level::{exec_cell, spawn_cell};
 use ckb_std::syscalls::wait;
 use hex::encode;

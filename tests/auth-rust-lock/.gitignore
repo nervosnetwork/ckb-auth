@@ -1,11 +1,3 @@
-# Rust
-target
-.cache/.cargo/*
-
-# C
-contracts/c/build/*
-
-# others
-build/*
-!.gitkeep
-.tmp/
+/build
+/target
+/tests/failed_txs

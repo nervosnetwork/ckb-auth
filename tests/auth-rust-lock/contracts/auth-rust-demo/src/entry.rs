@@ -79,7 +79,7 @@ pub fn main() -> Result<(), Error> {
 
     let entry = CkbEntryType {
         code_hash,
-        hash_type,
+        hash_type: hash_type.into(),
         entry_category: EntryCategoryType::try_from(entry_type)
             .map_err(|f| CkbAuthError::from(f))
             .unwrap(),

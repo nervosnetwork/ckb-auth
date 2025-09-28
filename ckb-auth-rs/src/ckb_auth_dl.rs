@@ -44,7 +44,9 @@ lazy_static::lazy_static! {
     static ref G_DL_CONTEXT: DLContext = unsafe { DLContext::new() };
 }
 
+#[allow(static_mut_refs)]
 static mut G_CKB_DL_LOADER: Option<CKBDLLoader> = None;
+#[allow(static_mut_refs)]
 impl CKBDLLoader {
     pub fn get() -> &'static mut Self {
         unsafe {
