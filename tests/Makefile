@@ -27,7 +27,7 @@ all_tests:
 build-auth-rust-lock:
 	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
 		cd auth-rust-lock && \
-		RUSTFLAGS="-C target-feature=-a" capsule build --release && \
+		make build && \
 		cp build/release/auth-rust-demo ../../build
 
 build-auth-lock: build-auth-rust-lock
@@ -45,31 +45,31 @@ clean-c-tests:
 rust-demo-tests:
 	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
 	cd auth-rust-lock/ && \
-	RUSTFLAGS="-C target-feature=-a" capsule build --release && \
+	make build && \
 	cd tests && \
 	cargo test
 
 clean-rust-demo-tests:
-	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd auth-rust-lock/ && capsule clean
+	export PATH=$(shell pwd)/bin/:"$(PATH)" && cd auth-rust-lock/ && make clean
 
 rust-demo-tests-no-def-features: clean-rust-demo-tests
 	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
 	cd auth-rust-lock && \
-	RUSTFLAGS="-C target-feature=-a" capsule build --release -- --no-default-features && \
+	CARGO_ARGS="--no-default-features" make build && \
 	cd tests && \
 	cargo test --no-default-features
 
 rust-demo-tests-only-spawn: clean-rust-demo-tests
 	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
 	cd auth-rust-lock && \
-	RUSTFLAGS="-C target-feature=-a" capsule build --release -- --no-default-features && \
+	CARGO_ARGS="--no-default-features" make build && \
 	cd tests && \
 	cargo test --no-default-features
 
 rust-demo-tests-only-dl: clean-rust-demo-tests
 	export PATH=$(shell pwd)/bin/:"$(PATH)" && \
 	cd auth-rust-lock && \
-	RUSTFLAGS="-C target-feature=-a" capsule build --release -- --no-default-features --features="enable-dynamic-library" && \
+	CARGO_ARGS="--no-default-features --features=\"enable-dynamic-library\"" make build && \
 	cd tests && \
 	cargo test --no-default-features --features="enable-dynamic-library"
 
@@ -80,6 +80,7 @@ clean-spawn-tests:
 	rm -rf auth-spawn-tests/target
 
 install-all: \
+	install-riscv-tools \
 	install-ckb-tools \
 	install-litecoin-tools \
 	install-cardano-tools
@@ -88,9 +89,7 @@ install-all: \
 
 install-ckb-tools: \
 	bin \
-	install-ckb-debugger \
-	install-capsule \
-	install-cross
+	install-ckb-debugger
 
 install-ckb-debugger:
 ifeq ($(shell uname),Darwin)
@@ -101,19 +100,6 @@ else ifeq ($(shell uname),Linux)
 	mv ckb-debugger bin/ckb-debugger
 	rm -rf LICENSE ckb-debugger-linux-x64.tar.gz
 endif
-
-install-capsule:
-ifeq ($(shell uname),Darwin)
-	cargo install ckb-capsule --version "0.10.2" --root ./
-else ifeq ($(shell uname), Linux)
-	wget -nv https://github.com/nervosnetwork/capsule/releases/download/v0.10.2/capsule_v0.10.2_x86_64-linux.tar.gz
-	tar xzvf capsule*.tar.gz
-	mv capsule_*/capsule bin
-	rm -rf capsule_v0.10.2_x86_64-linux capsule_v0.10.2_x86_64-linux.tar.gz
-endif
-
-install-cross:
-	cargo install cross --git https://github.com/cross-rs/cross --root ./
 
 litecoin_tools_url=
 monero_tools_url=
@@ -151,6 +137,9 @@ install-cardano-tools:
 	wget -nv $(cardano_tools_url)
 	tar xvf `basename -- $(cardano_tools_url)` -C bin
 	rm -rf cardano-*
+
+install-riscv-tools:
+	rustup target add riscv64imac-unknown-none-elf
 
 bin:
 	mkdir -p bin
