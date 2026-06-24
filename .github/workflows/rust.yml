@@ -9,9 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
+    - name: Install llvm 19
+      run: wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 19
     - name: Install tools
       run: cd tests && make install-all
     - name: Build contract
@@ -20,4 +22,3 @@ jobs:
       run: cd tests && make all
     - name: Run ckb-auth-cli tests
       run: cd tools/ckb-auth-cli && cargo test
-
