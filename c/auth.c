@@ -421,7 +421,7 @@ int validate_signature_ripple(uint8_t *prefilled_data, uint8_t algorithm_id,
         return ERROR_INVALID_ARG;
     }
 
-    uint8_t out_sign_msg_buf[sig_len];
+    uint8_t out_sign_msg_buf[sig_len + sizeof(G_RIPPLE_SIGN_HEAD)];
 
     RippleSignatureData sign_data;
     sign_data.sign_msg = out_sign_msg_buf;
