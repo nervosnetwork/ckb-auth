@@ -135,6 +135,7 @@ int get_ripple_verify_data(const uint8_t *sign, size_t sign_len,
                 }
                 break;
             case 7:
+                CHECK2(sign_len >= 1, RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
                 buf_len = sign[0];
                 SIGN_BUFF_OFFSET(1);
                 switch (field_code) {
@@ -147,9 +148,11 @@ int get_ripple_verify_data(const uint8_t *sign, size_t sign_len,
                         SIGN_BUFF_OFFSET(buf_len);
                         break;
                     case 4:
-                        out->sign_data_len = buf_len;
+                        CHECK2(buf_len <= RIPPLE_SIGN_DATA_MAX_SIZE,
+                               RIPPLE_ERROR_PARSE_SIGN_LEN_INVADE);
                         CHECK2(sign_len >= buf_len,
                                RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
+                        out->sign_data_len = buf_len;
                         memcpy(out->sign_data, sign, buf_len);
 
                         // generate sign message
@@ -164,7 +167,6 @@ int get_ripple_verify_data(const uint8_t *sign, size_t sign_len,
                         sign_msg_ptr += sign_data_pos;
                         out->sign_msg_len += sign_data_pos;
                         SIGN_BUFF_OFFSET(buf_len);
-                        CHECK2(sign_len >= 0, RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
                         memcpy(sign_msg_ptr, sign, sign_len);
                         out->sign_msg_len += sign_len;
                         break;
@@ -173,6 +175,7 @@ int get_ripple_verify_data(const uint8_t *sign, size_t sign_len,
                 }
                 break;
             case 8:
+                CHECK2(sign_len >= 1, RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
                 buf_len = sign[0];
                 CHECK2(buf_len == RIPPLE_ACCOUNT_ID_SIZE,
                        RIPPLE_ERROR_PARSE_ACCOUNT_LEN_INVADE);
