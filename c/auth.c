@@ -425,7 +425,8 @@ int validate_signature_ripple(uint8_t *prefilled_data, uint8_t algorithm_id,
 
     RippleSignatureData sign_data;
     sign_data.sign_msg = out_sign_msg_buf;
-
+    sign_data.sign_msg_capacity = sizeof(out_sign_msg_buf);
+    
     CHECK2(!get_ripple_verify_data(sig, sig_len, &sign_data),
            ERROR_INVALID_ARG);
     CHECK2(memcmp(sign_data.ckb_msg, msg, RIPPLE_ACCOUNT_ID_SIZE) == 0,

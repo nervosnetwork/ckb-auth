@@ -42,6 +42,7 @@ typedef struct {
     size_t sign_data_len;
     uint8_t *sign_msg;
     size_t sign_msg_len;
+    size_t sign_msg_capacity;
 } RippleSignatureData;
 
 enum RIPPLE_ERROR {
@@ -148,23 +149,30 @@ int get_ripple_verify_data(const uint8_t *sign, size_t sign_len,
                         break;
                     case 4:
                         out->sign_data_len = buf_len;
+                        CHECK2(buf_len <= sizeof(out->sign_data),
+                               RIPPLE_ERROR_PARSE_SIGN_LEN_INVADE);
                         CHECK2(sign_len >= buf_len,
                                RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
                         memcpy(out->sign_data, sign, buf_len);
 
                         // generate sign message
+                        size_t sign_data_pos = sign - sign_base_ptr - 2;
+                        size_t sign_msg_len = sizeof(G_RIPPLE_SIGN_HEAD) +
+                                              sign_data_pos +
+                                              (sign_len - buf_len);
+                        CHECK2(sign_msg_len <= out->sign_msg_capacity,
+                               RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
+
                         uint8_t *sign_msg_ptr = out->sign_msg;
                         memcpy(sign_msg_ptr, G_RIPPLE_SIGN_HEAD,
                                sizeof(G_RIPPLE_SIGN_HEAD));
-                        sign_msg_ptr += 4;
-                        out->sign_msg_len = 4;
+                        sign_msg_ptr += sizeof(G_RIPPLE_SIGN_HEAD);
+                        out->sign_msg_len = sizeof(G_RIPPLE_SIGN_HEAD);
 
-                        size_t sign_data_pos = sign - sign_base_ptr - 2;
                         memcpy(sign_msg_ptr, sign_base_ptr, sign_data_pos);
                         sign_msg_ptr += sign_data_pos;
                         out->sign_msg_len += sign_data_pos;
                         SIGN_BUFF_OFFSET(buf_len);
-                        CHECK2(sign_len >= 0, RIPPLE_ERROR_PARSE_OUT_OF_BOUND);
                         memcpy(sign_msg_ptr, sign, sign_len);
                         out->sign_msg_len += sign_len;
                         break;
