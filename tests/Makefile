@@ -91,14 +91,17 @@ install-ckb-tools: \
 	bin \
 	install-ckb-debugger
 
+CKB_DEBUGGER_VERSION := v1.1.1
+CKB_DEBUGGER_ARCHIVE := ckb-debugger_$(CKB_DEBUGGER_VERSION)_x86_64-unknown-linux-gnu.tar.gz
+
 install-ckb-debugger:
 ifeq ($(shell uname),Darwin)
-	cargo install --git https://github.com/nervosnetwork/ckb-standalone-debugger ckb-debugger --tag v0.111.0 --root ./
+	cargo install --git https://github.com/nervosnetwork/ckb-standalone-debugger ckb-debugger --tag $(CKB_DEBUGGER_VERSION) --root ./
 else ifeq ($(shell uname),Linux)
-	wget -nv 'https://github.com/nervosnetwork/ckb-standalone-debugger/releases/download/v0.111.0/ckb-debugger-linux-x64.tar.gz'
-	tar zxvf ckb-debugger-linux-x64.tar.gz
+	wget -nv 'https://github.com/nervosnetwork/ckb-standalone-debugger/releases/download/$(CKB_DEBUGGER_VERSION)/$(CKB_DEBUGGER_ARCHIVE)'
+	tar zxvf $(CKB_DEBUGGER_ARCHIVE)
 	mv ckb-debugger bin/ckb-debugger
-	rm -rf LICENSE ckb-debugger-linux-x64.tar.gz
+	rm -rf LICENSE $(CKB_DEBUGGER_ARCHIVE)
 endif
 
 litecoin_tools_url=

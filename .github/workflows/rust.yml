@@ -24,4 +24,7 @@ jobs:
     - name: Run all testcases
       run: cd tests && make all
     - name: Run ckb-auth-cli tests
+      env:
+        # mbedtls-sys-auto still declares a policy version older than CMake 4 supports.
+        CMAKE_POLICY_VERSION_MINIMUM: "3.5"
       run: cd tools/ckb-auth-cli && cargo test
