@@ -8,17 +8,17 @@ all: \
 
 auth-spawn-success:
 	cargo run --bin auth-spawn-success > tx.json
-	${CKB_DEBUGGER} --tx-file=tx.json -s lock
+	${CKB_DEBUGGER} --mode fast --script-version 2 --tx-file=tx.json -s lock
 
 auth-spawn-rust-success:
 	cargo run --bin auth-spawn-rust-success > tx.json
-	${CKB_DEBUGGER} --tx-file=tx.json -s lock
+	${CKB_DEBUGGER} --mode fast --script-version 2 --tx-file=tx.json -s lock
 
 cardano-success:
 	./tools/gen_cardano_signature.sh
 	cargo run --bin cardano-success > tx.json
-	${CKB_DEBUGGER} --tx-file=tx.json -s lock
+	${CKB_DEBUGGER} --mode fast --script-version 2 --tx-file=tx.json -s lock
 
 ripple-success:
 	cargo run --bin ripple-success > tx.json
-	${CKB_DEBUGGER} --tx-file=tx.json -s lock
+	${CKB_DEBUGGER} --mode fast --script-version 2 --tx-file=tx.json -s lock
