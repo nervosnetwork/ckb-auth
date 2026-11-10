@@ -86,7 +86,10 @@ impl CKBDLLoader {
         };
 
         if !has_lib {
-            let size = size_of::<DLContext>();
+            let size = size_of::<DLContext>()
+                .checked_sub(self.context_used)
+                .filter(|size| *size >= RISCV_PGSIZE)
+                .ok_or(CkbAuthError::LoadDLError)?;
             let lib = self
                 .context
                 .load_with_offset(code_hash, hash_type, self.context_used, size)
