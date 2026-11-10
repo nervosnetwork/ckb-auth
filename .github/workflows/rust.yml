@@ -15,7 +15,7 @@ jobs:
     - name: Install LLVM 19
       run: |
         sudo apt-get update
-        sudo apt-get install -y llvm-19 clang-19 lld-19
+        sudo apt-get install -y llvm-19 clang-19 lld-19 libclang-19-dev
         echo "/usr/lib/llvm-19/bin" >> "$GITHUB_PATH"
     - name: Install tools
       run: cd tests && make install-all
@@ -27,4 +27,6 @@ jobs:
       env:
         # mbedtls-sys-auto still declares a policy version older than CMake 4 supports.
         CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+        # Keep the older bindgen dependency on the selected LLVM toolchain.
+        LIBCLANG_PATH: /usr/lib/llvm-19/lib
       run: cd tools/ckb-auth-cli && cargo test
